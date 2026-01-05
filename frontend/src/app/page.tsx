@@ -24,23 +24,23 @@ export default function HomePage() {
             </header>
 
             {/* Hero Section */}
-            <section className="container-medical py-20">
+            <section className="container-medical py-28 md:py-32">
                 <div className="max-w-3xl">
-                    <p className="text-primary-500 font-medium mb-4">Powered by Gemini 3</p>
-                    <h1 className="text-5xl font-bold text-gray-900 leading-tight mb-6">
+                    <p className="text-primary-500 font-medium mb-6">Powered by Gemini 3</p>
+                    <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-8">
                         The Clinical Time Machine
                     </h1>
-                    <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                    <p className="text-xl text-gray-600 mb-10 leading-relaxed max-w-2xl">
                         Transform 10 years of patient history into actionable insights in seconds.
                         The first medical AI that leverages 2 million tokens of context to see
                         the complete health journey.
                     </p>
                     <div className="flex gap-4">
-                        <Link href="/dashboard" className="btn-primary flex items-center gap-2">
+                        <Link href="/dashboard" className="btn-primary flex items-center gap-2 text-lg px-8 py-4">
                             <Stethoscope className="h-5 w-5" />
                             I'm a Doctor
                         </Link>
-                        <Link href="/patient-portal" className="btn-secondary flex items-center gap-2">
+                        <Link href="/patient-portal" className="btn-secondary flex items-center gap-2 text-lg px-8 py-4">
                             <Users className="h-5 w-5" />
                             I'm a Patient
                         </Link>
@@ -49,48 +49,48 @@ export default function HomePage() {
             </section>
 
             {/* Features Section */}
-            <section className="container-medical py-20">
-                <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
+            <section className="container-medical py-28">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-16 text-center">
                     Three Pillars of Clinical Intelligence
                 </h2>
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid md:grid-cols-3 gap-10">
                     {/* Feature 1 */}
-                    <div className="card p-8">
-                        <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center mb-6">
-                            <Clock className="h-6 w-6 text-primary-500" />
+                    <div className="card p-10 hover:-translate-y-1 transition-transform duration-300">
+                        <div className="w-14 h-14 rounded-xl bg-primary-50 flex items-center justify-center mb-6">
+                            <Clock className="h-7 w-7 text-primary-500" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                        <h3 className="text-2xl font-semibold text-gray-900 mb-4">
                             Total Recall
                         </h3>
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-gray-600 leading-relaxed text-lg">
                             Load a patient's complete medical history into a single AI context.
                             Every scan, every lab, every clinical note - instantly accessible.
                         </p>
                     </div>
 
                     {/* Feature 2 */}
-                    <div className="card p-8">
-                        <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center mb-6">
-                            <Activity className="h-6 w-6 text-primary-500" />
+                    <div className="card p-10 hover:-translate-y-1 transition-transform duration-300">
+                        <div className="w-14 h-14 rounded-xl bg-primary-50 flex items-center justify-center mb-6">
+                            <Activity className="h-7 w-7 text-primary-500" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                        <h3 className="text-2xl font-semibold text-gray-900 mb-4">
                             Change Detection
                         </h3>
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-gray-600 leading-relaxed text-lg">
                             Automatically compare current status against any historical state.
                             Detect subtle progressions that manual review misses.
                         </p>
                     </div>
 
                     {/* Feature 3 */}
-                    <div className="card p-8">
-                        <div className="w-12 h-12 rounded-lg bg-primary-50 flex items-center justify-center mb-6">
-                            <FileText className="h-6 w-6 text-primary-500" />
+                    <div className="card p-10 hover:-translate-y-1 transition-transform duration-300">
+                        <div className="w-14 h-14 rounded-xl bg-primary-50 flex items-center justify-center mb-6">
+                            <FileText className="h-7 w-7 text-primary-500" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                        <h3 className="text-2xl font-semibold text-gray-900 mb-4">
                             Predictive Trajectory
                         </h3>
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-gray-600 leading-relaxed text-lg">
                             Forecast likely disease progression based on similar patient outcomes.
                             Data-driven treatment selection with transparent reasoning.
                         </p>
@@ -99,20 +99,20 @@ export default function HomePage() {
             </section>
 
             {/* Stats Section */}
-            <section className="bg-primary-500 py-16">
+            <section className="bg-primary-500 py-24 mb-12">
                 <div className="container-medical">
-                    <div className="grid md:grid-cols-3 gap-8 text-center text-white">
+                    <div className="grid md:grid-cols-3 gap-12 text-center text-white">
                         <div>
-                            <p className="text-5xl font-bold mb-2">2M</p>
-                            <p className="text-primary-100">Tokens of Context</p>
+                            <p className="text-6xl font-bold mb-3">2M</p>
+                            <p className="text-primary-100 text-xl">Tokens of Context</p>
                         </div>
                         <div>
-                            <p className="text-5xl font-bold mb-2">8 sec</p>
-                            <p className="text-primary-100">vs 45 min Chart Review</p>
+                            <p className="text-6xl font-bold mb-3">8 sec</p>
+                            <p className="text-primary-100 text-xl">vs 45 min Chart Review</p>
                         </div>
                         <div>
-                            <p className="text-5xl font-bold mb-2">10+ yrs</p>
-                            <p className="text-primary-100">of Patient History</p>
+                            <p className="text-6xl font-bold mb-3">10+ yrs</p>
+                            <p className="text-primary-100 text-xl">of Patient History</p>
                         </div>
                     </div>
                 </div>
