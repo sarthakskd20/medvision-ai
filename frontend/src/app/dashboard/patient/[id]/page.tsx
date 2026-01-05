@@ -18,6 +18,7 @@ import {
     Loader2
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import ReactMarkdown from 'react-markdown'
 
 interface PageProps {
     params: { id: string }
@@ -117,8 +118,8 @@ export default function PatientDetailPage({ params }: PageProps) {
                         <button
                             onClick={() => setActiveTab('timeline')}
                             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'timeline'
-                                    ? 'border-primary-500 text-primary-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             <Clock className="inline h-4 w-4 mr-2" />
@@ -127,8 +128,8 @@ export default function PatientDetailPage({ params }: PageProps) {
                         <button
                             onClick={() => setActiveTab('predict')}
                             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'predict'
-                                    ? 'border-primary-500 text-primary-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             <TrendingUp className="inline h-4 w-4 mr-2" />
@@ -137,8 +138,8 @@ export default function PatientDetailPage({ params }: PageProps) {
                         <button
                             onClick={() => setActiveTab('labs')}
                             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'labs'
-                                    ? 'border-primary-500 text-primary-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             <TestTube className="inline h-4 w-4 mr-2" />
@@ -166,7 +167,7 @@ export default function PatientDetailPage({ params }: PageProps) {
                                     </span>
                                 </div>
                                 <div className="prose prose-sm max-w-none text-gray-600">
-                                    {summaryMutation.data.summary}
+                                    <ReactMarkdown>{summaryMutation.data.summary}</ReactMarkdown>
                                 </div>
                             </div>
                         )}

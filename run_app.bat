@@ -130,9 +130,35 @@ cd /d "%ROOT_DIR%"
 echo.
 
 :: ============================================
-:: STEP 4: Check Environment Configuration
+:: STEP 4: Clean Up Existing Processes
 :: ============================================
-echo [STEP 4/6] Checking environment configuration...
+echo [STEP 4/7] Cleaning up existing processes on ports 3000 and 8000...
+echo.
+
+:: Kill processes on port 8000 (Backend)
+echo   Checking port 8000...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
+    echo   Killing process %%a on port 8000...
+    taskkill /F /PID %%a >nul 2>&1
+)
+echo   [OK] Port 8000 cleared
+
+:: Kill processes on port 3000 (Frontend)
+echo   Checking port 3000...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do (
+    echo   Killing process %%a on port 3000...
+    taskkill /F /PID %%a >nul 2>&1
+)
+echo   [OK] Port 3000 cleared
+
+:: Small delay to ensure ports are released
+timeout /t 2 /nobreak >nul
+echo.
+
+:: ============================================
+:: STEP 5: Check Environment Configuration
+:: ============================================
+echo [STEP 5/7] Checking environment configuration...
 echo.
 
 :: Check backend .env
@@ -153,7 +179,7 @@ if not exist "frontend\.env.local" (
     if exist "frontend\.env.example" (
         copy "frontend\.env.example" "frontend\.env.local" >nul
     ) else (
-        echo NEXT_PUBLIC_API_URL=http://localhost:8000 > "frontend\.env.local"
+        echo NEXT_PUBLIC_API_URL=http://localhost:8001 > "frontend\.env.local"
     )
     echo   [OK] Created frontend\.env.local
 ) else (
@@ -163,18 +189,18 @@ if not exist "frontend\.env.local" (
 echo.
 
 :: ============================================
-:: STEP 5: Start Backend Server
+:: STEP 6: Start Backend Server
 :: ============================================
-echo [STEP 5/6] Starting Backend Server...
+echo [STEP 6/7] Starting Backend Server...
 echo.
 
 cd /d "%ROOT_DIR%backend"
 call venv\Scripts\activate.bat
 
 :: Start backend in new window
-start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo Starting FastAPI on port 8000... && uvicorn app.main:app --reload --port 8000"
+start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo Starting FastAPI on port 8001... && uvicorn app.main:app --reload --port 8001"
 
-echo   [OK] Backend starting on http://localhost:8000
+echo   [OK] Backend starting on http://localhost:8001
 echo.
 
 :: Wait for backend to start
@@ -184,9 +210,9 @@ timeout /t 5 /nobreak >nul
 cd /d "%ROOT_DIR%"
 
 :: ============================================
-:: STEP 6: Start Frontend Server
+:: STEP 7: Start Frontend Server
 :: ============================================
-echo [STEP 6/6] Starting Frontend Server...
+echo [STEP 7/7] Starting Frontend Server...
 echo.
 
 cd /d "%ROOT_DIR%frontend"
@@ -210,8 +236,8 @@ echo   Setup Complete!
 echo  =============================================
 echo.
 echo   Frontend: http://localhost:3000
-echo   Backend:  http://localhost:8000
-echo   API Docs: http://localhost:8000/docs
+echo   Backend:  http://localhost:8001
+echo   API Docs: http://localhost:8001/docs
 echo.
 echo   Opening browser...
 echo.

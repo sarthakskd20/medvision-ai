@@ -8,7 +8,7 @@ from typing import Optional
 from app.services.gemini_service import GeminiService
 
 router = APIRouter()
-gemini = GeminiService()
+# GeminiService is instantiated lazily inside each endpoint to avoid import errors
 
 
 class SummaryRequest(BaseModel):
@@ -26,25 +26,42 @@ async def generate_clinical_summary(request: SummaryRequest):
     Generate AI clinical summary for a patient.
     Uses Gemini 3's 2M token context to analyze complete history.
     """
-    from app.services.firebase_service import FirebaseService
-    firebase = FirebaseService()
-    
-    # Load complete patient history
-    history = await firebase.get_patient_history(request.patient_id)
-    if not history:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    
-    # Generate summary using Gemini 3
-    result = await gemini.generate_clinical_summary(history)
-    
-    return {
-        "patient_id": request.patient_id,
-        "summary": result["summary"],
-        "key_findings": result.get("key_findings", []),
-        "alerts": result.get("alerts", []),
-        "context_tokens": result.get("token_count", 0),
-        "model": "gemini-2.0-flash"
-    }
+    print(f"=== SUMMARY ENDPOINT CALLED ===")
+    print(f"Patient ID: {request.patient_id}")
+    import sys
+    sys.stdout.flush()
+    try:
+        from app.services.firebase_service import FirebaseService
+        firebase = FirebaseService()
+        print("Firebase service loaded")
+        
+        # Lazy instantiation of GeminiService
+        gemini = GeminiService()
+        print("Gemini service loaded")
+        sys.stdout.flush()
+        
+        # Load complete patient history
+        history = await firebase.get_patient_history(request.patient_id)
+        if not history:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        
+        # Generate summary using Gemini 3
+        result = await gemini.generate_clinical_summary(history)
+        
+        return {
+            "patient_id": request.patient_id,
+            "summary": result["summary"],
+            "key_findings": result.get("key_findings", []),
+            "alerts": result.get("alerts", []),
+            "context_tokens": result.get("token_count", 0),
+            "model": "gemini-2.0-flash-exp"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
 
 
 @router.post("/predict-trajectory")

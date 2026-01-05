@@ -2,15 +2,17 @@
 Gemini 3 API Service
 Core AI service that leverages Gemini 3's 2M token context.
 """
-import httpx
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import google.generativeai as genai
 from typing import Optional
 from app.config import settings
 from app.prompts.clinical_summary import CLINICAL_SUMMARY_PROMPT, build_patient_context
 from app.prompts.trajectory_prediction import TRAJECTORY_PROMPT
 from app.prompts.report_simplification import SIMPLIFY_REPORT_PROMPT
 
-# Gemini API Configuration
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+# Thread pool for running sync Gemini calls
+_executor = ThreadPoolExecutor(max_workers=4)
 
 
 class GeminiService:
@@ -18,7 +20,31 @@ class GeminiService:
     
     def __init__(self):
         self.api_key = settings.gemini_api_key
-        self.base_url = GEMINI_API_URL
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+            # Use gemini-2.5-flash for better quota limits
+            # gemini-2.0-flash and gemini-2.0-flash-exp have strict quotas
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+        else:
+            self.model = None
+    
+    def _sync_generate(self, prompt: str, temperature: float = 0.7, max_tokens: int = 8192) -> str:
+        """Synchronous Gemini API call."""
+        if not self.model:
+            return "Error: Gemini API key not configured"
+        
+        generation_config = genai.types.GenerationConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            top_p=0.95,
+        )
+        
+        response = self.model.generate_content(
+            prompt,
+            generation_config=generation_config
+        )
+        
+        return response.text
     
     async def _call_gemini(
         self,
@@ -29,39 +55,16 @@ class GeminiService:
     ) -> str:
         """
         Call Gemini 3 API with full context support.
-        Supports up to 2M tokens in context.
+        Runs synchronous SDK in thread pool to avoid blocking.
         """
-        # Combine context and prompt
         full_prompt = f"{context}\n\n---\n\n{prompt}" if context else prompt
         
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": full_prompt}
-                    ]
-                }
-            ],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-                "topP": 0.95,
-            }
-        }
-        
-        headers = {"Content-Type": "application/json"}
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}?key={self.api_key}",
-                json=payload,
-                headers=headers,
-                timeout=60.0
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            _executor,
+            lambda: self._sync_generate(full_prompt, temperature, max_tokens)
+        )
+        return result
     
     async def _call_gemini_with_thinking(
         self,
@@ -88,7 +91,6 @@ Be thorough but concise in your reasoning.
         
         response = await self._call_gemini(thinking_prompt, temperature=0.3)
         
-        # Parse thinking and answer
         thinking = ""
         answer = ""
         
@@ -117,7 +119,7 @@ Be thorough but concise in your reasoning.
         return {
             "summary": response,
             "token_count": token_count,
-            "key_findings": [],  # Parse from response if needed
+            "key_findings": [],
             "alerts": []
         }
     
@@ -146,11 +148,8 @@ Be thorough but concise in your reasoning.
         }
     
     async def simplify_lab_report(self, report_text: str) -> dict:
-        """
-        Simplify a lab report to plain language for patients.
-        """
+        """Simplify a lab report to plain language for patients."""
         prompt = SIMPLIFY_REPORT_PROMPT.format(report_text=report_text)
-        
         response = await self._call_gemini(prompt, temperature=0.3)
         
         return {
@@ -161,9 +160,7 @@ Be thorough but concise in your reasoning.
         }
     
     async def chat_response(self, message: str, context: str = "") -> dict:
-        """
-        Generate a chat response with optional patient context.
-        """
+        """Generate a chat response with optional patient context."""
         prompt = f"""
 You are a helpful medical AI assistant. Answer the following question.
 If patient context is provided, use it to give a personalized response.
@@ -171,7 +168,6 @@ Always be accurate and cite specific data when available.
 
 Question: {message}
 """
-        
         response = await self._call_gemini(prompt, context, temperature=0.7)
         
         return {
@@ -187,9 +183,7 @@ Question: {message}
         result_value: str,
         normal_range: str
     ) -> dict:
-        """
-        Explain a specific lab result in simple terms.
-        """
+        """Explain a specific lab result in simple terms."""
         prompt = f"""
 A patient is asking about their lab result. Explain in simple, friendly language.
 
@@ -205,7 +199,6 @@ Provide:
 
 Use language a non-medical person would understand. Be reassuring but honest.
 """
-        
         response = await self._call_gemini(prompt, temperature=0.3)
         
         return {
@@ -214,45 +207,8 @@ Use language a non-medical person would understand. Be reassuring but honest.
             "next_steps": []
         }
     
-    async def extract_text_from_image(self, image_bytes: bytes) -> str:
-        """
-        Extract text from an image using Gemini's vision capability.
-        """
-        import base64
-        
-        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-        
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": "Extract all text from this medical report image. Include all lab values, test names, and reference ranges."},
-                        {
-                            "inline_data": {
-                                "mime_type": "image/jpeg",
-                                "data": image_base64
-                            }
-                        }
-                    ]
-                }
-            ]
-        }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}?key={self.api_key}",
-                json=payload,
-                timeout=60.0
-            )
-            response.raise_for_status()
-            
-            data = response.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-    
     async def compare_scans(self, scan1: dict, scan2: dict) -> dict:
-        """
-        Compare two medical scans and detect changes.
-        """
+        """Compare two medical scans and detect changes."""
         prompt = f"""
 Compare these two medical scans and identify all changes.
 
@@ -270,7 +226,6 @@ Provide:
 3. Urgency rating (1-10)
 4. Recommended follow-up actions
 """
-        
         response = await self._call_gemini(prompt, temperature=0.3)
         
         return {
