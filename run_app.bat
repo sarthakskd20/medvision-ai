@@ -21,7 +21,7 @@ cd /d "%ROOT_DIR%"
 :: ============================================
 :: STEP 1: Check Required Software
 :: ============================================
-echo [STEP 1/6] Checking required software...
+echo [STEP 1/7] Checking required software...
 echo.
 
 :: Check Node.js
@@ -76,7 +76,7 @@ echo.
 :: ============================================
 :: STEP 2: Setup Backend
 :: ============================================
-echo [STEP 2/6] Setting up Backend...
+echo [STEP 2/7] Setting up Backend...
 echo.
 
 cd /d "%ROOT_DIR%backend"
@@ -107,7 +107,7 @@ echo.
 :: ============================================
 :: STEP 3: Setup Frontend
 :: ============================================
-echo [STEP 3/6] Setting up Frontend...
+echo [STEP 3/7] Setting up Frontend...
 echo.
 
 cd /d "%ROOT_DIR%frontend"
@@ -132,10 +132,18 @@ echo.
 :: ============================================
 :: STEP 4: Clean Up Existing Processes
 :: ============================================
-echo [STEP 4/7] Cleaning up existing processes on ports 3000 and 8000...
+echo [STEP 4/7] Cleaning up existing processes on ports 3000, 8000 and 8001...
 echo.
 
-:: Kill processes on port 8000 (Backend)
+:: Kill processes on port 8001 (Backend - primary)
+echo   Checking port 8001...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8001 ^| findstr LISTENING') do (
+    echo   Killing process %%a on port 8001...
+    taskkill /F /PID %%a >nul 2>&1
+)
+echo   [OK] Port 8001 cleared
+
+:: Kill processes on port 8000 (Backend - fallback)
 echo   Checking port 8000...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
     echo   Killing process %%a on port 8000...
