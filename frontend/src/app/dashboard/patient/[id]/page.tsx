@@ -15,7 +15,9 @@ import {
     Scan,
     ChevronDown,
     ChevronUp,
-    Loader2
+    Loader2,
+    X,
+    Download
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import ReactMarkdown from 'react-markdown'
@@ -27,6 +29,7 @@ interface PageProps {
 export default function PatientDetailPage({ params }: PageProps) {
     const [activeTab, setActiveTab] = useState('timeline')
     const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
+    const [showSummaryModal, setShowSummaryModal] = useState(false)
 
     const { data: patient, isLoading: patientLoading } = useQuery({
         queryKey: ['patient', params.id],
@@ -41,7 +44,62 @@ export default function PatientDetailPage({ params }: PageProps) {
 
     const summaryMutation = useMutation({
         mutationFn: () => api.generateSummary(params.id),
+        onSuccess: () => setShowSummaryModal(true),
     })
+
+    const handleDownloadPdf = async () => {
+        const summaryContent = summaryMutation.data?.summary
+        if (!summaryContent) return
+
+        // Dynamically import html2pdf
+        const html2pdf = (await import('html2pdf.js')).default
+
+        // Create a styled container for PDF
+        const container = document.createElement('div')
+        container.style.fontFamily = 'Inter, system-ui, sans-serif'
+        container.style.padding = '40px'
+        container.style.maxWidth = '800px'
+        container.style.margin = '0 auto'
+        container.style.backgroundColor = '#ffffff'
+        container.innerHTML = `
+            <div style="border-bottom: 2px solid #006064; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="color: #006064; font-size: 24px; margin: 0 0 8px 0;">AI Clinical Summary</h1>
+                <p style="color: #666; font-size: 14px; margin: 0;">Patient: ${patient?.profile?.name || 'Unknown'} | Generated: ${new Date().toLocaleDateString()}</p>
+            </div>
+            <div id="markdown-content"></div>
+        `
+
+        // Render markdown to HTML
+        const tempDiv = document.createElement('div')
+        const root = document.getElementById('summary-modal-content')
+        if (root) {
+            tempDiv.innerHTML = root.innerHTML
+        }
+        container.querySelector('#markdown-content')!.innerHTML = tempDiv.innerHTML
+
+        // Style the markdown content
+        const style = document.createElement('style')
+        style.textContent = `
+            h2 { color: #006064; font-size: 18px; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+            h3 { color: #374151; font-size: 16px; margin-top: 20px; margin-bottom: 8px; }
+            p { color: #4b5563; line-height: 1.7; margin-bottom: 12px; }
+            ul, ol { color: #4b5563; padding-left: 24px; margin-bottom: 12px; }
+            li { margin-bottom: 6px; line-height: 1.6; }
+            strong { color: #006064; font-weight: 600; }
+            hr { border: none; border-top: 1px solid #e5e7eb; margin: 20px 0; }
+        `
+        container.prepend(style)
+
+        const opt = {
+            margin: [10, 15, 10, 15] as [number, number, number, number],
+            filename: `${patient?.profile?.name?.replace(/\s+/g, '_') || 'patient'}_AI_Summary_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }
+
+        html2pdf().set(opt as any).from(container).save()
+    }
 
     if (patientLoading) {
         return (
@@ -154,23 +212,6 @@ export default function PatientDetailPage({ params }: PageProps) {
                 <div className="grid grid-cols-3 gap-8">
                     {/* Left Column - Timeline */}
                     <div className="col-span-2">
-                        {/* AI Summary Card */}
-                        {summaryMutation.data && (
-                            <div className="card p-6 mb-6 border-l-4 border-l-primary-500">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <Activity className="h-5 w-5 text-primary-500" />
-                                        AI Clinical Summary
-                                    </h2>
-                                    <span className="text-xs px-3 py-1 rounded-full bg-primary-50 text-primary-600 font-mono">
-                                        {summaryMutation.data.context_tokens?.toLocaleString()} tokens
-                                    </span>
-                                </div>
-                                <div className="prose prose-sm max-w-none text-gray-600">
-                                    <ReactMarkdown>{summaryMutation.data.summary}</ReactMarkdown>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Timeline */}
                         {activeTab === 'timeline' && (
@@ -305,6 +346,57 @@ export default function PatientDetailPage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
+
+            {/* AI Summary Modal Overlay */}
+            {showSummaryModal && summaryMutation.data && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowSummaryModal(false)}
+                    />
+
+                    {/* Modal Card */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+                            <div className="flex items-center gap-3">
+                                <Activity className="h-6 w-6 text-primary-500" />
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-900">AI Clinical Summary</h2>
+                                    <p className="text-sm text-gray-500">{patient?.profile?.name} | {summaryMutation.data.context_tokens?.toLocaleString()} tokens analyzed</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors"
+                                >
+                                    <Download className="h-4 w-4" />
+                                    Download PDF
+                                </button>
+                                <button
+                                    onClick={() => setShowSummaryModal(false)}
+                                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Content with Scrollbar */}
+                        <div
+                            id="summary-modal-content"
+                            className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+                            style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db #f3f4f6' }}
+                        >
+                            <div className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-p:text-gray-600 prose-p:leading-relaxed prose-strong:text-primary-700 prose-li:text-gray-600 prose-li:leading-relaxed">
+                                <ReactMarkdown>{summaryMutation.data.summary}</ReactMarkdown>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

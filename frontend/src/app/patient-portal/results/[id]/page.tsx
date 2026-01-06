@@ -11,6 +11,7 @@ import {
     HelpCircle,
     MessageCircle
 } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 
 interface LabResult {
     test: string
@@ -109,17 +110,17 @@ export default function ResultsPage() {
                     {result.overall_summary && (
                         <div className="card p-6 mb-8 border-l-4 border-l-primary-500">
                             <h2 className="font-semibold text-gray-900 mb-3">Overall Summary</h2>
-                            <p className="text-gray-600 leading-relaxed">
-                                {result.overall_summary}
-                            </p>
+                            <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed">
+                                <ReactMarkdown>{result.overall_summary}</ReactMarkdown>
+                            </div>
                         </div>
                     )}
 
                     {/* Interpretation */}
                     <div className="card p-6 mb-8">
                         <h2 className="font-semibold text-gray-900 mb-4">Detailed Interpretation</h2>
-                        <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-wrap">
-                            {result.interpretation}
+                        <div className="prose prose-slate max-w-none text-gray-600 prose-headings:font-bold prose-headings:text-gray-900 prose-p:leading-relaxed prose-strong:text-primary-700 prose-strong:font-semibold prose-li:marker:text-primary-500">
+                            <ReactMarkdown>{result.interpretation}</ReactMarkdown>
                         </div>
                     </div>
 

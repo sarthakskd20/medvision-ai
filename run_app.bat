@@ -126,6 +126,13 @@ if not exist "node_modules" (
     echo   [OK] Node.js dependencies already installed
 )
 
+:: Clean .next cache to prevent ChunkLoadError
+if exist ".next" (
+    echo   Cleaning .next cache for fresh build...
+    rmdir /s /q ".next" >nul 2>&1
+    echo   [OK] .next cache cleared
+)
+
 cd /d "%ROOT_DIR%"
 echo.
 
@@ -231,9 +238,10 @@ start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo Starting N
 echo   [OK] Frontend starting on http://localhost:3000
 echo.
 
-:: Wait for frontend to start
+:: Wait for frontend to start (15s for first-time compilation)
 echo   Waiting for frontend to initialize...
-timeout /t 8 /nobreak >nul
+echo   (First run may take longer for compilation)
+timeout /t 15 /nobreak >nul
 
 :: ============================================
 :: Open Browser
