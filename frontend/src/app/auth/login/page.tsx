@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
     Activity,
     Mail,
@@ -15,13 +15,22 @@ import {
 
 type UserRole = 'doctor' | 'patient'
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [role, setRole] = useState<UserRole>('doctor')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
+
+    // Read role from URL on mount
+    useEffect(() => {
+        const urlRole = searchParams.get('role')
+        if (urlRole === 'patient' || urlRole === 'doctor') {
+            setRole(urlRole)
+        }
+    }, [searchParams])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -80,8 +89,8 @@ export default function LoginPage() {
                     <button
                         onClick={() => setRole('doctor')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all ${role === 'doctor'
-                                ? 'bg-white text-primary-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-primary-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         <Stethoscope className="h-5 w-5" />
@@ -90,8 +99,8 @@ export default function LoginPage() {
                     <button
                         onClick={() => setRole('patient')}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium transition-all ${role === 'patient'
-                                ? 'bg-white text-primary-600 shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-white text-primary-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
                             }`}
                     >
                         <User className="h-5 w-5" />
@@ -179,5 +188,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-b from-secondary-100 to-white flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     )
 }
