@@ -97,8 +97,13 @@ if not exist "venv" (
 echo   Activating virtual environment...
 call venv\Scripts\activate.bat
 
-echo   Installing Python dependencies...
-pip install -r requirements.txt -q
+echo   Installing Python dependencies (this may take a minute)...
+pip install --upgrade -r requirements.txt
+if !errorlevel! neq 0 (
+    echo   [FAIL] Failed to install Python dependencies.
+    pause
+    exit /b 1
+)
 echo   [OK] Python dependencies installed
 
 cd /d "%ROOT_DIR%"
