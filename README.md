@@ -22,15 +22,44 @@ This will automatically:
 
 ---
 
-## Demo Credentials (For Testing/Judges)
+## Testing Guide for Collaborators
+
+### Quick Start (No Verification Required)
+
+**Option 1: Use Pre-verified Demo Accounts**
 
 | Email | Password | Role |
 |-------|----------|------|
 | `dr.chen@medvision.ai` | `Demo@2025` | Doctor (Pre-verified) |
 | `dr.smith@medvision.ai` | `Demo@2025` | Doctor (Pre-verified) |
 
-**Magic Code for Instant Verification**: `GEMINI2025`
-(Enter this during doctor registration to skip document verification)
+1. Go to `http://localhost:3000`
+2. Click **"Login"** → **"Doctor Login"**
+3. Enter demo email and password above
+4. You'll be taken directly to the Doctor Dashboard
+
+**Option 2: Register with Magic Code (Instant Approval)**
+
+1. Go to `http://localhost:3000`
+2. Click **"Register"** → **"Apply as Doctor"**
+3. Fill out steps 1 & 2 with any test data
+4. In Step 3 (Documents), enter Magic Code: `GEMINI2025`
+5. Click "Complete Registration" - you'll be instantly verified
+
+**Option 3: Test as Patient**
+
+1. Go to `http://localhost:3000`
+2. Click **"Login"** → **"Patient Login"**
+3. Or click **"Register"** → **"Create Patient Account"**
+4. No verification needed for patients
+
+### Test Email Domains (Auto-Approved)
+
+Any email ending with these domains gets auto-approved:
+- `@test.medvision.ai`
+- `@demo.medvision.ai`
+
+Example: `john@test.medvision.ai` will be instantly verified.
 
 ---
 
