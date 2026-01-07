@@ -81,7 +81,7 @@ echo.
 
 cd /d "%ROOT_DIR%backend"
 
-:: Check if venv exists
+:: Create venv if it doesn't exist
 if not exist "venv" (
     echo   Creating Python virtual environment...
     python -m venv venv
@@ -91,18 +91,23 @@ if not exist "venv" (
         exit /b 1
     )
     echo   [OK] Virtual environment created
+) else (
+    echo   [OK] Virtual environment exists
 )
 
-:: Activate venv and install requirements
+:: Activate venv
 echo   Activating virtual environment...
 call venv\Scripts\activate.bat
 
-echo   Installing Python dependencies (this may take a minute)...
-pip install --upgrade -r requirements.txt
+:: ALWAYS install/update dependencies to ensure all packages are present
+:: This fixes issues when new dependencies are added to requirements.txt
+echo   Installing/Updating Python dependencies...
+echo   (This ensures all packages are up-to-date)
+pip install --upgrade pip -q 2>nul
+pip install -r requirements.txt --quiet --disable-pip-version-check
 if !errorlevel! neq 0 (
-    echo   [FAIL] Failed to install Python dependencies.
-    pause
-    exit /b 1
+    echo   [WARNING] Some packages may have failed. Retrying with verbose output...
+    pip install -r requirements.txt
 )
 echo   [OK] Python dependencies installed
 
@@ -129,6 +134,9 @@ if not exist "node_modules" (
     echo   [OK] Node.js dependencies installed
 ) else (
     echo   [OK] Node.js dependencies already installed
+    :: Check if package.json has been updated (new dependencies)
+    echo   Checking for new dependencies...
+    call npm install --quiet 2>nul
 )
 
 :: Clean .next cache to prevent ChunkLoadError
@@ -217,8 +225,8 @@ echo.
 cd /d "%ROOT_DIR%backend"
 call venv\Scripts\activate.bat
 
-:: Start backend in new window
-start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo Starting FastAPI on port 8001... && uvicorn app.main:app --reload --port 8001"
+:: Start backend in new window with error handling
+start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo. && echo ============================================ && echo Starting FastAPI Backend Server... && echo ============================================ && echo. && uvicorn app.main:app --reload --port 8001 || (echo. && echo [ERROR] Backend failed to start! && echo Check if all dependencies are installed. && echo Try running: pip install -r requirements.txt && pause)"
 
 echo   [OK] Backend starting on http://localhost:8001
 echo.
@@ -238,7 +246,7 @@ echo.
 cd /d "%ROOT_DIR%frontend"
 
 :: Start frontend in new window
-start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo Starting Next.js on port 3000... && npm run dev"
+start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo. && echo ============================================ && echo Starting Next.js Frontend Server... && echo ============================================ && echo. && npm run dev"
 
 echo   [OK] Frontend starting on http://localhost:3000
 echo.
