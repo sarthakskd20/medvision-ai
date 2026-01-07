@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Activity, Clock, FileText, ArrowRight, Stethoscope, Users } from 'lucide-react'
+import { Activity, Clock, FileText, ArrowRight, Stethoscope, Users, UserPlus, LogIn, AlertTriangle, Shield } from 'lucide-react'
 
 export default function HomePage() {
     return (
@@ -12,19 +12,20 @@ export default function HomePage() {
                         <span className="text-xl font-semibold text-gray-900">MedVision AI</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
-                            Doctor Portal
+                        <Link href="/auth/login" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2">
+                            <LogIn className="h-4 w-4" />
+                            Login
                         </Link>
-                        <Link href="/patient-portal" className="btn-primary flex items-center gap-2">
-                            Patient Portal
-                            <ArrowRight className="h-4 w-4" />
+                        <Link href="/auth/register/doctor" className="btn-primary flex items-center gap-2">
+                            <UserPlus className="h-4 w-4" />
+                            Register
                         </Link>
                     </div>
                 </nav>
             </header>
 
             {/* Hero Section */}
-            <section className="container-medical py-28 md:py-32">
+            <section className="container-medical py-20 md:py-24">
                 <div className="max-w-3xl">
                     <p className="text-primary-500 font-medium mb-6">Powered by Gemini 3</p>
                     <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight mb-8">
@@ -35,21 +36,138 @@ export default function HomePage() {
                         The first medical AI that leverages 2 million tokens of context to see
                         the complete health journey.
                     </p>
-                    <div className="flex gap-4">
-                        <Link href="/dashboard" className="btn-primary flex items-center gap-2 text-lg px-8 py-4">
-                            <Stethoscope className="h-5 w-5" />
-                            I'm a Doctor
-                        </Link>
-                        <Link href="/patient-portal" className="btn-secondary flex items-center gap-2 text-lg px-8 py-4">
-                            <Users className="h-5 w-5" />
-                            I'm a Patient
-                        </Link>
+                </div>
+            </section>
+
+            {/* Register & Login Section */}
+            <section className="container-medical py-12">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+
+                    {/* Register Section */}
+                    <div className="card p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                                <UserPlus className="h-6 w-6 text-green-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900">Register</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Register as Doctor */}
+                            <div className="border border-gray-200 rounded-lg p-5 hover:border-primary-300 transition-colors">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Stethoscope className="h-5 w-5 text-primary-500" />
+                                    <h3 className="font-semibold text-gray-900">Register as Doctor</h3>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    Submit your credentials and medical documents for AI-powered verification.
+                                </p>
+                                <Link
+                                    href="/auth/register/doctor"
+                                    className="btn-primary w-full flex items-center justify-center gap-2"
+                                >
+                                    Apply as Doctor
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+
+                                {/* Warning for Doctors */}
+                                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                        <div className="text-xs text-red-700">
+                                            <p className="font-semibold mb-1">Warning</p>
+                                            <p>
+                                                Submitting fake credentials or impersonating a medical professional
+                                                will result in <strong>permanent ban</strong> and may lead to
+                                                <strong> legal action</strong>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Register as Patient */}
+                            <div className="border border-gray-200 rounded-lg p-5 hover:border-primary-300 transition-colors">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Users className="h-5 w-5 text-primary-500" />
+                                    <h3 className="font-semibold text-gray-900">Create Patient Account</h3>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    Access your health reports and get AI-powered interpretations.
+                                </p>
+                                <Link
+                                    href="/auth/register/patient"
+                                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                                >
+                                    Create Account
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Login Section */}
+                    <div className="card p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                                <LogIn className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900">Login</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            {/* Login as Doctor */}
+                            <div className="border border-gray-200 rounded-lg p-5 hover:border-primary-300 transition-colors">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Stethoscope className="h-5 w-5 text-primary-500" />
+                                    <h3 className="font-semibold text-gray-900">Login as Doctor</h3>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    Access your dashboard and manage patient records.
+                                </p>
+                                <Link
+                                    href="/auth/login?role=doctor"
+                                    className="btn-primary w-full flex items-center justify-center gap-2"
+                                >
+                                    Doctor Login
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+
+                                {/* Verified Badge */}
+                                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <Shield className="h-5 w-5 text-green-600" />
+                                        <p className="text-xs text-green-700">
+                                            Only verified doctors can access the dashboard.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Login as Patient */}
+                            <div className="border border-gray-200 rounded-lg p-5 hover:border-primary-300 transition-colors">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <Users className="h-5 w-5 text-primary-500" />
+                                    <h3 className="font-semibold text-gray-900">Login as Patient</h3>
+                                </div>
+                                <p className="text-gray-600 text-sm mb-4">
+                                    View your health reports and AI interpretations.
+                                </p>
+                                <Link
+                                    href="/auth/login?role=patient"
+                                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                                >
+                                    Patient Login
+                                    <ArrowRight className="h-4 w-4" />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* Features Section */}
-            <section className="container-medical py-28">
+            <section className="container-medical py-20">
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-16 text-center">
                     Three Pillars of Clinical Intelligence
                 </h2>
@@ -99,7 +217,7 @@ export default function HomePage() {
             </section>
 
             {/* Stats Section */}
-            <section className="bg-primary-500 py-24 mb-12">
+            <section className="bg-primary-500 py-24">
                 <div className="container-medical">
                     <div className="grid md:grid-cols-3 gap-12 text-center text-white">
                         <div>
