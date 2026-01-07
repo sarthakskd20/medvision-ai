@@ -1,0 +1,255 @@
+"""
+Authentication routes for doctor login, registration, and verification.
+"""
+
+import os
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional, List
+from pydantic import BaseModel
+
+from app.models.user import (
+    DoctorCreate,
+    DoctorResponse,
+    LoginRequest,
+    LoginResponse,
+    VerificationStatus,
+    UserRole,
+    COUNTRIES,
+    SPECIALIZATIONS,
+    MAGIC_VERIFICATION_CODE
+)
+from app.services.auth_service import (
+    register_doctor,
+    login_doctor,
+    verify_token,
+    get_doctor_by_id,
+    update_verification_status,
+    is_demo_email,
+    doctors_db
+)
+from app.services.verification_service import verification_service
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+security = HTTPBearer(auto_error=False)
+
+# Check if demo mode is enabled
+DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+
+class RegisterRequest(BaseModel):
+    """Doctor registration request with optional magic code."""
+    email: str
+    password: str
+    confirm_password: str
+    name: str
+    country: str
+    registration_number: str
+    specialization: str
+    hospital: Optional[str] = None
+    phone: Optional[str] = None
+    magic_code: Optional[str] = None  # For instant approval
+
+
+class VerifyDocumentsRequest(BaseModel):
+    """Request to verify uploaded documents."""
+    doctor_id: str
+
+
+@router.post("/register", response_model=DoctorResponse)
+async def register(data: RegisterRequest):
+    """
+    Register a new doctor.
+    
+    - If email is a demo/test email, auto-approves
+    - If magic_code is GEMINI2025, auto-approves
+    - Otherwise, status is PENDING until documents are verified
+    """
+    try:
+        # Convert to DoctorCreate
+        doctor_data = DoctorCreate(
+            email=data.email,
+            password=data.password,
+            confirm_password=data.confirm_password,
+            name=data.name,
+            country=data.country,
+            registration_number=data.registration_number,
+            specialization=data.specialization,
+            hospital=data.hospital,
+            phone=data.phone
+        )
+        
+        doctor = register_doctor(doctor_data, data.magic_code)
+        
+        return DoctorResponse(
+            id=doctor.id,
+            email=doctor.email,
+            name=doctor.name,
+            country=doctor.country,
+            registration_number=doctor.registration_number,
+            specialization=doctor.specialization,
+            hospital=doctor.hospital,
+            verification_status=doctor.verification_status,
+            role=UserRole.DOCTOR,
+            created_at=doctor.created_at
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(data: LoginRequest):
+    """
+    Login as a doctor.
+    
+    Demo accounts:
+    - dr.chen@medvision.ai / Demo@2025
+    - dr.smith@medvision.ai / Demo@2025
+    """
+    try:
+        result = login_doctor(data)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+@router.get("/me", response_model=DoctorResponse)
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current logged-in user from JWT token."""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    token_data = verify_token(credentials.credentials)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    doctor = get_doctor_by_id(token_data.sub)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return DoctorResponse(
+        id=doctor.id,
+        email=doctor.email,
+        name=doctor.name,
+        country=doctor.country,
+        registration_number=doctor.registration_number,
+        specialization=doctor.specialization,
+        hospital=doctor.hospital,
+        verification_status=doctor.verification_status,
+        role=UserRole.DOCTOR,
+        created_at=doctor.created_at
+    )
+
+
+@router.post("/verify-documents")
+async def verify_documents(
+    doctor_id: str = Form(...),
+    name: str = Form(...),
+    country: str = Form(...),
+    registration_number: str = Form(...),
+    specialization: str = Form(...),
+    documents: List[UploadFile] = File(...)
+):
+    """
+    Verify uploaded documents using Gemini 3 Vision.
+    
+    - Analyzes each document for authenticity
+    - Cross-checks extracted data with form data
+    - Returns verification status and confidence score
+    """
+    if not documents:
+        raise HTTPException(status_code=400, detail="At least one document is required")
+    
+    # Check file sizes and types
+    allowed_types = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
+    max_size = 5 * 1024 * 1024  # 5 MB
+    
+    doc_data = []
+    for doc in documents:
+        # Check type
+        if doc.content_type not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file type: {doc.content_type}. Allowed: JPG, PNG, PDF"
+            )
+        
+        # Read and check size
+        content = await doc.read()
+        if len(content) > max_size:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File {doc.filename} exceeds 5MB limit"
+            )
+        
+        doc_data.append((content, doc.content_type))
+    
+    # Prepare form data for verification
+    form_data = {
+        "name": name,
+        "country": country,
+        "registration_number": registration_number,
+        "specialization": specialization
+    }
+    
+    # Check demo mode
+    if DEMO_MODE:
+        result = {
+            "status": "approved",
+            "confidence_score": 100.0,
+            "message": "Demo mode - auto-approved",
+            "matches": {"name_match": True, "registration_match": True},
+            "issues": []
+        }
+        update_verification_status(doctor_id, VerificationStatus.APPROVED, 100.0, "Demo mode")
+        return result
+    
+    # Run Gemini verification
+    try:
+        result = await verification_service.verify_doctor_documents(form_data, doc_data)
+        
+        # Update doctor status
+        update_verification_status(
+            doctor_id,
+            result.status,
+            result.confidence_score,
+            result.recommendation
+        )
+        
+        return {
+            "status": result.status.value,
+            "confidence_score": result.confidence_score,
+            "matches": result.matches,
+            "issues": result.issues,
+            "recommendation": result.recommendation
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
+
+
+@router.get("/countries")
+async def get_countries():
+    """Get list of supported countries."""
+    return {"countries": COUNTRIES}
+
+
+@router.get("/specializations")
+async def get_specializations():
+    """Get list of medical specializations."""
+    return {"specializations": SPECIALIZATIONS}
+
+
+@router.get("/verification-status/{doctor_id}")
+async def get_verification_status(doctor_id: str):
+    """Get verification status for a doctor."""
+    doctor = get_doctor_by_id(doctor_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    
+    return {
+        "doctor_id": doctor.id,
+        "status": doctor.verification_status.value,
+        "score": doctor.verification_score,
+        "notes": doctor.verification_notes
+    }

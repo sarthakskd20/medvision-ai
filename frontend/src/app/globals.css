@@ -20,7 +20,12 @@ body {
 }
 
 /* Typography scales */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -125,6 +130,7 @@ h3 {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -146,6 +152,7 @@ h3 {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }
@@ -186,4 +193,75 @@ h3 {
 
 .btn-secondary:hover {
   background-color: rgba(0, 96, 100, 0.05);
+}
+
+.btn-primary:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input field styles */
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background-color: white;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 96, 100, 0.1);
+}
+
+.input-field::placeholder {
+  color: #9ca3af;
+}
+
+/* Select dropdown */
+select.input-field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+/* Primary color utilities */
+.text-primary-500 {
+  color: var(--primary);
+}
+
+.text-primary-600 {
+  color: #004a4d;
+}
+
+.bg-primary-50 {
+  background-color: rgba(0, 96, 100, 0.05);
+}
+
+.bg-primary-100 {
+  background-color: rgba(0, 96, 100, 0.1);
+}
+
+.bg-primary-500 {
+  background-color: var(--primary);
+}
+
+.border-primary-100 {
+  border-color: rgba(0, 96, 100, 0.1);
+}
+
+/* Secondary color utilities */
+.bg-secondary-100 {
+  background-color: var(--secondary);
 }
