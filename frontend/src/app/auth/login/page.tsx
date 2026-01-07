@@ -12,6 +12,7 @@ import {
     Stethoscope,
     User
 } from 'lucide-react'
+import { signInWithGoogle } from '@/lib/firebase'
 
 type UserRole = 'doctor' | 'patient'
 
@@ -181,11 +182,34 @@ function LoginContent() {
 
                             <button
                                 type="button"
-                                onClick={() => {
-                                    // Google OAuth would be implemented here
-                                    alert('Google Sign-In will be configured with Firebase Auth')
+                                disabled={isLoading}
+                                onClick={async () => {
+                                    setError('')
+                                    setIsLoading(true)
+                                    try {
+                                        const googleUser = await signInWithGoogle()
+
+                                        // Store user info
+                                        const userData = {
+                                            id: googleUser.uid,
+                                            email: googleUser.email,
+                                            name: googleUser.name,
+                                            photoURL: googleUser.photoURL,
+                                            role: 'patient',
+                                            verification_status: 'approved'
+                                        }
+                                        localStorage.setItem('user', JSON.stringify(userData))
+                                        localStorage.setItem('auth_token', googleUser.idToken)
+
+                                        // Redirect to patient portal
+                                        router.push('/patient-portal')
+                                    } catch (err: any) {
+                                        setError(err.message || 'Google sign-in failed')
+                                    } finally {
+                                        setIsLoading(false)
+                                    }
                                 }}
-                                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                             >
                                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                                     <path
