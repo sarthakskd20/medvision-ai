@@ -23,11 +23,15 @@ class VerificationService:
     def __init__(self):
         if settings.gemini_api_key:
             genai.configure(api_key=settings.gemini_api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash')
-            self.vision_model = genai.GenerativeModel('gemini-2.0-flash')
+            # Use gemini-2.5-flash for better rate limits and OCR capabilities
+            # gemini-2.0-flash has strict quotas, 2.5-flash is more permissive
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.vision_model = genai.GenerativeModel('gemini-2.5-flash')
+            print(f"[VerificationService] Initialized with gemini-2.5-flash")
         else:
             self.model = None
             self.vision_model = None
+            print(f"[VerificationService] WARNING: No Gemini API key configured!")
     
     def get_country_tier(self, country: str) -> int:
         """Get verification tier for country."""
@@ -48,12 +52,20 @@ class VerificationService:
     
     async def analyze_document(self, image_data: bytes, mime_type: str) -> dict:
         """Analyze a single document using Gemini Vision."""
+        print(f"\n{'='*60}")
+        print(f"[GEMINI VISION] Analyzing document...")
+        print(f"  Image size: {len(image_data)} bytes")
+        print(f"  MIME type: {mime_type}")
+        
         if not self.vision_model:
+            print(f"  [ERROR] Gemini API not configured!")
+            print(f"  Please add GEMINI_API_KEY to backend/.env")
+            print(f"{'='*60}\n")
             return {
                 "error": "Gemini API not configured",
                 "extracted_text": "",
                 "document_type": "unknown",
-                "authenticity_score": 0
+                "authenticity_confidence": 0
             }
         
         prompt = """
@@ -84,6 +96,7 @@ class VerificationService:
         
         try:
             # Prepare image for Gemini
+            print(f"  Sending to Gemini Vision API...")
             image_part = {
                 "mime_type": mime_type,
                 "data": base64.b64encode(image_data).decode('utf-8')
@@ -93,6 +106,9 @@ class VerificationService:
             
             # Parse JSON from response
             text = response.text.strip()
+            print(f"  [OK] Received response ({len(text)} chars)")
+            
+            # Clean up JSON
             if text.startswith("```json"):
                 text = text[7:]
             if text.startswith("```"):
@@ -100,14 +116,36 @@ class VerificationService:
             if text.endswith("```"):
                 text = text[:-3]
             
-            return json.loads(text.strip())
+            result = json.loads(text.strip())
+            
+            # Log extracted data
+            print(f"  Document Type: {result.get('document_type', 'unknown')}")
+            print(f"  Extracted Name: {result.get('extracted_name', 'N/A')}")
+            print(f"  Registration #: {result.get('extracted_registration_number', 'N/A')}")
+            print(f"  Specialization: {result.get('extracted_specialization', 'N/A')}")
+            print(f"  Authenticity: {result.get('authenticity_confidence', 0)}%")
+            print(f"{'='*60}\n")
+            
+            return result
             
         except Exception as e:
+            error_str = str(e)
+            print(f"  [ERROR] Gemini API call failed!")
+            print(f"  Error: {error_str}")
+            
+            # Check for specific error types
+            if 'quota' in error_str.lower() or 'rate' in error_str.lower():
+                print(f"  [RATE LIMIT] API quota exceeded. Wait a few minutes.")
+            elif 'invalid' in error_str.lower() or 'api_key' in error_str.lower():
+                print(f"  [INVALID KEY] Check your Gemini API key")
+            
+            print(f"{'='*60}\n")
+            
             return {
-                "error": str(e),
+                "error": error_str,
                 "extracted_text": "",
                 "document_type": "unknown",
-                "authenticity_score": 0
+                "authenticity_confidence": 0
             }
     
     async def verify_doctor_documents(
