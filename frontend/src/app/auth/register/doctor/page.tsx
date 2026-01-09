@@ -325,7 +325,7 @@ export default function DoctorRegisterPage() {
             console.log(`[UPLOAD] Total documents to send: ${documentTypes.length}`)
             console.log(`[UPLOAD] Document types: ${JSON.stringify(documentTypes)}`)
 
-            const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents`, {
+            const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents-v2`, {
                 method: 'POST',
                 body: formDataUpload
             })

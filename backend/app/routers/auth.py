@@ -51,9 +51,7 @@ class RegisterRequest(BaseModel):
     magic_code: Optional[str] = None  # For instant approval
 
 
-class VerifyDocumentsRequest(BaseModel):
-    """Request to verify uploaded documents."""
-    doctor_id: str
+
 
 
 @router.post("/register", response_model=DoctorResponse)
@@ -142,7 +140,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     )
 
 
-@router.post("/verify-documents")
+@router.post("/verify-documents-v2")
 async def verify_documents(
     name: str = Form(...),
     country: str = Form(...),
