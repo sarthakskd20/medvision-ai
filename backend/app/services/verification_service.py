@@ -69,9 +69,41 @@ class VerificationService:
             }
         
         prompt = """
-        Analyze this medical professional document. Extract and return the following in JSON format:
+        CRITICAL: Analyze this document image for AUTHENTICITY and AI GENERATION.
+        
+        You are a document fraud detection expert. Analyze this alleged medical professional document.
+        
+        FIRST, check for these IMMEDIATE REJECTION criteria:
+        1. AI-GENERATED IMAGE: Look for telltale signs of AI generation:
+           - Unnatural text rendering, warped letters, or gibberish text
+           - Inconsistent shadows or lighting
+           - Blurred or morphed edges around text/seals
+           - Too-perfect or synthetic appearance
+           - Generic stock photo elements (placeholder headshots)
+           - Artifacts from DALL-E, Midjourney, Stable Diffusion, etc.
+           
+        2. DIGITALLY EDITED/MANIPULATED:
+           - Text that appears pasted or overlaid
+           - Mismatched fonts or inconsistent text sizes
+           - Clone stamp artifacts or repeated patterns
+           - Unnatural color boundaries around edited areas
+           - EXIF metadata inconsistencies (if visible)
+           
+        3. IMAGE QUALITY ISSUES:
+           - Severely blurred text (unreadable)
+           - Too low resolution to verify details
+           - Glare obscuring critical information
+           
+        Now extract and return the following in JSON format:
         
         {
+            "is_ai_generated": true/false,
+            "ai_generation_confidence": 0-100,
+            "ai_generation_indicators": ["list", "of", "specific", "AI", "artifacts", "detected"],
+            "is_digitally_edited": true/false,
+            "edit_indicators": ["list", "of", "editing", "signs"],
+            "is_blurry": true/false,
+            "blur_severity": "none|mild|severe",
             "document_type": "degree|license|hospital_id|certificate|unknown",
             "extracted_name": "Full name as appears on document",
             "extracted_registration_number": "Any registration/license number found",
@@ -87,10 +119,17 @@ class VerificationService:
             "text_clarity_score": 0-100,
             "tampering_indicators": ["list", "of", "any", "suspicious", "elements"],
             "authenticity_confidence": 0-100,
-            "notes": "Any additional observations"
+            "rejection_reasons": ["list reasons if document should be rejected"],
+            "notes": "Additional observations about document authenticity"
         }
         
-        Be thorough in your analysis. Look for signs of tampering, editing, or forgery.
+        IMPORTANT SCORING RULES:
+        - If AI-generated: authenticity_confidence MUST be 0-10, add to rejection_reasons
+        - If digitally edited: authenticity_confidence MUST be 0-30, add to rejection_reasons
+        - If severely blurry: authenticity_confidence MUST be 0-20, add to rejection_reasons
+        - A real scanned document with proper seals: 80-100
+        - A photo of a real document: 60-90 depending on quality
+        
         Return ONLY the JSON object, no other text.
         """
         
@@ -130,12 +169,36 @@ class VerificationService:
                     
                     result = json.loads(text.strip())
                     
-                    # Log extracted data
+                    # Log extracted data with AI detection warnings
                     print(f"  Document Type: {result.get('document_type', 'unknown')}")
                     print(f"  Extracted Name: {result.get('extracted_name', 'N/A')}")
                     print(f"  Registration #: {result.get('extracted_registration_number', 'N/A')}")
                     print(f"  Specialization: {result.get('extracted_specialization', 'N/A')}")
                     print(f"  Authenticity: {result.get('authenticity_confidence', 0)}%")
+                    
+                    # AI Generation Detection Warnings
+                    if result.get('is_ai_generated'):
+                        print(f"  [FRAUD ALERT] AI-GENERATED DOCUMENT DETECTED!")
+                        indicators = result.get('ai_generation_indicators', [])
+                        if indicators:
+                            print(f"  AI Indicators: {', '.join(indicators[:3])}")
+                    
+                    # Digital Editing Detection
+                    if result.get('is_digitally_edited'):
+                        print(f"  [WARNING] Document appears digitally edited!")
+                        edit_signs = result.get('edit_indicators', [])
+                        if edit_signs:
+                            print(f"  Edit Signs: {', '.join(edit_signs[:3])}")
+                    
+                    # Blur Detection
+                    if result.get('is_blurry') or result.get('blur_severity') == 'severe':
+                        print(f"  [QUALITY] Document is blurry - severity: {result.get('blur_severity', 'unknown')}")
+                    
+                    # Rejection reasons
+                    rejection_reasons = result.get('rejection_reasons', [])
+                    if rejection_reasons:
+                        print(f"  [REJECTION] Reasons: {'; '.join(rejection_reasons)}")
+                    
                     print(f"{'='*60}\n")
                     
                     return result
