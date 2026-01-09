@@ -149,7 +149,8 @@ async def verify_documents(
     registration_number: str = Form(...),
     specialization: str = Form(...),
     documents: List[UploadFile] = File(...),
-    doctor_id: Optional[str] = Form(default=None)  # Optional - verification can happen before registration
+    documents: List[UploadFile] = File(...),
+    doctor_id: str = Form("")  # Optional - verification can happen before registration; default to empty string
 ):
     """
     Verify uploaded documents using Gemini 3 Vision.
