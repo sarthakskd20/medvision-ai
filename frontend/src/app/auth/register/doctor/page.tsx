@@ -86,6 +86,8 @@ interface VerificationResult {
     documents: DocumentVerificationResult[]
     issues: string[]
     recommendation: string
+    // Store raw API response for debugging
+    rawData?: any
 }
 
 export default function DoctorRegisterPage() {
@@ -357,7 +359,8 @@ export default function DoctorRegisterPage() {
                     rejection_reasons: doc.rejection_reasons || []
                 })),
                 issues: verifyData.issues || [],
-                recommendation: verifyData.recommendation || ''
+                recommendation: verifyData.recommendation || '',
+                rawData: verifyData  // Store full API response for debugging
             }
 
             setVerificationResult(result)
@@ -877,6 +880,28 @@ export default function DoctorRegisterPage() {
                             <div className="space-y-4">
                                 <h3 className="font-semibold text-gray-800">Document Analysis</h3>
 
+                                {/* Show fallback if no documents analyzed */}
+                                {(!verificationResult?.documents || verificationResult.documents.length === 0) && (
+                                    <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                                        <p className="text-amber-800 font-medium mb-2">No document details available</p>
+                                        <p className="text-sm text-amber-700">
+                                            The verification system could not analyze your documents in detail.
+                                            This may be due to:
+                                        </p>
+                                        <ul className="mt-2 text-sm text-amber-700 list-disc list-inside">
+                                            <li>Documents were not properly uploaded</li>
+                                            <li>File format not supported</li>
+                                            <li>API processing error</li>
+                                        </ul>
+                                        {verificationResult?.recommendation && (
+                                            <p className="mt-3 p-2 bg-amber-100 rounded text-sm text-amber-800">
+                                                <span className="font-medium">Recommendation: </span>
+                                                {verificationResult.recommendation}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 {verificationResult?.documents.map((doc, index) => (
                                     <div
                                         key={index}
@@ -891,8 +916,8 @@ export default function DoctorRegisterPage() {
                                                 </span>
                                             </div>
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${doc.authenticity_score >= 70
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-red-100 text-red-700'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {doc.authenticity_score}%
                                             </span>
@@ -977,6 +1002,59 @@ export default function DoctorRegisterPage() {
                                         </p>
                                     )}
                                 </div>
+                            )}
+
+                            {/* Raw API Response for debugging */}
+                            {verificationResult?.rawData && (
+                                <details className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <summary className="text-sm font-medium text-gray-700 cursor-pointer">
+                                        View Gemini Analysis Details
+                                    </summary>
+                                    <div className="mt-3 space-y-2 text-xs">
+                                        <div className="p-2 bg-white rounded border">
+                                            <p className="font-medium text-gray-800 mb-1">Status: {verificationResult.rawData.status}</p>
+                                            <p className="text-gray-600">Confidence: {verificationResult.rawData.confidence_score}%</p>
+                                        </div>
+                                        {verificationResult.rawData.field_verification && (
+                                            <div className="p-2 bg-white rounded border">
+                                                <p className="font-medium text-gray-800 mb-2">Field Verification:</p>
+                                                {verificationResult.rawData.field_verification.map((field: any, i: number) => (
+                                                    <div key={i} className="flex items-center gap-2 py-1 border-b border-gray-100 last:border-0">
+                                                        <span className={field.match ? 'text-green-600' : 'text-red-600'}>
+                                                            {field.match ? '✓' : '✗'}
+                                                        </span>
+                                                        <span className="font-medium">{field.field}:</span>
+                                                        <span className="text-gray-500">Form: "{field.form_value}"</span>
+                                                        <span className="text-gray-400">→</span>
+                                                        <span className="text-gray-700">Extracted: "{field.extracted_value}"</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {verificationResult.rawData.document_analysis && verificationResult.rawData.document_analysis.length > 0 && (
+                                            <div className="p-2 bg-white rounded border">
+                                                <p className="font-medium text-gray-800 mb-2">Document Details:</p>
+                                                {verificationResult.rawData.document_analysis.map((doc: any, i: number) => (
+                                                    <div key={i} className="py-2 border-b border-gray-100 last:border-0">
+                                                        <p className="font-medium capitalize">{doc.document_type}</p>
+                                                        <p className="text-gray-600">Authenticity: {doc.authenticity_score}%</p>
+                                                        {doc.is_ai_generated && (
+                                                            <p className="text-red-600 font-medium">AI Generated: Yes</p>
+                                                        )}
+                                                        {doc.ai_indicators && doc.ai_indicators.length > 0 && (
+                                                            <p className="text-red-500">AI Indicators: {doc.ai_indicators.join(', ')}</p>
+                                                        )}
+                                                        {doc.rejection_reasons && doc.rejection_reasons.length > 0 && (
+                                                            <p className="text-red-500">Rejected: {doc.rejection_reasons.join(', ')}</p>
+                                                        )}
+                                                        <p className="text-gray-500">Name: {doc.extracted_name}</p>
+                                                        <p className="text-gray-500">Reg#: {doc.extracted_registration}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </details>
                             )}
 
                             {/* Action Buttons */}
