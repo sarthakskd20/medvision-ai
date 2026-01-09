@@ -313,16 +313,26 @@ export default function DoctorRegisterPage() {
             const documentTypes: string[] = []
             Object.entries(structuredDocuments).forEach(([docType, doc]) => {
                 if (doc) {
+                    console.log(`[UPLOAD] Adding document: ${docType} - ${doc.file.name} (${doc.file.size} bytes, type: ${doc.file.type})`)
                     formDataUpload.append('documents', doc.file)
                     documentTypes.push(docType)
                 }
             })
             formDataUpload.append('document_types', JSON.stringify(documentTypes))
 
+            console.log(`[UPLOAD] Total documents to send: ${documentTypes.length}`)
+            console.log(`[UPLOAD] Document types: ${JSON.stringify(documentTypes)}`)
+
             const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents`, {
                 method: 'POST',
                 body: formDataUpload
             })
+
+            if (!verifyRes.ok) {
+                const errorData = await verifyRes.json()
+                console.error('[UPLOAD] API Error:', errorData)
+                throw new Error(errorData.detail || 'Verification API failed')
+            }
 
             const verifyData = await verifyRes.json()
             console.log('Verification result:', verifyData)
@@ -787,29 +797,18 @@ export default function DoctorRegisterPage() {
                                 />
                             </div>
 
-                            {/* Optional Documents */}
-                            <div className="space-y-4 mt-6">
-                                <h3 className="font-medium text-gray-700">Optional Documents</h3>
-
-                                {/* Hospital ID */}
-                                <DocumentUploadSection
-                                    documentType="hospital_id"
-                                    label="Hospital / Clinic ID"
-                                    description="Current employment verification (optional)"
-                                    required={false}
-                                    uploadedFile={structuredDocuments['hospital_id']?.file}
-                                    preview={structuredDocuments['hospital_id']?.preview}
-                                    onUpload={(file) => handleStructuredDocUpload('hospital_id', file)}
-                                    onRemove={() => handleStructuredDocRemove('hospital_id')}
-                                />
+                            {/* Debug info - show what files are staged for upload */}
+                            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                                <p className="font-medium">Documents Staged for Verification:</p>
+                                <ul className="mt-1 text-xs">
+                                    {Object.entries(structuredDocuments).map(([key, doc]) => (
+                                        doc && <li key={key}>• {key}: {doc.file.name} ({Math.round(doc.file.size / 1024)}KB)</li>
+                                    ))}
+                                    {Object.keys(structuredDocuments).filter(k => structuredDocuments[k]).length === 0 && (
+                                        <li className="text-gray-500">No documents uploaded yet</li>
+                                    )}
+                                </ul>
                             </div>
-
-                            {/* Debug info - remove after testing */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-500">
-                                    Debug: API returned {documentRequirements ? `${documentRequirements.required_documents?.length || 0} required docs` : 'null'}
-                                </div>
-                            )}
 
 
                             {/* Magic Code for Testers */}

@@ -170,7 +170,9 @@ async def verify_documents(
     max_size = 5 * 1024 * 1024  # 5 MB
     
     doc_data = []
-    for doc in documents:
+    for idx, doc in enumerate(documents):
+        print(f"[VERIFY-DOCUMENTS] Document {idx+1}: filename={doc.filename}, content_type={doc.content_type}")
+        
         # Check type
         if doc.content_type not in allowed_types:
             raise HTTPException(
@@ -180,6 +182,12 @@ async def verify_documents(
         
         # Read and check size
         content = await doc.read()
+        print(f"[VERIFY-DOCUMENTS] Document {idx+1}: read {len(content)} bytes")
+        
+        if len(content) == 0:
+            print(f"[VERIFY-DOCUMENTS] WARNING: Document {idx+1} has 0 bytes!")
+            raise HTTPException(status_code=400, detail=f"File {doc.filename} is empty")
+        
         if len(content) > max_size:
             raise HTTPException(
                 status_code=400,
@@ -187,6 +195,8 @@ async def verify_documents(
             )
         
         doc_data.append((content, doc.content_type))
+    
+    print(f"[VERIFY-DOCUMENTS] Total docs prepared for Gemini: {len(doc_data)}")
     
     # Prepare form data for verification
     form_data = {
