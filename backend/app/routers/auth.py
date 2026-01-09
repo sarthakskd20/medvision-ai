@@ -144,12 +144,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 
 @router.post("/verify-documents")
 async def verify_documents(
-    doctor_id: str = Form(...),
     name: str = Form(...),
     country: str = Form(...),
     registration_number: str = Form(...),
     specialization: str = Form(...),
-    documents: List[UploadFile] = File(...)
+    documents: List[UploadFile] = File(...),
+    doctor_id: str = Form(None)  # Optional - verification can happen before registration
 ):
     """
     Verify uploaded documents using Gemini 3 Vision.
@@ -160,6 +160,10 @@ async def verify_documents(
     """
     if not documents:
         raise HTTPException(status_code=400, detail="At least one document is required")
+    
+    # Debug logging
+    print(f"[VERIFY-DOCUMENTS] Received {len(documents)} documents")
+    print(f"[VERIFY-DOCUMENTS] Form data: name={name}, country={country}, reg={registration_number}")
     
     # Check file sizes and types
     allowed_types = ["image/jpeg", "image/png", "image/jpg", "application/pdf"]
@@ -201,20 +205,22 @@ async def verify_documents(
             "matches": {"name_match": True, "registration_match": True},
             "issues": []
         }
-        update_verification_status(doctor_id, VerificationStatus.APPROVED, 100.0, "Demo mode")
+        if doctor_id:
+            update_verification_status(doctor_id, VerificationStatus.APPROVED, 100.0, "Demo mode")
         return result
     
     # Run Gemini verification
     try:
         result = await verification_service.verify_doctor_documents(form_data, doc_data)
         
-        # Update doctor status
-        update_verification_status(
-            doctor_id,
-            result.status,
-            result.confidence_score,
-            result.recommendation
-        )
+        # Update doctor status only if doctor_id was provided
+        if doctor_id:
+            update_verification_status(
+                doctor_id,
+                result.status,
+                result.confidence_score,
+                result.recommendation
+            )
         
         # Return comprehensive verification results
         return {
