@@ -140,7 +140,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     )
 
 
-@router.post("/verify-documents-v2")
+@router.post("/verify-documents")
 async def verify_documents(
     name: str = Form(...),
     country: str = Form(...),
