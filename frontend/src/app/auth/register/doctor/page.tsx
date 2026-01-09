@@ -212,10 +212,13 @@ export default function DoctorRegisterPage() {
 
     // Check if all required documents are uploaded
     const areRequiredDocsUploaded = (): boolean => {
-        if (!documentRequirements) return false
-        if (!documentRequirements.required_documents || documentRequirements.required_documents.length === 0) return true
-        const requiredTypes = documentRequirements.required_documents.map(d => d.type)
-        return requiredTypes.every(type => structuredDocuments[type])
+        // Check explicitly for the documents we ask for in the UI
+        // This is more robust than relying on the backend requirements config matching exactly
+        const hasDegree = !!structuredDocuments['medical_degree']
+        const hasLicense = !!structuredDocuments['medical_license']
+
+        // Return true if both are present
+        return hasDegree && hasLicense
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
