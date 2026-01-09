@@ -304,18 +304,27 @@ echo.
 cd /d "%ROOT_DIR%backend"
 call venv\Scripts\activate.bat
 
-:: Create a quick test script
+:: Create a quick test script that explicitly loads .env from backend folder
 (
 echo import os
 echo import sys
-echo sys.path.insert^(0, '.'
-echo ^)
-echo from dotenv import load_dotenv
-echo load_dotenv^(^)
+echo from pathlib import Path
+echo.
+echo # Explicitly load .env from backend folder
+echo backend_dir = Path^(r'%ROOT_DIR%backend'^)
+echo env_path = backend_dir / '.env'
+echo.
+echo if env_path.exists^(^):
+echo     with open^(env_path, 'r'^) as f:
+echo         for line in f:
+echo             line = line.strip^(^)
+echo             if line and not line.startswith^('#'^) and '=' in line:
+echo                 key, _, value = line.partition^('='^)
+echo                 os.environ[key.strip^(^)] = value.strip^(^)
 echo.
 echo api_key = os.getenv^('GEMINI_API_KEY', ''
 echo ^)
-echo if not api_key:
+echo if not api_key or api_key == 'your_gemini_api_key_here':
 echo     print^('   [SKIP] No Gemini API key configured'^)
 echo     print^('   AI features will be limited. Add key to backend\\.env later.'^)
 echo     sys.exit^(0^)
@@ -331,9 +340,9 @@ echo     print^(f'   [OK] Gemini API working: {response.text.strip^(^)[:50]}'^)
 echo except Exception as e:
 echo     error_str = str^(e^)
 echo     if 'quota' in error_str.lower^(^) or 'rate' in error_str.lower^(^):
-echo         print^(f'   [RATE LIMIT] API quota exceeded. Wait a few minutes.'^)
+echo         print^('   [RATE LIMIT] API quota exceeded. Wait a few minutes.'^)
 echo     elif 'invalid' in error_str.lower^(^) or 'api_key' in error_str.lower^(^):
-echo         print^(f'   [INVALID KEY] Check your Gemini API key'^)
+echo         print^('   [INVALID KEY] Check your Gemini API key'^)
 echo     else:
 echo         print^(f'   [ERROR] {error_str[:100]}'^)
 ) > "%TEMP%\test_gemini.py"
