@@ -123,11 +123,33 @@ export default function DoctorRegisterPage() {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
                 const res = await fetch(`${apiUrl}/api/auth/document-requirements/${encodeURIComponent(formData.country)}`)
                 const data = await res.json()
+                console.log('Document requirements received:', data)
+
+                // Ensure arrays exist
+                if (!data.required_documents) data.required_documents = []
+                if (!data.optional_documents) data.optional_documents = []
+
                 setDocumentRequirements(data)
                 // Clear previously uploaded documents when country changes
                 setStructuredDocuments({})
             } catch (err) {
                 console.error('Failed to fetch document requirements:', err)
+                // Fallback requirements for common countries
+                const fallbackRequirements: CountryRequirements = {
+                    country: formData.country,
+                    required_documents: [
+                        { type: 'medical_degree', name: 'Medical Degree Certificate', description: 'Your medical degree from recognized university' },
+                        { type: 'medical_license', name: 'Medical License/Registration', description: 'Valid medical practice license' }
+                    ],
+                    optional_documents: [
+                        { type: 'hospital_id', name: 'Hospital/Clinic ID', description: 'Current employment verification' }
+                    ],
+                    registration_format: '',
+                    regulatory_body: '',
+                    notes: ''
+                }
+                setDocumentRequirements(fallbackRequirements)
+                setStructuredDocuments({})
             }
         }
         fetchRequirements()
@@ -162,6 +184,7 @@ export default function DoctorRegisterPage() {
     // Check if all required documents are uploaded
     const areRequiredDocsUploaded = (): boolean => {
         if (!documentRequirements) return false
+        if (!documentRequirements.required_documents || documentRequirements.required_documents.length === 0) return true
         const requiredTypes = documentRequirements.required_documents.map(d => d.type)
         return requiredTypes.every(type => structuredDocuments[type])
     }
