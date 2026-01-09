@@ -333,7 +333,7 @@ class VerificationService:
             authenticity = result.get("authenticity_confidence", 0)
             total_authenticity += authenticity
             
-            # Build document analysis entry
+            # Build document analysis entry with AI detection and blur info
             doc_entry = {
                 "document_number": idx + 1,
                 "document_type": result.get("document_type", "unknown"),
@@ -351,7 +351,16 @@ class VerificationService:
                 "extracted_specialization": result.get("extracted_specialization", "Not found"),
                 "country_of_origin": result.get("country_of_origin", "Not found"),
                 "notes": result.get("notes", ""),
-                "demo_mode": result.get("demo_mode", False)
+                "demo_mode": result.get("demo_mode", False),
+                # AI Generation Detection
+                "is_ai_generated": result.get("is_ai_generated", False),
+                "ai_generation_confidence": result.get("ai_generation_confidence", 0),
+                "ai_indicators": result.get("ai_generation_indicators", []),
+                # Blur Detection
+                "is_blurry": result.get("is_blurry", False) or result.get("blur_severity", "none") == "severe",
+                "blur_severity": result.get("blur_severity", "none"),
+                # Rejection Reasons
+                "rejection_reasons": result.get("rejection_reasons", [])
             }
             document_analysis.append(doc_entry)
         

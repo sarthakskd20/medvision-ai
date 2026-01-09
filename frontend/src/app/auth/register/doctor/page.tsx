@@ -63,10 +63,36 @@ interface StructuredDocuments {
     } | undefined
 }
 
+// Verification result from Gemini
+interface DocumentVerificationResult {
+    filename: string
+    document_type: string
+    authenticity_score: number
+    is_ai_generated: boolean
+    ai_indicators: string[]
+    is_blurry: boolean
+    blur_severity: string
+    field_matches: {
+        name: { form: string; extracted: string; match: boolean }
+        registration: { form: string; extracted: string; match: boolean }
+        specialization: { form: string; extracted: string; match: boolean }
+    }
+    rejection_reasons: string[]
+}
+
+interface VerificationResult {
+    status: 'approved' | 'rejected' | 'manual_review'
+    overall_score: number
+    documents: DocumentVerificationResult[]
+    issues: string[]
+    recommendation: string
+}
+
 export default function DoctorRegisterPage() {
     const router = useRouter()
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
+    const [isVerifying, setIsVerifying] = useState(false)
     const [error, setError] = useState('')
     const [countries, setCountries] = useState<string[]>([])
     const [specializations, setSpecializations] = useState<string[]>([])
@@ -74,6 +100,7 @@ export default function DoctorRegisterPage() {
     const [registeredDoctor, setRegisteredDoctor] = useState<any>(null)
     const [documentRequirements, setDocumentRequirements] = useState<CountryRequirements | null>(null)
     const [structuredDocuments, setStructuredDocuments] = useState<StructuredDocuments>({})
+    const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null)
 
     const [formData, setFormData] = useState<FormData>({
         email: '',
@@ -257,14 +284,106 @@ export default function DoctorRegisterPage() {
         setStep(prev => prev - 1)
     }
 
-    const handleRegister = async () => {
+    // Step 1: Verify documents with Gemini (don't register yet)
+    const handleVerifyDocuments = async () => {
         setError('')
-        setIsLoading(true)
+        setIsVerifying(true)
+        setVerificationResult(null)
 
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
-            // Step 1: Register the doctor
+            // If magic code is provided, skip verification
+            if (formData.magicCode) {
+                // Direct registration with magic code
+                await completeRegistration(true)
+                return
+            }
+
+            // Verify documents first
+            const formDataUpload = new FormData()
+            formDataUpload.append('name', formData.name)
+            formDataUpload.append('country', formData.country)
+            formDataUpload.append('registration_number', formData.registrationNumber)
+            formDataUpload.append('specialization', formData.specialization)
+
+            // Add documents with their types
+            const documentTypes: string[] = []
+            Object.entries(structuredDocuments).forEach(([docType, doc]) => {
+                if (doc) {
+                    formDataUpload.append('documents', doc.file)
+                    documentTypes.push(docType)
+                }
+            })
+            formDataUpload.append('document_types', JSON.stringify(documentTypes))
+
+            const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents`, {
+                method: 'POST',
+                body: formDataUpload
+            })
+
+            const verifyData = await verifyRes.json()
+            console.log('Verification result:', verifyData)
+
+            // Build verification result for UI
+            const result: VerificationResult = {
+                status: verifyData.status || 'rejected',
+                overall_score: verifyData.confidence_score || 0,
+                documents: (verifyData.document_analysis || []).map((doc: any, index: number) => ({
+                    filename: documentTypes[index] || `Document ${index + 1}`,
+                    document_type: doc.type || 'unknown',
+                    authenticity_score: doc.authenticity_score || 0,
+                    is_ai_generated: doc.is_ai_generated || false,
+                    ai_indicators: doc.ai_indicators || [],
+                    is_blurry: doc.is_blurry || false,
+                    blur_severity: doc.blur_severity || 'none',
+                    field_matches: {
+                        name: {
+                            form: formData.name,
+                            extracted: doc.extracted_name || 'Not found',
+                            match: doc.name_match !== false
+                        },
+                        registration: {
+                            form: formData.registrationNumber,
+                            extracted: doc.extracted_registration || 'Not found',
+                            match: doc.registration_match !== false
+                        },
+                        specialization: {
+                            form: formData.specialization,
+                            extracted: doc.extracted_specialization || 'Not found',
+                            match: doc.specialization_match !== false
+                        }
+                    },
+                    rejection_reasons: doc.rejection_reasons || []
+                })),
+                issues: verifyData.issues || [],
+                recommendation: verifyData.recommendation || ''
+            }
+
+            setVerificationResult(result)
+
+            // Move to verification results step
+            setStep(4)
+
+            // If approved, auto-complete registration
+            if (result.status === 'approved') {
+                await completeRegistration(false)
+            }
+
+        } catch (err: any) {
+            console.error('Verification error:', err)
+            setError(err.message || 'Verification failed')
+        } finally {
+            setIsVerifying(false)
+        }
+    }
+
+    // Complete registration after verification
+    const completeRegistration = async (skipVerification: boolean) => {
+        setIsLoading(true)
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+
             const registerRes = await fetch(`${apiUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -290,47 +409,30 @@ export default function DoctorRegisterPage() {
 
             setRegisteredDoctor(registerData)
 
-            // Step 2: If there are documents and no magic code, verify them
-            const hasDocuments = Object.keys(structuredDocuments).length > 0
-            if (hasDocuments && !formData.magicCode) {
-                const formDataUpload = new FormData()
-                formDataUpload.append('doctor_id', registerData.id)
-                formDataUpload.append('name', formData.name)
-                formDataUpload.append('country', formData.country)
-                formDataUpload.append('registration_number', formData.registrationNumber)
-                formDataUpload.append('specialization', formData.specialization)
-
-                // Add documents with their types
-                const documentTypes: string[] = []
-                Object.entries(structuredDocuments).forEach(([docType, doc]) => {
-                    if (doc) {
-                        formDataUpload.append('documents', doc.file)
-                        documentTypes.push(docType)
-                    }
-                })
-                formDataUpload.append('document_types', JSON.stringify(documentTypes))
-
-                const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents`, {
-                    method: 'POST',
-                    body: formDataUpload
-                })
-
-                const verifyData = await verifyRes.json()
-
-                // Update verification status
-                if (verifyData.status === 'approved') {
-                    setRegisteredDoctor((prev: any) => ({ ...prev, verification_status: 'approved' }))
-                }
+            // Move to success step
+            if (skipVerification) {
+                setStep(5)
             }
 
-            // Move to success step
-            setStep(4)
-
         } catch (err: any) {
-            setError(err.message || 'An error occurred')
+            setError(err.message || 'Registration failed')
         } finally {
             setIsLoading(false)
         }
+    }
+
+    // Retry verification with new documents
+    const handleRetryVerification = () => {
+        setVerificationResult(null)
+        setStep(3)
+    }
+
+    // Proceed to success after viewing results
+    const handleProceedToSuccess = async () => {
+        if (!registeredDoctor) {
+            await completeRegistration(false)
+        }
+        setStep(5)
     }
 
     const handleGoToDashboard = async () => {
@@ -381,7 +483,7 @@ export default function DoctorRegisterPage() {
 
                 {/* Progress Steps */}
                 <div className="flex items-center justify-center mb-8">
-                    {[1, 2, 3, 4].map((s) => (
+                    {[1, 2, 3, 4, 5].map((s) => (
                         <div key={s} className="flex items-center">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${s === step ? 'bg-primary-500 text-white' :
                                 s < step ? 'bg-green-500 text-white' :
@@ -389,19 +491,20 @@ export default function DoctorRegisterPage() {
                                 }`}>
                                 {s < step ? <CheckCircle className="h-5 w-5" /> : s}
                             </div>
-                            {s < 4 && (
-                                <div className={`w-20 h-1 ${s < step ? 'bg-green-500' : 'bg-gray-200'}`} />
+                            {s < 5 && (
+                                <div className={`w-16 h-1 ${s < step ? 'bg-green-500' : 'bg-gray-200'}`} />
                             )}
                         </div>
                     ))}
                 </div>
 
                 {/* Step Labels */}
-                <div className="flex justify-center gap-4 mb-8 text-sm">
+                <div className="flex justify-center gap-3 mb-8 text-xs">
                     <span className={step >= 1 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Account</span>
                     <span className={step >= 2 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Professional</span>
                     <span className={step >= 3 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Documents</span>
-                    <span className={step >= 4 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Complete</span>
+                    <span className={step >= 4 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Verification</span>
+                    <span className={step >= 5 ? 'text-primary-600 font-medium' : 'text-gray-400'}>Complete</span>
                 </div>
 
                 <div className="card p-8">
@@ -729,47 +832,222 @@ export default function DoctorRegisterPage() {
                                     <ArrowLeft className="h-5 w-5" /> Back
                                 </button>
                                 <button
-                                    onClick={handleRegister}
-                                    disabled={isLoading || (!areRequiredDocsUploaded() && !formData.magicCode)}
+                                    onClick={handleVerifyDocuments}
+                                    disabled={isVerifying || isLoading || (!areRequiredDocsUploaded() && !formData.magicCode)}
                                     className="btn-primary flex-1 flex items-center justify-center gap-2"
                                 >
-                                    {isLoading ? (
-                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                    {isVerifying ? (
+                                        <>
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                            Verifying with Gemini...
+                                        </>
                                     ) : (
-                                        <>Complete Registration</>
+                                        <>Verify Documents</>
                                     )}
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Step 4: Success */}
+                    {/* Step 4: Verification Results */}
                     {step === 4 && (
+                        <div className="space-y-6">
+                            {/* Header based on result */}
+                            {verificationResult?.status === 'approved' ? (
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="h-8 w-8 text-green-500" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-green-700">Documents Verified!</h2>
+                                    <p className="text-gray-600 mt-1">Overall Score: {verificationResult.overall_score}%</p>
+                                </div>
+                            ) : (
+                                <div className="text-center">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <AlertCircle className="h-8 w-8 text-red-500" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-red-700">Verification Failed</h2>
+                                    <p className="text-gray-600 mt-1">
+                                        Score: {verificationResult?.overall_score || 0}% (Minimum required: 70%)
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Per-Document Analysis */}
+                            <div className="space-y-4">
+                                <h3 className="font-semibold text-gray-800">Document Analysis</h3>
+
+                                {verificationResult?.documents.map((doc, index) => (
+                                    <div
+                                        key={index}
+                                        className={`border rounded-lg p-4 ${doc.authenticity_score >= 70 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                                            }`}
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <FileText className="h-5 w-5 text-gray-600" />
+                                                <span className="font-medium capitalize">
+                                                    {doc.filename.replace(/_/g, ' ')}
+                                                </span>
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${doc.authenticity_score >= 70
+                                                    ? 'bg-green-100 text-green-700'
+                                                    : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                {doc.authenticity_score}%
+                                            </span>
+                                        </div>
+
+                                        {/* AI Detection Warning */}
+                                        {doc.is_ai_generated && (
+                                            <div className="mb-3 p-2 bg-red-100 border border-red-300 rounded text-sm">
+                                                <span className="font-medium text-red-800">AI-Generated Document Detected</span>
+                                                {doc.ai_indicators.length > 0 && (
+                                                    <ul className="mt-1 text-red-700 text-xs">
+                                                        {doc.ai_indicators.slice(0, 3).map((ind, i) => (
+                                                            <li key={i}>• {ind}</li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Blur Warning */}
+                                        {doc.is_blurry && (
+                                            <div className="mb-3 p-2 bg-amber-100 border border-amber-300 rounded text-sm">
+                                                <span className="font-medium text-amber-800">
+                                                    Document is blurry ({doc.blur_severity})
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        {/* Field Matches */}
+                                        <div className="space-y-1 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                {doc.field_matches.name.match ? (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                                <span className="text-gray-600">Name:</span>
+                                                <span className={doc.field_matches.name.match ? 'text-green-700' : 'text-red-700'}>
+                                                    {doc.field_matches.name.extracted}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {doc.field_matches.registration.match ? (
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <AlertCircle className="h-4 w-4 text-red-500" />
+                                                )}
+                                                <span className="text-gray-600">Registration:</span>
+                                                <span className={doc.field_matches.registration.match ? 'text-green-700' : 'text-red-700'}>
+                                                    {doc.field_matches.registration.extracted}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Rejection Reasons */}
+                                        {doc.rejection_reasons.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-red-200">
+                                                <span className="text-xs font-medium text-red-700">Issues:</span>
+                                                <ul className="mt-1 text-xs text-red-600">
+                                                    {doc.rejection_reasons.map((reason, i) => (
+                                                        <li key={i}>• {reason}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Issues Summary */}
+                            {verificationResult?.issues && verificationResult.issues.length > 0 && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                    <h4 className="font-medium text-amber-800 mb-2">What to Fix:</h4>
+                                    <ul className="text-sm text-amber-700 space-y-1">
+                                        {verificationResult.issues.map((issue, i) => (
+                                            <li key={i}>• {issue}</li>
+                                        ))}
+                                    </ul>
+                                    {verificationResult.recommendation && (
+                                        <p className="mt-2 text-xs text-amber-600 italic">
+                                            {verificationResult.recommendation}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3 pt-4">
+                                {verificationResult?.status === 'approved' ? (
+                                    <button
+                                        onClick={handleProceedToSuccess}
+                                        disabled={isLoading}
+                                        className="btn-primary flex-1 flex items-center justify-center gap-2"
+                                    >
+                                        {isLoading ? (
+                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                        ) : (
+                                            <>Complete Registration</>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={handleRetryVerification}
+                                            className="btn-secondary flex items-center gap-2"
+                                        >
+                                            <ArrowLeft className="h-5 w-5" /> Upload Different Documents
+                                        </button>
+                                        <button
+                                            onClick={handleVerifyDocuments}
+                                            disabled={isVerifying}
+                                            className="btn-primary flex-1 flex items-center justify-center gap-2"
+                                        >
+                                            {isVerifying ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <>Try Again</>
+                                            )}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step 5: Success */}
+                    {step === 5 && (
                         <div className="text-center py-8">
                             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <CheckCircle className="h-10 w-10 text-green-500" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Complete!</h2>
+                            <p className="text-gray-600 mb-6">
+                                Welcome to MedVision AI, {formData.name}!<br />
+                                Your documents have been verified successfully.
+                            </p>
 
-                            {registeredDoctor?.verification_status === 'approved' ? (
-                                <>
-                                    <p className="text-gray-600 mb-6">
-                                        Your account has been verified. You can now access the dashboard.
-                                    </p>
-                                    <button onClick={handleGoToDashboard} className="btn-primary">
-                                        Go to Dashboard
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-gray-600 mb-6">
-                                        Your documents are being reviewed. We'll notify you once verified.
-                                    </p>
-                                    <button onClick={handleGoToDashboard} className="btn-primary">
-                                        Continue to Dashboard
-                                    </button>
-                                </>
+                            {verificationResult && (
+                                <div className="mb-6 p-4 bg-green-50 rounded-lg text-left max-w-sm mx-auto">
+                                    <h4 className="font-medium text-green-800 mb-2">Verification Summary</h4>
+                                    <div className="text-sm text-green-700 space-y-1">
+                                        <p>Overall Score: {verificationResult.overall_score}%</p>
+                                        {verificationResult.documents.map((doc, i) => (
+                                            <p key={i} className="flex items-center gap-2">
+                                                <CheckCircle className="h-4 w-4" />
+                                                {doc.filename.replace(/_/g, ' ')}: {doc.authenticity_score}%
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
+
+                            <button onClick={handleGoToDashboard} className="btn-primary">
+                                Go to Dashboard
+                            </button>
                         </div>
                     )}
                 </div>
