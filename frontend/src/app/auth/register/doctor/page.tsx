@@ -648,57 +648,63 @@ export default function DoctorRegisterPage() {
                                     <span className="font-medium">Image Quality Requirements</span>
                                 </div>
                                 <p className="text-xs text-amber-700 mt-1 ml-6">
-                                    Documents must be clear and readable. Blurred or low-quality images will be rejected.
+                                    Documents must be clear and readable. Blurred, AI-generated, or low-quality images will be rejected.
                                 </p>
                             </div>
 
-                            {/* Required Documents */}
-                            {documentRequirements?.required_documents && documentRequirements.required_documents.length > 0 && (
-                                <div className="space-y-3">
-                                    <h3 className="font-medium text-gray-900">Required Documents</h3>
-                                    {documentRequirements.required_documents.map((doc) => (
-                                        <DocumentUploadSection
-                                            key={doc.type}
-                                            documentType={doc.type}
-                                            label={doc.name}
-                                            description={doc.description}
-                                            required={true}
-                                            uploadedFile={structuredDocuments[doc.type]?.file}
-                                            preview={structuredDocuments[doc.type]?.preview}
-                                            onUpload={(file) => handleStructuredDocUpload(doc.type, file)}
-                                            onRemove={() => handleStructuredDocRemove(doc.type)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            {/* Always show document upload sections */}
+                            <div className="space-y-4">
+                                <h3 className="font-medium text-gray-900">Required Documents</h3>
+
+                                {/* Medical Degree */}
+                                <DocumentUploadSection
+                                    documentType="medical_degree"
+                                    label={documentRequirements?.required_documents?.[0]?.name || "Medical Degree Certificate"}
+                                    description={documentRequirements?.required_documents?.[0]?.description || "MBBS, MD, or equivalent degree from recognized university"}
+                                    required={true}
+                                    uploadedFile={structuredDocuments['medical_degree']?.file}
+                                    preview={structuredDocuments['medical_degree']?.preview}
+                                    onUpload={(file) => handleStructuredDocUpload('medical_degree', file)}
+                                    onRemove={() => handleStructuredDocRemove('medical_degree')}
+                                />
+
+                                {/* Medical License */}
+                                <DocumentUploadSection
+                                    documentType="medical_license"
+                                    label={documentRequirements?.required_documents?.[1]?.name || "Medical License / Registration"}
+                                    description={documentRequirements?.required_documents?.[1]?.description || "Valid medical council registration certificate"}
+                                    required={true}
+                                    uploadedFile={structuredDocuments['medical_license']?.file}
+                                    preview={structuredDocuments['medical_license']?.preview}
+                                    onUpload={(file) => handleStructuredDocUpload('medical_license', file)}
+                                    onRemove={() => handleStructuredDocRemove('medical_license')}
+                                />
+                            </div>
 
                             {/* Optional Documents */}
-                            {documentRequirements?.optional_documents && documentRequirements.optional_documents.length > 0 && (
-                                <div className="space-y-3 mt-6">
-                                    <h3 className="font-medium text-gray-700">Optional Documents</h3>
-                                    {documentRequirements.optional_documents.map((doc) => (
-                                        <DocumentUploadSection
-                                            key={doc.type}
-                                            documentType={doc.type}
-                                            label={doc.name}
-                                            description={doc.description}
-                                            required={false}
-                                            uploadedFile={structuredDocuments[doc.type]?.file}
-                                            preview={structuredDocuments[doc.type]?.preview}
-                                            onUpload={(file) => handleStructuredDocUpload(doc.type, file)}
-                                            onRemove={() => handleStructuredDocRemove(doc.type)}
-                                        />
-                                    ))}
+                            <div className="space-y-4 mt-6">
+                                <h3 className="font-medium text-gray-700">Optional Documents</h3>
+
+                                {/* Hospital ID */}
+                                <DocumentUploadSection
+                                    documentType="hospital_id"
+                                    label="Hospital / Clinic ID"
+                                    description="Current employment verification (optional)"
+                                    required={false}
+                                    uploadedFile={structuredDocuments['hospital_id']?.file}
+                                    preview={structuredDocuments['hospital_id']?.preview}
+                                    onUpload={(file) => handleStructuredDocUpload('hospital_id', file)}
+                                    onRemove={() => handleStructuredDocRemove('hospital_id')}
+                                />
+                            </div>
+
+                            {/* Debug info - remove after testing */}
+                            {process.env.NODE_ENV === 'development' && (
+                                <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-500">
+                                    Debug: API returned {documentRequirements ? `${documentRequirements.required_documents?.length || 0} required docs` : 'null'}
                                 </div>
                             )}
 
-                            {/* No country selected message */}
-                            {!documentRequirements && (
-                                <div className="text-center py-8 text-gray-500">
-                                    <Globe className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                                    <p>Please select your country in the previous step to see document requirements.</p>
-                                </div>
-                            )}
 
                             {/* Magic Code for Testers */}
                             <div className="mt-6 pt-6 border-t">
