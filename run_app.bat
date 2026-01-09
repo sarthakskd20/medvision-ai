@@ -21,7 +21,7 @@ cd /d "%ROOT_DIR%"
 :: ============================================
 :: STEP 1: Check Required Software
 :: ============================================
-echo [STEP 1/7] Checking required software...
+echo [STEP 1/8] Checking required software...
 echo.
 
 :: Check Node.js
@@ -76,7 +76,7 @@ echo.
 :: ============================================
 :: STEP 2: Setup Backend
 :: ============================================
-echo [STEP 2/7] Setting up Backend...
+echo [STEP 2/8] Setting up Backend...
 echo.
 
 cd /d "%ROOT_DIR%backend"
@@ -99,14 +99,12 @@ if not exist "venv" (
 echo   Activating virtual environment...
 call venv\Scripts\activate.bat
 
-:: ALWAYS install/update dependencies to ensure all packages are present
-:: This fixes issues when new dependencies are added to requirements.txt
+:: Install dependencies
 echo   Installing/Updating Python dependencies...
-echo   (This ensures all packages are up-to-date)
 pip install --upgrade pip -q 2>nul
 pip install -r requirements.txt --quiet --disable-pip-version-check
 if !errorlevel! neq 0 (
-    echo   [WARNING] Some packages may have failed. Retrying with verbose output...
+    echo   [WARNING] Some packages may have failed. Retrying...
     pip install -r requirements.txt
 )
 echo   [OK] Python dependencies installed
@@ -117,12 +115,11 @@ echo.
 :: ============================================
 :: STEP 3: Setup Frontend
 :: ============================================
-echo [STEP 3/7] Setting up Frontend...
+echo [STEP 3/8] Setting up Frontend...
 echo.
 
 cd /d "%ROOT_DIR%frontend"
 
-:: Check if node_modules exists
 if not exist "node_modules" (
     echo   Installing Node.js dependencies - please wait...
     call npm install
@@ -134,126 +131,249 @@ if not exist "node_modules" (
     echo   [OK] Node.js dependencies installed
 ) else (
     echo   [OK] Node.js dependencies already installed
-    :: Check if package.json has been updated (new dependencies)
-    echo   Checking for new dependencies...
     call npm install --quiet 2>nul
 )
 
-:: Clean .next cache to prevent ChunkLoadError
+:: Clean .next cache
 if exist ".next" (
-    echo   Cleaning .next cache for fresh build...
+    echo   Cleaning .next cache...
     rmdir /s /q ".next" >nul 2>&1
-    echo   [OK] .next cache cleared
+    echo   [OK] Cache cleared
 )
 
 cd /d "%ROOT_DIR%"
 echo.
 
 :: ============================================
-:: STEP 4: Clean Up Existing Processes
+:: STEP 4: Interactive API Key Setup
 :: ============================================
-echo [STEP 4/7] Cleaning up existing processes on ports 3000, 8000 and 8001...
+echo [STEP 4/8] Environment Configuration...
 echo.
 
-:: Kill processes on port 8001 (Backend - primary)
-echo   Checking port 8001...
+set "NEED_SETUP=0"
+
+:: Check if .env files need setup
+if not exist "backend\.env" set "NEED_SETUP=1"
+if not exist "frontend\.env.local" set "NEED_SETUP=1"
+
+:: Check if .env files have placeholder values
+if exist "backend\.env" (
+    findstr /C:"your_gemini_api_key_here" "backend\.env" >nul 2>nul
+    if !errorlevel! equ 0 set "NEED_SETUP=1"
+)
+
+if "!NEED_SETUP!"=="1" (
+    echo  =============================================
+    echo   API KEY SETUP ^(Optional^)
+    echo  =============================================
+    echo.
+    echo   You can configure API keys now or skip to use demo mode.
+    echo   Press ENTER to skip any field ^(leave it empty^).
+    echo.
+    echo  ---------------------------------------------
+    echo   GEMINI API ^(Required for AI features^)
+    echo  ---------------------------------------------
+    echo   Get your key at: https://aistudio.google.com/apikey
+    echo.
+    set /p "GEMINI_KEY=   Enter Gemini API Key (or press ENTER to skip): "
+    echo.
+    
+    echo  ---------------------------------------------
+    echo   FIREBASE ^(Required for Google Login^)
+    echo  ---------------------------------------------
+    echo   Get from Firebase Console -^> Project Settings
+    echo.
+    set /p "FIREBASE_PROJECT_ID=   Firebase Project ID (or ENTER to skip): "
+    
+    if not "!FIREBASE_PROJECT_ID!"=="" (
+        echo.
+        echo   -- Frontend Firebase Config --
+        set /p "FIREBASE_API_KEY=   Firebase API Key: "
+        set /p "FIREBASE_MESSAGING_ID=   Messaging Sender ID: "
+        set /p "FIREBASE_APP_ID=   App ID: "
+        echo.
+        echo   -- Backend Firebase Config --
+        echo   ^(From Service Account JSON file^)
+        set /p "FIREBASE_CLIENT_EMAIL=   Client Email: "
+        echo   NOTE: Private key is complex. You can edit backend\.env later.
+    )
+    echo.
+    
+    :: Create backend .env
+    echo   Creating backend\.env...
+    (
+        echo # Gemini 3 API
+        if "!GEMINI_KEY!"=="" (
+            echo GEMINI_API_KEY=
+            echo # ^^ Add your Gemini API key above for AI features
+        ) else (
+            echo GEMINI_API_KEY=!GEMINI_KEY!
+        )
+        echo.
+        echo # Firebase Configuration
+        if "!FIREBASE_PROJECT_ID!"=="" (
+            echo FIREBASE_PROJECT_ID=
+            echo FIREBASE_PRIVATE_KEY=
+            echo FIREBASE_CLIENT_EMAIL=
+        ) else (
+            echo FIREBASE_PROJECT_ID=!FIREBASE_PROJECT_ID!
+            echo FIREBASE_PRIVATE_KEY=
+            echo # ^^ Edit this file and paste your private key from service account JSON
+            if "!FIREBASE_CLIENT_EMAIL!"=="" (
+                echo FIREBASE_CLIENT_EMAIL=
+            ) else (
+                echo FIREBASE_CLIENT_EMAIL=!FIREBASE_CLIENT_EMAIL!
+            )
+        )
+        echo.
+        echo # Debug mode - shows Gemini API calls in console
+        echo DEBUG_GEMINI=true
+        echo.
+        echo # Environment
+        echo ENVIRONMENT=development
+    ) > "backend\.env"
+    echo   [OK] Created backend\.env
+    
+    :: Create frontend .env.local
+    echo   Creating frontend\.env.local...
+    (
+        echo # API Configuration
+        echo NEXT_PUBLIC_API_URL=http://localhost:8001
+        echo.
+        echo # Firebase Configuration
+        if "!FIREBASE_PROJECT_ID!"=="" (
+            echo NEXT_PUBLIC_FIREBASE_API_KEY=
+            echo NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+            echo NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+            echo NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+            echo NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+            echo NEXT_PUBLIC_FIREBASE_APP_ID=
+        ) else (
+            if "!FIREBASE_API_KEY!"=="" (
+                echo NEXT_PUBLIC_FIREBASE_API_KEY=
+            ) else (
+                echo NEXT_PUBLIC_FIREBASE_API_KEY=!FIREBASE_API_KEY!
+            )
+            echo NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=!FIREBASE_PROJECT_ID!.firebaseapp.com
+            echo NEXT_PUBLIC_FIREBASE_PROJECT_ID=!FIREBASE_PROJECT_ID!
+            echo NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=!FIREBASE_PROJECT_ID!.appspot.com
+            if "!FIREBASE_MESSAGING_ID!"=="" (
+                echo NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+            ) else (
+                echo NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=!FIREBASE_MESSAGING_ID!
+            )
+            if "!FIREBASE_APP_ID!"=="" (
+                echo NEXT_PUBLIC_FIREBASE_APP_ID=
+            ) else (
+                echo NEXT_PUBLIC_FIREBASE_APP_ID=!FIREBASE_APP_ID!
+            )
+        )
+    ) > "frontend\.env.local"
+    echo   [OK] Created frontend\.env.local
+    echo.
+) else (
+    echo   [OK] Environment files already configured
+    echo.
+)
+
+:: ============================================
+:: STEP 5: Clean Up Existing Processes
+:: ============================================
+echo [STEP 5/8] Cleaning up ports...
+echo.
+
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8001 ^| findstr LISTENING') do (
-    echo   Killing process %%a on port 8001...
     taskkill /F /PID %%a >nul 2>&1
 )
 echo   [OK] Port 8001 cleared
 
-:: Kill processes on port 8000 (Backend - fallback)
-echo   Checking port 8000...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8000 ^| findstr LISTENING') do (
-    echo   Killing process %%a on port 8000...
-    taskkill /F /PID %%a >nul 2>&1
-)
-echo   [OK] Port 8000 cleared
-
-:: Kill processes on port 3000 (Frontend)
-echo   Checking port 3000...
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do (
-    echo   Killing process %%a on port 3000...
     taskkill /F /PID %%a >nul 2>&1
 )
 echo   [OK] Port 3000 cleared
 
-:: Small delay to ensure ports are released
 timeout /t 2 /nobreak >nul
 echo.
 
 :: ============================================
-:: STEP 5: Check Environment Configuration
+:: STEP 6: Verify Gemini API Connection
 :: ============================================
-echo [STEP 5/7] Checking environment configuration...
-echo.
-
-:: Check backend .env
-if not exist "backend\.env" (
-    echo   [WARNING] backend\.env file not found!
-    echo   Creating from template...
-    if exist "backend\.env.example" (
-        copy "backend\.env.example" "backend\.env" >nul
-        echo   [OK] Created backend\.env - Please update GEMINI_API_KEY
-    )
-) else (
-    echo   [OK] backend\.env exists
-)
-
-:: Check frontend .env.local
-if not exist "frontend\.env.local" (
-    echo   Creating frontend\.env.local...
-    if exist "frontend\.env.example" (
-        copy "frontend\.env.example" "frontend\.env.local" >nul
-    ) else (
-        echo NEXT_PUBLIC_API_URL=http://localhost:8001 > "frontend\.env.local"
-    )
-    echo   [OK] Created frontend\.env.local
-) else (
-    echo   [OK] frontend\.env.local exists
-)
-
-echo.
-
-:: ============================================
-:: STEP 6: Start Backend Server
-:: ============================================
-echo [STEP 6/7] Starting Backend Server...
+echo [STEP 6/8] Testing Gemini API connection...
 echo.
 
 cd /d "%ROOT_DIR%backend"
 call venv\Scripts\activate.bat
 
-:: Start backend in new window with error handling
-start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo. && echo ============================================ && echo Starting FastAPI Backend Server... && echo ============================================ && echo. && uvicorn app.main:app --reload --port 8001 || (echo. && echo [ERROR] Backend failed to start! && echo Check if all dependencies are installed. && echo Try running: pip install -r requirements.txt && pause)"
+:: Create a quick test script
+(
+echo import os
+echo import sys
+echo sys.path.insert^(0, '.'
+echo ^)
+echo from dotenv import load_dotenv
+echo load_dotenv^(^)
+echo.
+echo api_key = os.getenv^('GEMINI_API_KEY', ''
+echo ^)
+echo if not api_key:
+echo     print^('   [SKIP] No Gemini API key configured'^)
+echo     print^('   AI features will be limited. Add key to backend\\.env later.'^)
+echo     sys.exit^(0^)
+echo.
+echo print^(f'   API Key: {api_key[:8]}...{api_key[-4:]}'^)
+echo.
+echo try:
+echo     import google.generativeai as genai
+echo     genai.configure^(api_key=api_key^)
+echo     model = genai.GenerativeModel^('gemini-2.0-flash'^)
+echo     response = model.generate_content^('Say "API OK" in 2 words'^)
+echo     print^(f'   [OK] Gemini API working: {response.text.strip^(^)[:50]}'^)
+echo except Exception as e:
+echo     error_str = str^(e^)
+echo     if 'quota' in error_str.lower^(^) or 'rate' in error_str.lower^(^):
+echo         print^(f'   [RATE LIMIT] API quota exceeded. Wait a few minutes.'^)
+echo     elif 'invalid' in error_str.lower^(^) or 'api_key' in error_str.lower^(^):
+echo         print^(f'   [INVALID KEY] Check your Gemini API key'^)
+echo     else:
+echo         print^(f'   [ERROR] {error_str[:100]}'^)
+) > "%TEMP%\test_gemini.py"
+
+python "%TEMP%\test_gemini.py"
+del "%TEMP%\test_gemini.py" >nul 2>&1
+
+cd /d "%ROOT_DIR%"
+echo.
+
+:: ============================================
+:: STEP 7: Start Backend Server
+:: ============================================
+echo [STEP 7/8] Starting Backend Server...
+echo.
+
+cd /d "%ROOT_DIR%backend"
+call venv\Scripts\activate.bat
+
+:: Start backend with debug logging
+start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo. && echo ============================================ && echo   MedVision AI - Backend Server && echo   Port: 8001 && echo ============================================ && echo. && set DEBUG_GEMINI=true && uvicorn app.main:app --reload --port 8001"
 
 echo   [OK] Backend starting on http://localhost:8001
 echo.
-
-:: Wait for backend to start
-echo   Waiting for backend to initialize...
 timeout /t 5 /nobreak >nul
 
 cd /d "%ROOT_DIR%"
 
 :: ============================================
-:: STEP 7: Start Frontend Server
+:: STEP 8: Start Frontend Server
 :: ============================================
-echo [STEP 7/7] Starting Frontend Server...
+echo [STEP 8/8] Starting Frontend Server...
 echo.
 
 cd /d "%ROOT_DIR%frontend"
 
-:: Start frontend in new window
-start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo. && echo ============================================ && echo Starting Next.js Frontend Server... && echo ============================================ && echo. && npm run dev"
+start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo. && echo ============================================ && echo   MedVision AI - Frontend Server && echo   Port: 3000 && echo ============================================ && echo. && npm run dev"
 
 echo   [OK] Frontend starting on http://localhost:3000
 echo.
-
-:: Wait for frontend to start (15s for first-time compilation)
-echo   Waiting for frontend to initialize...
-echo   (First run may take longer for compilation)
 timeout /t 15 /nobreak >nul
 
 :: ============================================
@@ -268,10 +388,7 @@ echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:8001
 echo   API Docs: http://localhost:8001/docs
 echo.
-echo   Opening browser...
-echo.
 
-:: Open default browser to frontend
 start "" "http://localhost:3000"
 
 echo.
@@ -279,10 +396,9 @@ echo  =============================================
 echo   MedVision AI is running!
 echo  =============================================
 echo.
-echo   To stop the servers, close the terminal
-echo   windows or press Ctrl+C in each.
+echo   To stop: Close the terminal windows
+echo   To reconfigure: Delete backend\.env and run again
 echo.
-echo   Press any key to exit this window...
 pause >nul
 
 endlocal
