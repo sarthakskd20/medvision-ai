@@ -308,6 +308,8 @@ export default function DoctorRegisterPage() {
             formDataUpload.append('country', formData.country)
             formDataUpload.append('registration_number', formData.registrationNumber)
             formDataUpload.append('specialization', formData.specialization)
+            // Explicitly append empty doctor_id to avoid backend "Field required" validation error
+            formDataUpload.append('doctor_id', '')
 
             // Add documents with their types
             const documentTypes: string[] = []
