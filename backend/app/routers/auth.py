@@ -216,12 +216,17 @@ async def verify_documents(
             result.recommendation
         )
         
+        # Return comprehensive verification results
         return {
             "status": result.status.value,
             "confidence_score": result.confidence_score,
             "matches": result.matches,
             "issues": result.issues,
-            "recommendation": result.recommendation
+            "recommendation": result.recommendation,
+            # Enhanced detailed data
+            "field_verification": result.extracted_data.get("field_verification", []),
+            "document_analysis": result.extracted_data.get("document_analysis", []),
+            "verification_breakdown": result.extracted_data.get("verification_breakdown", {})
         }
         
     except Exception as e:

@@ -117,13 +117,14 @@ class VerificationService:
     ) -> VerificationResult:
         """
         Verify doctor documents against form data.
+        Returns detailed field-by-field verification results.
         
         Args:
             form_data: Dictionary with name, country, registration_number, specialization
             documents: List of (bytes, mime_type) tuples for uploaded documents
         
         Returns:
-            VerificationResult with status, score, and details
+            VerificationResult with status, score, and detailed field verification
         """
         if not documents:
             return VerificationResult(
@@ -138,93 +139,228 @@ class VerificationService:
         # Analyze each document
         all_extracted = []
         total_authenticity = 0
+        document_analysis = []
         
-        for doc_data, mime_type in documents:
+        for idx, (doc_data, mime_type) in enumerate(documents):
             result = await self.analyze_document(doc_data, mime_type)
             all_extracted.append(result)
-            total_authenticity += result.get("authenticity_confidence", 0)
+            
+            authenticity = result.get("authenticity_confidence", 0)
+            total_authenticity += authenticity
+            
+            # Build document analysis entry
+            doc_entry = {
+                "document_number": idx + 1,
+                "document_type": result.get("document_type", "unknown"),
+                "authenticity_score": authenticity,
+                "text_clarity": result.get("text_clarity_score", 0),
+                "has_official_seal": result.get("has_official_seal", False),
+                "has_signature": result.get("has_signature", False),
+                "has_qr_code": result.get("has_qr_code", False),
+                "has_watermark": result.get("has_hologram_or_watermark", False),
+                "tampering_detected": len(result.get("tampering_indicators", [])) > 0,
+                "tampering_details": result.get("tampering_indicators", []),
+                "extracted_name": result.get("extracted_name", "Not found"),
+                "extracted_registration": result.get("extracted_registration_number", "Not found"),
+                "extracted_institution": result.get("extracted_institution", "Not found"),
+                "extracted_specialization": result.get("extracted_specialization", "Not found"),
+                "country_of_origin": result.get("country_of_origin", "Not found"),
+                "notes": result.get("notes", "")
+            }
+            document_analysis.append(doc_entry)
         
-        avg_authenticity = total_authenticity / len(documents)
+        avg_authenticity = total_authenticity / len(documents) if documents else 0
         
-        # Cross-check with form data
-        matches = {
-            "name_match": False,
-            "registration_match": False,
-            "specialization_match": False,
-            "country_match": False
-        }
+        # Extract form data
+        form_name = form_data.get("name", "").strip()
+        form_reg = form_data.get("registration_number", "").strip()
+        form_spec = form_data.get("specialization", "").strip()
+        form_country = form_data.get("country", "").strip()
         
-        issues = []
-        form_name = form_data.get("name", "").lower()
-        form_reg = form_data.get("registration_number", "").lower()
-        form_spec = form_data.get("specialization", "").lower()
-        form_country = form_data.get("country", "").lower()
+        # Build field verification with detailed matching
+        field_verification = []
+        
+        # Find best matches from all documents
+        best_name_match = {"extracted": "Not found in documents", "confidence": 0, "match": False}
+        best_reg_match = {"extracted": "Not found in documents", "confidence": 0, "match": False}
+        best_spec_match = {"extracted": "Not found in documents", "confidence": 0, "match": False}
+        best_country_match = {"extracted": "Not found in documents", "confidence": 0, "match": False}
         
         for doc in all_extracted:
             # Check name
-            doc_name = doc.get("extracted_name", "").lower()
-            if doc_name and form_name in doc_name or doc_name in form_name:
-                matches["name_match"] = True
+            doc_name = doc.get("extracted_name", "")
+            if doc_name:
+                name_similarity = self._calculate_similarity(form_name.lower(), doc_name.lower())
+                if name_similarity > best_name_match["confidence"]:
+                    best_name_match = {
+                        "extracted": doc_name,
+                        "confidence": name_similarity,
+                        "match": name_similarity >= 70
+                    }
             
             # Check registration number
-            doc_reg = doc.get("extracted_registration_number", "").lower()
-            if doc_reg and (form_reg in doc_reg or doc_reg in form_reg):
-                matches["registration_match"] = True
+            doc_reg = doc.get("extracted_registration_number", "")
+            if doc_reg:
+                reg_similarity = self._calculate_similarity(form_reg.lower(), doc_reg.lower())
+                if reg_similarity > best_reg_match["confidence"]:
+                    best_reg_match = {
+                        "extracted": doc_reg,
+                        "confidence": reg_similarity,
+                        "match": reg_similarity >= 80
+                    }
             
             # Check specialization
-            doc_spec = doc.get("extracted_specialization", "").lower()
-            if doc_spec and form_spec in doc_spec:
-                matches["specialization_match"] = True
+            doc_spec = doc.get("extracted_specialization", "")
+            if doc_spec:
+                spec_similarity = self._calculate_similarity(form_spec.lower(), doc_spec.lower())
+                if spec_similarity > best_spec_match["confidence"]:
+                    best_spec_match = {
+                        "extracted": doc_spec,
+                        "confidence": spec_similarity,
+                        "match": spec_similarity >= 60
+                    }
             
             # Check country
-            doc_country = doc.get("country_of_origin", "").lower()
-            if doc_country and form_country in doc_country:
-                matches["country_match"] = True
-            
-            # Check for tampering
-            tampering = doc.get("tampering_indicators", [])
-            if tampering:
-                issues.extend([f"Possible tampering detected: {t}" for t in tampering])
+            doc_country = doc.get("country_of_origin", "")
+            if doc_country:
+                country_similarity = self._calculate_similarity(form_country.lower(), doc_country.lower())
+                if country_similarity > best_country_match["confidence"]:
+                    best_country_match = {
+                        "extracted": doc_country,
+                        "confidence": country_similarity,
+                        "match": country_similarity >= 50
+                    }
         
-        # Calculate match score
-        match_score = sum([
-            30 if matches["name_match"] else 0,
-            30 if matches["registration_match"] else 0,
-            20 if matches["specialization_match"] else 0,
-            20 if matches["country_match"] else 0
-        ])
+        # Build field verification list
+        field_verification = [
+            {
+                "field": "Name",
+                "form_value": form_name,
+                "extracted_value": best_name_match["extracted"],
+                "match": best_name_match["match"],
+                "confidence": best_name_match["confidence"],
+                "weight": 30,
+                "status": "verified" if best_name_match["match"] else "mismatch"
+            },
+            {
+                "field": "Registration Number",
+                "form_value": form_reg,
+                "extracted_value": best_reg_match["extracted"],
+                "match": best_reg_match["match"],
+                "confidence": best_reg_match["confidence"],
+                "weight": 30,
+                "status": "verified" if best_reg_match["match"] else "mismatch"
+            },
+            {
+                "field": "Specialization",
+                "form_value": form_spec,
+                "extracted_value": best_spec_match["extracted"],
+                "match": best_spec_match["match"],
+                "confidence": best_spec_match["confidence"],
+                "weight": 20,
+                "status": "verified" if best_spec_match["match"] else "mismatch"
+            },
+            {
+                "field": "Country",
+                "form_value": form_country,
+                "extracted_value": best_country_match["extracted"],
+                "match": best_country_match["match"],
+                "confidence": best_country_match["confidence"],
+                "weight": 20,
+                "status": "verified" if best_country_match["match"] else "mismatch"
+            }
+        ]
+        
+        # Calculate match score from field verification
+        match_score = sum([f["weight"] for f in field_verification if f["match"]])
+        
+        # Build matches dict for backward compatibility
+        matches = {
+            "name_match": best_name_match["match"],
+            "registration_match": best_reg_match["match"],
+            "specialization_match": best_spec_match["match"],
+            "country_match": best_country_match["match"]
+        }
+        
+        # Collect issues
+        issues = []
+        for field in field_verification:
+            if not field["match"]:
+                if field["extracted_value"] == "Not found in documents":
+                    issues.append(f"{field['field']} not found in uploaded documents")
+                else:
+                    issues.append(f"{field['field']} mismatch: Form says '{field['form_value']}', document shows '{field['extracted_value']}'")
+        
+        # Check for tampering across all documents
+        for doc in document_analysis:
+            if doc["tampering_detected"]:
+                issues.append(f"Document {doc['document_number']}: Possible tampering detected - {', '.join(doc['tampering_details'])}")
         
         # Calculate final score
         final_score = (avg_authenticity * 0.6) + (match_score * 0.4)
         
-        # Add issues for non-matches
-        if not matches["name_match"]:
-            issues.append("Name on documents does not match form")
-        if not matches["registration_match"]:
-            issues.append("Registration number not found in documents")
-        
-        # Determine status
-        country_tier = self.get_country_tier(form_data.get("country", ""))
+        # Determine status based on country tier
+        country_tier = self.get_country_tier(form_country)
         threshold = self.get_approval_threshold(country_tier)
         
         if final_score >= threshold:
             status = VerificationStatus.APPROVED
-            recommendation = "Documents verified successfully. Doctor is approved."
+            recommendation = f"Documents verified successfully with {final_score:.1f}% confidence. Doctor is approved."
         elif final_score >= 50:
             status = VerificationStatus.MANUAL_REVIEW
-            recommendation = f"Confidence score ({final_score:.1f}%) requires manual review."
+            recommendation = f"Confidence score ({final_score:.1f}%) is below auto-approval threshold ({threshold}%). Manual review required."
         else:
             status = VerificationStatus.REJECTED
-            recommendation = "Documents could not be verified. Please resubmit clearer documents."
+            recommendation = "Documents could not be verified. Please resubmit clearer documents showing your credentials."
+        
+        # Build comprehensive extracted_data
+        extracted_data = {
+            "documents": all_extracted,
+            "document_analysis": document_analysis,
+            "field_verification": field_verification,
+            "verification_breakdown": {
+                "authenticity_score": round(avg_authenticity, 1),
+                "match_score": match_score,
+                "final_score": round(final_score, 1),
+                "country_tier": country_tier,
+                "approval_threshold": threshold,
+                "documents_analyzed": len(documents)
+            }
+        }
         
         return VerificationResult(
             status=status,
             confidence_score=final_score,
-            extracted_data={"documents": all_extracted},
+            extracted_data=extracted_data,
             matches=matches,
             issues=issues,
             recommendation=recommendation
         )
+    
+    def _calculate_similarity(self, str1: str, str2: str) -> float:
+        """Calculate similarity between two strings (0-100)."""
+        if not str1 or not str2:
+            return 0
+        
+        # Exact match
+        if str1 == str2:
+            return 100
+        
+        # One contains the other
+        if str1 in str2 or str2 in str1:
+            return 85
+        
+        # Word-based matching
+        words1 = set(str1.split())
+        words2 = set(str2.split())
+        
+        if not words1 or not words2:
+            return 0
+        
+        common = words1 & words2
+        total = words1 | words2
+        
+        return (len(common) / len(total)) * 100 if total else 0
 
 
 # Singleton instance
