@@ -18,8 +18,10 @@ import {
     CheckCircle,
     Upload,
     X,
-    AlertCircle
+    AlertCircle,
+    Info
 } from 'lucide-react'
+import DocumentUploadSection from '@/components/DocumentUploadSection'
 
 interface FormData {
     email: string
@@ -39,6 +41,28 @@ interface UploadedFile {
     preview: string
 }
 
+interface DocumentRequirement {
+    type: string
+    name: string
+    description: string
+}
+
+interface CountryRequirements {
+    country: string
+    required_documents: DocumentRequirement[]
+    optional_documents: DocumentRequirement[]
+    registration_format: string
+    regulatory_body: string
+    notes: string
+}
+
+interface StructuredDocuments {
+    [key: string]: {
+        file: File
+        preview: string
+    } | undefined
+}
+
 export default function DoctorRegisterPage() {
     const router = useRouter()
     const [step, setStep] = useState(1)
@@ -48,6 +72,8 @@ export default function DoctorRegisterPage() {
     const [specializations, setSpecializations] = useState<string[]>([])
     const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
     const [registeredDoctor, setRegisteredDoctor] = useState<any>(null)
+    const [documentRequirements, setDocumentRequirements] = useState<CountryRequirements | null>(null)
+    const [structuredDocuments, setStructuredDocuments] = useState<StructuredDocuments>({})
 
     const [formData, setFormData] = useState<FormData>({
         email: '',
@@ -85,8 +111,59 @@ export default function DoctorRegisterPage() {
         fetchData()
     }, [])
 
+    // Fetch document requirements when country changes
+    useEffect(() => {
+        if (!formData.country) {
+            setDocumentRequirements(null)
+            return
+        }
+
+        const fetchRequirements = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+                const res = await fetch(`${apiUrl}/api/auth/document-requirements/${encodeURIComponent(formData.country)}`)
+                const data = await res.json()
+                setDocumentRequirements(data)
+                // Clear previously uploaded documents when country changes
+                setStructuredDocuments({})
+            } catch (err) {
+                console.error('Failed to fetch document requirements:', err)
+            }
+        }
+        fetchRequirements()
+    }, [formData.country])
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    }
+
+    // Handle structured document upload by type
+    const handleStructuredDocUpload = (docType: string, file: File) => {
+        const preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
+        setStructuredDocuments(prev => ({
+            ...prev,
+            [docType]: { file, preview }
+        }))
+        setError('')
+    }
+
+    // Remove a structured document
+    const handleStructuredDocRemove = (docType: string) => {
+        setStructuredDocuments(prev => {
+            const newDocs = { ...prev }
+            if (newDocs[docType]?.preview) {
+                URL.revokeObjectURL(newDocs[docType]!.preview)
+            }
+            delete newDocs[docType]
+            return newDocs
+        })
+    }
+
+    // Check if all required documents are uploaded
+    const areRequiredDocsUploaded = (): boolean => {
+        if (!documentRequirements) return false
+        const requiredTypes = documentRequirements.required_documents.map(d => d.type)
+        return requiredTypes.every(type => structuredDocuments[type])
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,7 +268,8 @@ export default function DoctorRegisterPage() {
             setRegisteredDoctor(registerData)
 
             // Step 2: If there are documents and no magic code, verify them
-            if (uploadedFiles.length > 0 && !formData.magicCode) {
+            const hasDocuments = Object.keys(structuredDocuments).length > 0
+            if (hasDocuments && !formData.magicCode) {
                 const formDataUpload = new FormData()
                 formDataUpload.append('doctor_id', registerData.id)
                 formDataUpload.append('name', formData.name)
@@ -199,9 +277,15 @@ export default function DoctorRegisterPage() {
                 formDataUpload.append('registration_number', formData.registrationNumber)
                 formDataUpload.append('specialization', formData.specialization)
 
-                uploadedFiles.forEach(uf => {
-                    formDataUpload.append('documents', uf.file)
+                // Add documents with their types
+                const documentTypes: string[] = []
+                Object.entries(structuredDocuments).forEach(([docType, doc]) => {
+                    if (doc) {
+                        formDataUpload.append('documents', doc.file)
+                        documentTypes.push(docType)
+                    }
                 })
+                formDataUpload.append('document_types', JSON.stringify(documentTypes))
 
                 const verifyRes = await fetch(`${apiUrl}/api/auth/verify-documents`, {
                     method: 'POST',
@@ -277,8 +361,8 @@ export default function DoctorRegisterPage() {
                     {[1, 2, 3, 4].map((s) => (
                         <div key={s} className="flex items-center">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium ${s === step ? 'bg-primary-500 text-white' :
-                                    s < step ? 'bg-green-500 text-white' :
-                                        'bg-gray-200 text-gray-500'
+                                s < step ? 'bg-green-500 text-white' :
+                                    'bg-gray-200 text-gray-500'
                                 }`}>
                                 {s < step ? <CheckCircle className="h-5 w-5" /> : s}
                             </div>
@@ -498,72 +582,106 @@ export default function DoctorRegisterPage() {
                     {/* Step 3: Document Upload */}
                     {step === 3 && (
                         <div className="space-y-4">
-                            <h2 className="text-lg font-semibold mb-4">Document Verification</h2>
+                            <h2 className="text-lg font-semibold mb-2">Document Verification</h2>
 
                             <p className="text-sm text-gray-600 mb-4">
-                                Upload your medical credentials for AI-powered verification. We use Gemini 3 Vision
-                                to verify document authenticity and cross-check with your details.
+                                Upload your medical credentials for AI-powered verification. Our system uses
+                                Gemini Vision to analyze documents, check authenticity, and cross-verify with your details.
                             </p>
 
-                            {/* Document Requirements */}
-                            <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                                <h3 className="font-medium text-blue-800 mb-2">Required Documents:</h3>
-                                <ul className="text-sm text-blue-700 space-y-1">
-                                    <li>• Medical Degree Certificate</li>
-                                    <li>• Medical Council Registration/License</li>
-                                    <li>• Hospital ID (optional)</li>
-                                </ul>
-                                <p className="text-xs text-blue-600 mt-2">
-                                    Max 5MB per file. Formats: JPG, PNG, PDF
+                            {/* Country-specific requirements info */}
+                            {documentRequirements && (
+                                <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                                    <div className="flex items-start gap-2">
+                                        <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <h3 className="font-medium text-blue-800">
+                                                Requirements for {formData.country}
+                                            </h3>
+                                            {documentRequirements.regulatory_body && (
+                                                <p className="text-sm text-blue-700 mt-1">
+                                                    Regulatory Body: {documentRequirements.regulatory_body}
+                                                </p>
+                                            )}
+                                            {documentRequirements.registration_format && (
+                                                <p className="text-xs text-blue-600 mt-1">
+                                                    Registration format: {documentRequirements.registration_format}
+                                                </p>
+                                            )}
+                                            {documentRequirements.notes && (
+                                                <p className="text-xs text-blue-600 mt-1 italic">
+                                                    {documentRequirements.notes}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Quality Warning */}
+                            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4">
+                                <div className="flex items-center gap-2 text-amber-800 text-sm">
+                                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                    <span className="font-medium">Image Quality Requirements</span>
+                                </div>
+                                <p className="text-xs text-amber-700 mt-1 ml-6">
+                                    Documents must be clear and readable. Blurred or low-quality images will be rejected.
                                 </p>
                             </div>
 
-                            {/* Upload Area */}
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary-400 transition-colors">
-                                <input
-                                    type="file"
-                                    id="document-upload"
-                                    multiple
-                                    accept="image/jpeg,image/png,application/pdf"
-                                    onChange={handleFileUpload}
-                                    className="hidden"
-                                />
-                                <label htmlFor="document-upload" className="cursor-pointer">
-                                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-600">Drop files here or click to upload</p>
-                                    <p className="text-sm text-gray-400 mt-1">JPG, PNG, or PDF up to 5MB each</p>
-                                </label>
-                            </div>
-
-                            {/* Uploaded Files */}
-                            {uploadedFiles.length > 0 && (
-                                <div className="space-y-2">
-                                    <h3 className="font-medium">Uploaded Files:</h3>
-                                    {uploadedFiles.map((uf, index) => (
-                                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <FileText className="h-5 w-5 text-gray-500" />
-                                                <span className="text-sm">{uf.file.name}</span>
-                                                <span className="text-xs text-gray-400">
-                                                    ({(uf.file.size / 1024).toFixed(1)} KB)
-                                                </span>
-                                            </div>
-                                            <button
-                                                onClick={() => removeFile(index)}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <X className="h-5 w-5" />
-                                            </button>
-                                        </div>
+                            {/* Required Documents */}
+                            {documentRequirements?.required_documents && documentRequirements.required_documents.length > 0 && (
+                                <div className="space-y-3">
+                                    <h3 className="font-medium text-gray-900">Required Documents</h3>
+                                    {documentRequirements.required_documents.map((doc) => (
+                                        <DocumentUploadSection
+                                            key={doc.type}
+                                            documentType={doc.type}
+                                            label={doc.name}
+                                            description={doc.description}
+                                            required={true}
+                                            uploadedFile={structuredDocuments[doc.type]?.file}
+                                            preview={structuredDocuments[doc.type]?.preview}
+                                            onUpload={(file) => handleStructuredDocUpload(doc.type, file)}
+                                            onRemove={() => handleStructuredDocRemove(doc.type)}
+                                        />
                                     ))}
+                                </div>
+                            )}
+
+                            {/* Optional Documents */}
+                            {documentRequirements?.optional_documents && documentRequirements.optional_documents.length > 0 && (
+                                <div className="space-y-3 mt-6">
+                                    <h3 className="font-medium text-gray-700">Optional Documents</h3>
+                                    {documentRequirements.optional_documents.map((doc) => (
+                                        <DocumentUploadSection
+                                            key={doc.type}
+                                            documentType={doc.type}
+                                            label={doc.name}
+                                            description={doc.description}
+                                            required={false}
+                                            uploadedFile={structuredDocuments[doc.type]?.file}
+                                            preview={structuredDocuments[doc.type]?.preview}
+                                            onUpload={(file) => handleStructuredDocUpload(doc.type, file)}
+                                            onRemove={() => handleStructuredDocRemove(doc.type)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* No country selected message */}
+                            {!documentRequirements && (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Globe className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                                    <p>Please select your country in the previous step to see document requirements.</p>
                                 </div>
                             )}
 
                             {/* Magic Code for Testers */}
                             <div className="mt-6 pt-6 border-t">
-                                <div className="bg-amber-50 p-4 rounded-lg">
-                                    <h3 className="font-medium text-amber-800 mb-2">For Testers / Judges</h3>
-                                    <p className="text-sm text-amber-700 mb-2">
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <h3 className="font-medium text-gray-700 mb-2">For Testers / Hackathon Judges</h3>
+                                    <p className="text-sm text-gray-500 mb-2">
                                         Enter the magic code to skip document verification:
                                     </p>
                                     <input
@@ -583,7 +701,7 @@ export default function DoctorRegisterPage() {
                                 </button>
                                 <button
                                     onClick={handleRegister}
-                                    disabled={isLoading || (uploadedFiles.length === 0 && !formData.magicCode)}
+                                    disabled={isLoading || (!areRequiredDocsUploaded() && !formData.magicCode)}
                                     className="btn-primary flex-1 flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (

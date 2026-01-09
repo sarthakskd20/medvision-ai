@@ -236,13 +236,39 @@ async def verify_documents(
 @router.get("/countries")
 async def get_countries():
     """Get list of supported countries."""
-    return {"countries": COUNTRIES}
+    from app.data.document_requirements import get_all_supported_countries
+    
+    # Merge defined countries with document requirements countries
+    all_countries = set(COUNTRIES)
+    all_countries.update(get_all_supported_countries())
+    
+    return {"countries": sorted(list(all_countries))}
 
 
 @router.get("/specializations")
 async def get_specializations():
     """Get list of medical specializations."""
     return {"specializations": SPECIALIZATIONS}
+
+
+@router.get("/document-requirements/{country}")
+async def get_document_requirements(country: str):
+    """
+    Get required documents for a specific country.
+    Returns country-specific document requirements for doctor verification.
+    """
+    from app.data.document_requirements import get_requirements_for_country, DEFAULT_REQUIREMENTS
+    
+    requirements = get_requirements_for_country(country)
+    
+    return {
+        "country": country,
+        "required_documents": requirements.get("required", []),
+        "optional_documents": requirements.get("optional", []),
+        "registration_format": requirements.get("registration_format", ""),
+        "regulatory_body": requirements.get("regulatory_body", ""),
+        "notes": requirements.get("notes", "")
+    }
 
 
 @router.get("/verification-status/{doctor_id}")
@@ -258,3 +284,4 @@ async def get_verification_status(doctor_id: str):
         "score": doctor.verification_score,
         "notes": doctor.verification_notes
     }
+
