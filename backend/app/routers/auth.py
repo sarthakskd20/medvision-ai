@@ -148,8 +148,7 @@ async def verify_documents(
     country: str = Form(...),
     registration_number: str = Form(...),
     specialization: str = Form(...),
-    documents: List[UploadFile] = File(...),
-    doctor_id: str = Form("")  # Optional - verification can happen before registration; default to empty string
+    documents: List[UploadFile] = File(...)
 ):
     """
     Verify uploaded documents using Gemini 3 Vision.
@@ -215,22 +214,11 @@ async def verify_documents(
             "matches": {"name_match": True, "registration_match": True},
             "issues": []
         }
-        if doctor_id:
-            update_verification_status(doctor_id, VerificationStatus.APPROVED, 100.0, "Demo mode")
         return result
     
     # Run Gemini verification
     try:
         result = await verification_service.verify_doctor_documents(form_data, doc_data)
-        
-        # Update doctor status only if doctor_id was provided
-        if doctor_id:
-            update_verification_status(
-                doctor_id,
-                result.status,
-                result.confidence_score,
-                result.recommendation
-            )
         
         # Return comprehensive verification results
         return {
