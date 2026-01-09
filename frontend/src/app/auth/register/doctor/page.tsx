@@ -331,7 +331,10 @@ export default function DoctorRegisterPage() {
             if (!verifyRes.ok) {
                 const errorData = await verifyRes.json()
                 console.error('[UPLOAD] API Error:', errorData)
-                throw new Error(errorData.detail || 'Verification API failed')
+                const errorMsg = typeof errorData.detail === 'string'
+                    ? errorData.detail
+                    : JSON.stringify(errorData.detail) || 'Verification API failed'
+                throw new Error(errorMsg)
             }
 
             const verifyData = await verifyRes.json()
@@ -385,7 +388,20 @@ export default function DoctorRegisterPage() {
 
         } catch (err: any) {
             console.error('Verification error:', err)
-            setError(err.message || 'Verification failed')
+            // Handle different error types
+            let errorMessage = 'Verification failed'
+            if (typeof err === 'string') {
+                errorMessage = err
+            } else if (err?.message) {
+                errorMessage = err.message
+            } else if (typeof err === 'object') {
+                errorMessage = JSON.stringify(err)
+            }
+            // Check for network errors
+            if (err?.name === 'TypeError' && err?.message?.includes('fetch')) {
+                errorMessage = 'Cannot connect to backend server. Make sure the backend is running on port 8001.'
+            }
+            setError(errorMessage)
         } finally {
             setIsVerifying(false)
         }
