@@ -17,7 +17,9 @@ from app.models.user import (
     UserRole,
     COUNTRIES,
     SPECIALIZATIONS,
-    MAGIC_VERIFICATION_CODE
+    MAGIC_VERIFICATION_CODE,
+    PatientCreate,
+    PatientResponse
 )
 from app.services.auth_service import (
     register_doctor,
@@ -26,7 +28,11 @@ from app.services.auth_service import (
     get_doctor_by_id,
     update_verification_status,
     is_demo_email,
-    doctors_db
+    doctors_db,
+    register_patient,
+    login_patient,
+    get_patient_by_id,
+    patients_db
 )
 from app.services.verification_service import verification_service
 
@@ -122,8 +128,23 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not token_data:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
+
     doctor = get_doctor_by_id(token_data.sub)
     if not doctor:
+        # Check if it's a patient
+        patient = get_patient_by_id(token_data.sub)
+        if patient:
+            return PatientResponse(
+                id=patient.id,
+                email=patient.email,
+                name=patient.name,
+                phone=patient.phone,
+                date_of_birth=patient.date_of_birth,
+                gender=patient.gender,
+                role=UserRole.PATIENT,
+                trust_score=patient.trust_score,
+                created_at=patient.created_at
+            )
         raise HTTPException(status_code=404, detail="User not found")
     
     return DoctorResponse(
@@ -138,6 +159,73 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         role=UserRole.DOCTOR,
         created_at=doctor.created_at
     )
+
+
+# ===========================================
+# PATIENT AUTHENTICATION ENDPOINTS
+# ===========================================
+
+class PatientRegisterRequest(BaseModel):
+    """Patient registration request."""
+    email: str
+    password: str
+    confirm_password: str
+    name: str
+    phone: Optional[str] = None
+
+
+class PatientLoginRequest(BaseModel):
+    """Patient login request."""
+    email: str
+    password: str
+
+
+@router.post("/patient/register", response_model=PatientResponse)
+async def register_patient_endpoint(data: PatientRegisterRequest):
+    """
+    Register a new patient account.
+    
+    Patients start with a trust score of 50.
+    """
+    try:
+        patient_data = PatientCreate(
+            email=data.email,
+            password=data.password,
+            confirm_password=data.confirm_password,
+            name=data.name,
+            phone=data.phone
+        )
+        
+        patient = register_patient(patient_data)
+        
+        return PatientResponse(
+            id=patient.id,
+            email=patient.email,
+            name=patient.name,
+            phone=patient.phone,
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender,
+            role=UserRole.PATIENT,
+            trust_score=patient.trust_score,
+            created_at=patient.created_at
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/patient/login")
+async def login_patient_endpoint(data: PatientLoginRequest):
+    """
+    Login as a patient.
+    
+    Returns access token and patient profile.
+    """
+    try:
+        result = login_patient(data.email, data.password)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
 
 @router.post("/verify-documents")

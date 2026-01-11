@@ -20,7 +20,11 @@ from app.models.user import (
     UserRole,
     DEMO_ACCOUNTS,
     TEST_EMAIL_DOMAINS,
-    MAGIC_VERIFICATION_CODE
+    MAGIC_VERIFICATION_CODE,
+    # Patient models
+    PatientCreate,
+    PatientInDB,
+    PatientResponse
 )
 
 # JWT Configuration
@@ -30,6 +34,7 @@ ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 # In-memory storage (replace with Firebase in production)
 doctors_db: Dict[str, DoctorInDB] = {}
+patients_db: Dict[str, PatientInDB] = {}
 
 
 def hash_password(password: str) -> str:
@@ -241,3 +246,91 @@ for email, data in DEMO_ACCOUNTS.items():
     demo = get_demo_account(email)
     if demo:
         doctors_db[email] = demo
+
+
+# ===========================================
+# PATIENT AUTHENTICATION FUNCTIONS
+# ===========================================
+
+def register_patient(data: PatientCreate) -> PatientInDB:
+    """Register a new patient."""
+    # Check if email already exists
+    if data.email in patients_db:
+        raise ValueError("Email already registered")
+    
+    # Check if email is used by a doctor
+    if data.email in doctors_db:
+        raise ValueError("Email already registered as a doctor")
+    
+    # Validate passwords match
+    if data.password != data.confirm_password:
+        raise ValueError("Passwords do not match")
+    
+    # Create patient record
+    patient_id = f"pat_{secrets.token_hex(8)}"
+    patient = PatientInDB(
+        id=patient_id,
+        email=data.email,
+        password_hash=hash_password(data.password),
+        name=data.name,
+        phone=data.phone,
+        date_of_birth=data.date_of_birth,
+        gender=data.gender,
+        address=data.address,
+        emergency_contact=data.emergency_contact,
+        trust_score=50,  # Start with default trust
+        no_show_count=0,
+        appointments_completed=0,
+        is_globally_banned=False,
+        banned_by_doctors=[]
+    )
+    
+    patients_db[data.email] = patient
+    return patient
+
+
+def login_patient(email: str, password: str) -> dict:
+    """Authenticate patient and return token."""
+    patient = patients_db.get(email)
+    if not patient:
+        raise ValueError("Invalid email or password")
+    
+    if not verify_password(password, patient.password_hash):
+        raise ValueError("Invalid email or password")
+    
+    # Check if globally banned
+    if patient.is_globally_banned:
+        raise ValueError("Your account has been suspended. Please contact support.")
+    
+    # Create token
+    token = create_access_token(patient.id, patient.email, UserRole.PATIENT)
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": PatientResponse(
+            id=patient.id,
+            email=patient.email,
+            name=patient.name,
+            phone=patient.phone,
+            date_of_birth=patient.date_of_birth,
+            gender=patient.gender,
+            role=UserRole.PATIENT,
+            trust_score=patient.trust_score,
+            created_at=patient.created_at
+        )
+    }
+
+
+def get_patient_by_id(patient_id: str) -> Optional[PatientInDB]:
+    """Get patient by ID."""
+    for patient in patients_db.values():
+        if patient.id == patient_id:
+            return patient
+    return None
+
+
+def get_patient_by_email(email: str) -> Optional[PatientInDB]:
+    """Get patient by email."""
+    return patients_db.get(email)
+

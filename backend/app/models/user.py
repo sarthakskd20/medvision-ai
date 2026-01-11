@@ -147,6 +147,55 @@ class VerificationResult(BaseModel):
     recommendation: str
 
 
+# ===========================================
+# PATIENT MODELS
+# ===========================================
+
+class PatientBase(BaseModel):
+    """Base patient information"""
+    email: EmailStr
+    name: str = Field(..., min_length=2, max_length=100)
+    phone: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    emergency_contact: Optional[str] = None
+
+
+class PatientCreate(PatientBase):
+    """Patient registration request"""
+    password: str = Field(..., min_length=8)
+    confirm_password: str
+
+
+class PatientInDB(PatientBase):
+    """Patient stored in database"""
+    id: str
+    password_hash: str
+    role: UserRole = UserRole.PATIENT
+    # Trust score system for anti-abuse
+    trust_score: int = 50  # Starts at 50, range 0-100
+    no_show_count: int = 0
+    appointments_completed: int = 0
+    is_globally_banned: bool = False
+    banned_by_doctors: List[str] = []  # List of doctor IDs who banned this patient
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PatientResponse(BaseModel):
+    """Patient response (no sensitive data)"""
+    id: str
+    email: str
+    name: str
+    phone: Optional[str]
+    date_of_birth: Optional[str]
+    gender: Optional[str]
+    role: UserRole
+    trust_score: int
+    created_at: datetime
+
+
 # Demo accounts for testing/judges
 DEMO_ACCOUNTS = {
     "dr.chen@medvision.ai": {

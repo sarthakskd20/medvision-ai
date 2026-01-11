@@ -51,22 +51,31 @@ export default function PatientRegisterPage() {
         }
 
         try {
-            // For now, store in localStorage (replace with API call)
-            const patientData = {
-                id: `patient_${Date.now()}`,
-                name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                role: 'patient',
-                created_at: new Date().toISOString()
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+
+            const response = await fetch(`${apiUrl}/api/auth/patient/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password,
+                    confirm_password: formData.confirmPassword,
+                    name: formData.name,
+                    phone: formData.phone || null
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.detail || 'Registration failed')
             }
 
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            const patientData = await response.json()
 
-            // Store patient info
+            // Store patient info (we don't have a token from register, need to login)
             localStorage.setItem('user', JSON.stringify(patientData))
-            localStorage.setItem('auth_token', `patient_token_${Date.now()}`)
 
             setSuccess(true)
 
