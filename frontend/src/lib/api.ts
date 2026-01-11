@@ -37,6 +37,9 @@ export const api = {
     // Health check
     health: () => fetchAPI<{ status: string }>('/health'),
 
+    // Auth - Get current logged-in doctor
+    getCurrentDoctor: () => fetchAPI<any>('/api/auth/me'),
+
     // Patients
     getPatients: () => fetchAPI<any[]>('/api/patients'),
 
