@@ -1,5 +1,6 @@
 """
 Authentication service for handling login, registration, and JWT tokens.
+Uses Firebase Firestore for persistent storage.
 """
 
 import os
@@ -8,6 +9,7 @@ import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import jwt
+import asyncio
 
 from app.models.user import (
     DoctorCreate,
@@ -21,20 +23,19 @@ from app.models.user import (
     DEMO_ACCOUNTS,
     TEST_EMAIL_DOMAINS,
     MAGIC_VERIFICATION_CODE,
-    # Patient models
     PatientCreate,
     PatientInDB,
     PatientResponse
 )
+from app.services.firebase_service import get_firebase_service
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "medvision-ai-super-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-# In-memory storage (replace with Firebase in production)
-doctors_db: Dict[str, DoctorInDB] = {}
-patients_db: Dict[str, PatientInDB] = {}
+# Get Firebase service
+firebase = get_firebase_service()
 
 
 def hash_password(password: str) -> str:
@@ -78,11 +79,9 @@ def verify_token(token: str) -> Optional[TokenPayload]:
 
 def is_demo_email(email: str) -> bool:
     """Check if email is a demo/test email that should auto-approve."""
-    # Check demo accounts
     if email in DEMO_ACCOUNTS:
         return True
     
-    # Check test email domains
     domain = email.split("@")[-1] if "@" in email else ""
     if domain in TEST_EMAIL_DOMAINS:
         return True
@@ -97,7 +96,7 @@ def get_demo_account(email: str) -> Optional[DoctorInDB]:
         return DoctorInDB(
             id=data["id"],
             email=email,
-            password_hash=hash_password("Demo@2025"),  # Demo password
+            password_hash=hash_password("Demo@2025"),
             name=data["name"],
             country=data["country"],
             registration_number=data["registration_number"],
@@ -110,17 +109,39 @@ def get_demo_account(email: str) -> Optional[DoctorInDB]:
     return None
 
 
+def _run_async(coro):
+    """Run async function synchronously."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If event loop is already running (FastAPI), create a task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, coro)
+                return future.result()
+        else:
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        return asyncio.run(coro)
+
+
+# ===========================================
+# DOCTOR AUTHENTICATION
+# ===========================================
+
 def register_doctor(data: DoctorCreate, magic_code: Optional[str] = None) -> DoctorInDB:
-    """Register a new doctor."""
-    # Check if email already exists
-    if data.email in doctors_db:
-        raise ValueError("Email already registered")
-    
+    """Register a new doctor (stored in Firebase)."""
     # Check if it's a demo account
     demo = get_demo_account(data.email)
     if demo:
-        doctors_db[data.email] = demo
+        # Save demo account to Firebase too
+        _run_async(firebase.create_doctor(demo.model_dump()))
         return demo
+    
+    # Check if email already exists in Firebase
+    existing = _run_async(firebase.get_doctor_by_email(data.email))
+    if existing:
+        raise ValueError("Email already registered")
     
     # Validate passwords match
     if data.password != data.confirm_password:
@@ -130,7 +151,6 @@ def register_doctor(data: DoctorCreate, magic_code: Optional[str] = None) -> Doc
     verification_status = VerificationStatus.PENDING
     verification_score = 0.0
     
-    # Auto-approve for test emails or magic code
     if is_demo_email(data.email):
         verification_status = VerificationStatus.APPROVED
         verification_score = 100.0
@@ -149,12 +169,15 @@ def register_doctor(data: DoctorCreate, magic_code: Optional[str] = None) -> Doc
         registration_number=data.registration_number,
         specialization=data.specialization,
         hospital=data.hospital,
+        phone=data.phone,
         verification_status=verification_status,
         verification_score=verification_score,
         is_demo_account=False
     )
     
-    doctors_db[data.email] = doctor
+    # Save to Firebase
+    _run_async(firebase.create_doctor(doctor.model_dump()))
+    
     return doctor
 
 
@@ -164,7 +187,6 @@ def login_doctor(data: LoginRequest) -> LoginResponse:
     if data.email in DEMO_ACCOUNTS:
         demo = get_demo_account(data.email)
         if demo and data.password == "Demo@2025":
-            doctors_db[data.email] = demo
             token = create_access_token(demo.id, demo.email, UserRole.DOCTOR)
             return LoginResponse(
                 access_token=token,
@@ -182,10 +204,13 @@ def login_doctor(data: LoginRequest) -> LoginResponse:
                 )
             )
     
-    # Check registered doctors
-    doctor = doctors_db.get(data.email)
-    if not doctor:
+    # Check Firebase for registered doctors
+    doctor_data = _run_async(firebase.get_doctor_by_email(data.email))
+    if not doctor_data:
         raise ValueError("Invalid email or password")
+    
+    # Reconstruct DoctorInDB
+    doctor = DoctorInDB(**doctor_data)
     
     if not verify_password(data.password, doctor.password_hash):
         raise ValueError("Invalid email or password")
@@ -211,16 +236,29 @@ def login_doctor(data: LoginRequest) -> LoginResponse:
 
 
 def get_doctor_by_id(doctor_id: str) -> Optional[DoctorInDB]:
-    """Get doctor by ID."""
-    for doctor in doctors_db.values():
-        if doctor.id == doctor_id:
-            return doctor
+    """Get doctor by ID from Firebase."""
+    # Check demo accounts first
+    for email, data in DEMO_ACCOUNTS.items():
+        if data["id"] == doctor_id:
+            return get_demo_account(email)
+    
+    # Check Firebase
+    doctor_data = _run_async(firebase.get_doctor_by_id(doctor_id))
+    if doctor_data:
+        return DoctorInDB(**doctor_data)
     return None
 
 
 def get_doctor_by_email(email: str) -> Optional[DoctorInDB]:
-    """Get doctor by email."""
-    return doctors_db.get(email)
+    """Get doctor by email from Firebase."""
+    # Check demo accounts
+    if email in DEMO_ACCOUNTS:
+        return get_demo_account(email)
+    
+    doctor_data = _run_async(firebase.get_doctor_by_email(email))
+    if doctor_data:
+        return DoctorInDB(**doctor_data)
+    return None
 
 
 def update_verification_status(
@@ -229,37 +267,40 @@ def update_verification_status(
     score: float,
     notes: Optional[str] = None
 ) -> Optional[DoctorInDB]:
-    """Update doctor verification status."""
+    """Update doctor verification status in Firebase."""
     doctor = get_doctor_by_id(doctor_id)
-    if doctor:
-        doctor.verification_status = status
-        doctor.verification_score = score
-        doctor.verification_notes = notes
-        doctor.updated_at = datetime.utcnow()
-        doctors_db[doctor.email] = doctor
-        return doctor
-    return None
-
-
-# Initialize demo accounts on module load
-for email, data in DEMO_ACCOUNTS.items():
-    demo = get_demo_account(email)
-    if demo:
-        doctors_db[email] = demo
+    if not doctor:
+        return None
+    
+    updates = {
+        "verification_status": status.value,
+        "verification_score": score,
+        "verification_notes": notes
+    }
+    
+    _run_async(firebase.update_doctor(doctor.email, updates))
+    
+    # Return updated doctor
+    doctor.verification_status = status
+    doctor.verification_score = score
+    doctor.verification_notes = notes
+    return doctor
 
 
 # ===========================================
-# PATIENT AUTHENTICATION FUNCTIONS
+# PATIENT AUTHENTICATION
 # ===========================================
 
 def register_patient(data: PatientCreate) -> PatientInDB:
-    """Register a new patient."""
+    """Register a new patient (stored in Firebase)."""
     # Check if email already exists
-    if data.email in patients_db:
+    existing_patient = _run_async(firebase.get_patient_by_email(data.email))
+    if existing_patient:
         raise ValueError("Email already registered")
     
     # Check if email is used by a doctor
-    if data.email in doctors_db:
+    existing_doctor = _run_async(firebase.get_doctor_by_email(data.email))
+    if existing_doctor:
         raise ValueError("Email already registered as a doctor")
     
     # Validate passwords match
@@ -278,22 +319,26 @@ def register_patient(data: PatientCreate) -> PatientInDB:
         gender=data.gender,
         address=data.address,
         emergency_contact=data.emergency_contact,
-        trust_score=50,  # Start with default trust
+        trust_score=50,
         no_show_count=0,
         appointments_completed=0,
         is_globally_banned=False,
         banned_by_doctors=[]
     )
     
-    patients_db[data.email] = patient
+    # Save to Firebase
+    _run_async(firebase.create_patient(patient.model_dump()))
+    
     return patient
 
 
 def login_patient(email: str, password: str) -> dict:
     """Authenticate patient and return token."""
-    patient = patients_db.get(email)
-    if not patient:
+    patient_data = _run_async(firebase.get_patient_by_email(email))
+    if not patient_data:
         raise ValueError("Invalid email or password")
+    
+    patient = PatientInDB(**patient_data)
     
     if not verify_password(password, patient.password_hash):
         raise ValueError("Invalid email or password")
@@ -323,14 +368,21 @@ def login_patient(email: str, password: str) -> dict:
 
 
 def get_patient_by_id(patient_id: str) -> Optional[PatientInDB]:
-    """Get patient by ID."""
-    for patient in patients_db.values():
-        if patient.id == patient_id:
-            return patient
+    """Get patient by ID from Firebase."""
+    patient_data = _run_async(firebase.get_patient_by_id(patient_id))
+    if patient_data:
+        return PatientInDB(**patient_data)
     return None
 
 
 def get_patient_by_email(email: str) -> Optional[PatientInDB]:
-    """Get patient by email."""
-    return patients_db.get(email)
+    """Get patient by email from Firebase."""
+    patient_data = _run_async(firebase.get_patient_by_email(email))
+    if patient_data:
+        return PatientInDB(**patient_data)
+    return None
 
+
+# Legacy compatibility - these are no longer used but kept for imports
+doctors_db: Dict[str, DoctorInDB] = {}
+patients_db: Dict[str, PatientInDB] = {}
