@@ -72,16 +72,12 @@ export default function PatientRegisterPage() {
                 throw new Error(errorData.detail || 'Registration failed')
             }
 
-            const patientData = await response.json()
-
-            // Store patient info (we don't have a token from register, need to login)
-            localStorage.setItem('user', JSON.stringify(patientData))
-
+            // Don't store anything - user must login to get token
             setSuccess(true)
 
-            // Redirect after 2 seconds
+            // Redirect to login after 2 seconds
             setTimeout(() => {
-                router.push('/patient-portal')
+                router.push('/auth/login?registered=true&role=patient')
             }, 2000)
 
         } catch (err: any) {
@@ -101,7 +97,7 @@ export default function PatientRegisterPage() {
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created!</h2>
                         <p className="text-gray-600 mb-6">
-                            Welcome, {formData.name}! Redirecting to your portal...
+                            Welcome, {formData.name}! Redirecting to login...
                         </p>
                         <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary-500" />
                     </div>

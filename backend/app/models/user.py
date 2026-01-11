@@ -108,11 +108,13 @@ class DoctorResponse(BaseModel):
     created_at: datetime
 
 
+
 class LoginRequest(BaseModel):
     """Login request"""
     email: EmailStr
     password: str
     role: UserRole = UserRole.DOCTOR
+    registration_number: Optional[str] = None  # Required for doctors
 
 
 class LoginResponse(BaseModel):

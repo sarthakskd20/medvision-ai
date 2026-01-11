@@ -469,37 +469,9 @@ export default function DoctorRegisterPage() {
         setStep(5)
     }
 
-    const handleGoToDashboard = async () => {
-        // Auto-login and redirect
-        try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
-            const loginRes = await fetch(`${apiUrl}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                    role: 'doctor'
-                })
-            })
-
-            const loginData = await loginRes.json()
-
-            if (loginRes.ok) {
-                localStorage.setItem('auth_token', loginData.access_token)
-                localStorage.setItem('user', JSON.stringify(loginData.user))
-
-                if (loginData.user.verification_status === 'approved') {
-                    router.push('/dashboard')
-                } else {
-                    router.push('/auth/pending')
-                }
-            } else {
-                router.push('/auth/login')
-            }
-        } catch {
-            router.push('/auth/login')
-        }
+    const handleGoToDashboard = () => {
+        // Redirect to login page - user must login manually after registration
+        router.push('/auth/login?registered=true&role=doctor')
     }
 
     return (
@@ -1144,7 +1116,7 @@ export default function DoctorRegisterPage() {
                             )}
 
                             <button onClick={handleGoToDashboard} className="btn-primary">
-                                Go to Dashboard
+                                Proceed to Login
                             </button>
                         </div>
                     )}

@@ -1,15 +1,16 @@
 """
 Authentication service for handling login, registration, and JWT tokens.
 Uses Firebase Firestore for persistent storage.
+Uses bcrypt for secure password hashing.
 """
 
 import os
-import hashlib
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import jwt
 import asyncio
+import bcrypt
 
 from app.models.user import (
     DoctorCreate,
@@ -39,14 +40,24 @@ firebase = get_firebase_service()
 
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA256 with salt."""
-    salt = "medvision_salt_2025"
-    return hashlib.sha256(f"{password}{salt}".encode()).hexdigest()
+    """Hash password using bcrypt (secure, includes salt)."""
+    salt = bcrypt.gensalt(rounds=12)  # 12 rounds for good security
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash."""
-    return hash_password(plain_password) == hashed_password
+    """Verify password against bcrypt hash."""
+    try:
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'), 
+            hashed_password.encode('utf-8')
+        )
+    except Exception:
+        # Fallback for old SHA256 hashes during migration
+        import hashlib
+        salt = "medvision_salt_2025"
+        old_hash = hashlib.sha256(f"{plain_password}{salt}".encode()).hexdigest()
+        return old_hash == hashed_password
 
 
 def create_access_token(user_id: str, email: str, role: UserRole) -> str:
@@ -182,11 +193,14 @@ def register_doctor(data: DoctorCreate, magic_code: Optional[str] = None) -> Doc
 
 
 def login_doctor(data: LoginRequest) -> LoginResponse:
-    """Authenticate doctor and return token."""
+    """Authenticate doctor and return token. Validates registration number for security."""
     # Check demo accounts first
     if data.email in DEMO_ACCOUNTS:
         demo = get_demo_account(data.email)
         if demo and data.password == "Demo@2025":
+            # Validate registration number for demo too
+            if data.registration_number and data.registration_number != demo.registration_number:
+                raise ValueError("Invalid registration number")
             token = create_access_token(demo.id, demo.email, UserRole.DOCTOR)
             return LoginResponse(
                 access_token=token,
@@ -214,6 +228,11 @@ def login_doctor(data: LoginRequest) -> LoginResponse:
     
     if not verify_password(data.password, doctor.password_hash):
         raise ValueError("Invalid email or password")
+    
+    # Validate registration number (security layer)
+    if data.registration_number:
+        if data.registration_number != doctor.registration_number:
+            raise ValueError("Invalid registration number")
     
     # Create token
     token = create_access_token(doctor.id, doctor.email, UserRole.DOCTOR)

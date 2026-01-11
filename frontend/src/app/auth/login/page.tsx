@@ -10,7 +10,9 @@ import {
     ArrowRight,
     Loader2,
     Stethoscope,
-    User
+    User,
+    FileText,
+    CheckCircle
 } from 'lucide-react'
 import { signInWithGoogle } from '@/lib/firebase'
 
@@ -22,14 +24,24 @@ function LoginContent() {
     const [role, setRole] = useState<UserRole>('doctor')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [registrationNumber, setRegistrationNumber] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState('')
+    const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false)
 
-    // Read role from URL on mount
+    // Read role and registration status from URL on mount
     useEffect(() => {
         const urlRole = searchParams.get('role')
         if (urlRole === 'patient' || urlRole === 'doctor') {
             setRole(urlRole)
+        }
+
+        // Check if coming from registration
+        const registered = searchParams.get('registered')
+        if (registered === 'true') {
+            setShowRegistrationSuccess(true)
+            // Auto-hide after 5 seconds
+            setTimeout(() => setShowRegistrationSuccess(false), 5000)
         }
     }, [searchParams])
 
@@ -39,30 +51,54 @@ function LoginContent() {
         setIsLoading(true)
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role })
-            })
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
-            const data = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.detail || 'Login failed')
-            }
-
-            // Store token and user info
-            localStorage.setItem('auth_token', data.access_token)
-            localStorage.setItem('user', JSON.stringify(data.user))
-
-            // Redirect based on role and verification status
+            // Different endpoints for doctor and patient
             if (role === 'doctor') {
+                // Doctor login with registration number
+                const response = await fetch(`${apiUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        role,
+                        registration_number: registrationNumber
+                    })
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Login failed')
+                }
+
+                // Store token and user info
+                localStorage.setItem('auth_token', data.access_token)
+                localStorage.setItem('user', JSON.stringify(data.user))
+
+                // Redirect based on verification status
                 if (data.user.verification_status === 'approved') {
                     router.push('/dashboard')
                 } else {
                     router.push('/auth/pending')
                 }
             } else {
+                // Patient login
+                const response = await fetch(`${apiUrl}/api/auth/patient/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Login failed')
+                }
+
+                localStorage.setItem('auth_token', data.access_token)
+                localStorage.setItem('user', JSON.stringify(data.user))
                 router.push('/patient-portal')
             }
         } catch (err: any) {
@@ -84,6 +120,17 @@ function LoginContent() {
                     <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
                     <p className="text-gray-500 mt-2">Sign in to access your dashboard</p>
                 </div>
+
+                {/* Registration Success Message */}
+                {showRegistrationSuccess && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+                        <CheckCircle className="h-6 w-6 text-green-500 flex-shrink-0" />
+                        <div>
+                            <p className="font-medium text-green-800">Registration successful!</p>
+                            <p className="text-sm text-green-700">Please sign in with your credentials.</p>
+                        </div>
+                    </div>
+                )}
 
                 {/* Role Toggle */}
                 <div className="bg-gray-100 p-1 rounded-xl flex mb-6">
@@ -151,6 +198,29 @@ function LoginContent() {
                                 />
                             </div>
                         </div>
+
+                        {/* Registration Number - Only for Doctors */}
+                        {role === 'doctor' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Medical Registration Number
+                                </label>
+                                <div className="relative">
+                                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={registrationNumber}
+                                        onChange={(e) => setRegistrationNumber(e.target.value)}
+                                        placeholder="e.g. MCI-123456"
+                                        className="input-field pl-10"
+                                        required
+                                    />
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Enter the same registration number you used during signup
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <button
@@ -251,6 +321,7 @@ function LoginContent() {
                     <div className="text-sm text-primary-700 space-y-1">
                         <p><strong>Email:</strong> dr.chen@medvision.ai</p>
                         <p><strong>Password:</strong> Demo@2025</p>
+                        <p><strong>Reg. Number:</strong> MD-12345-CA</p>
                     </div>
                 </div>
             </div>
