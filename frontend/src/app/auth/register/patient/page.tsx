@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
     Activity,
@@ -37,7 +38,6 @@ export default function PatientRegisterPage() {
         setError('')
         setIsLoading(true)
 
-        // Validate
         if (formData.password.length < 8) {
             setError('Password must be at least 8 characters')
             setIsLoading(false)
@@ -72,10 +72,8 @@ export default function PatientRegisterPage() {
                 throw new Error(errorData.detail || 'Registration failed')
             }
 
-            // Don't store anything - user must login to get token
             setSuccess(true)
 
-            // Redirect to login after 2 seconds
             setTimeout(() => {
                 router.push('/auth/login?registered=true&role=patient')
             }, 2000)
@@ -89,164 +87,153 @@ export default function PatientRegisterPage() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-secondary-100 to-white flex items-center justify-center p-4">
-                <div className="w-full max-w-md text-center">
-                    <div className="card p-8">
-                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <CheckCircle className="h-10 w-10 text-green-500" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created!</h2>
-                        <p className="text-gray-600 mb-6">
-                            Welcome, {formData.name}! Redirecting to login...
-                        </p>
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary-500" />
+            <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#e6f0ff]">
+                <div className="absolute inset-0 z-0">
+                    <Image
+                        src="/images/auth-bg.png"
+                        alt="Background"
+                        layout="fill"
+                        objectFit="cover"
+                        className="opacity-100"
+                        priority
+                    />
+                </div>
+                <div className="relative z-10 w-full max-w-[440px] bg-white p-10 shadow-2xl rounded-sm sm:rounded-lg text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">Account Created!</h2>
+                    <p className="text-slate-600 mb-6 font-light">
+                        Redirecting to login...
+                    </p>
+                    <Loader2 className="h-6 w-6 animate-spin text-primary-600 mx-auto" />
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-secondary-100 to-white py-8 px-4">
-            <div className="max-w-md mx-auto">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                        <Activity className="h-10 w-10 text-primary-500" />
-                        <span className="text-2xl font-bold text-gray-900">MedVision AI</span>
-                    </Link>
-                    <h1 className="text-2xl font-bold text-gray-900">Create Patient Account</h1>
-                    <p className="text-gray-500 mt-2">Access your health reports and AI interpretations</p>
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#e6f0ff]">
+            {/* Background Image */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/auth-bg.png"
+                    alt="Background"
+                    layout="fill"
+                    objectFit="cover"
+                    className="opacity-100"
+                    priority
+                />
+            </div>
+
+            <div className="relative z-10 w-full max-w-[440px] bg-white p-10 shadow-2xl rounded-none sm:rounded-lg">
+                <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Activity className="h-6 w-6 text-primary-600" />
+                        <span className="text-xl font-semibold text-slate-700">MedVision AI</span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 mb-1">Create account</h1>
+                    <p className="text-sm text-slate-500">
+                        Patient Registration
+                    </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="card p-8">
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                    <div>
+                        <input
+                            type="text"
+                            name="name"
+                            required
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-600 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                            placeholder="Full name"
+                        />
+                    </div>
+
+                    <div>
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-600 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                            placeholder="someone@example.com"
+                        />
+                    </div>
+
+                    <div>
+                        <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-600 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                            placeholder="Phone number (optional)"
+                        />
+                    </div>
+
+                    <div>
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            minLength={8}
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-600 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                            placeholder="Create password"
+                        />
+                    </div>
+
+                    <div>
+                        <input
+                            type="password"
+                            name="confirmPassword"
+                            required
+                            value={formData.confirmPassword}
+                            onChange={handleInputChange}
+                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-600 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                            placeholder="Confirm password"
+                        />
+                    </div>
+
                     {error && (
-                        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                        <div className="text-sm text-red-600 mt-2">
                             {error}
                         </div>
                     )}
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Full Name *
-                            </label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleInputChange}
-                                    placeholder="Your full name"
-                                    className="input-field pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Email Address *
-                            </label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    placeholder="you@example.com"
-                                    className="input-field pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Phone Number (optional)
-                            </label>
-                            <div className="relative">
-                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="tel"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleInputChange}
-                                    placeholder="+1 234 567 8900"
-                                    className="input-field pl-10"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Password * (min 8 characters)
-                            </label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleInputChange}
-                                    placeholder="Create a password"
-                                    className="input-field pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Confirm Password *
-                            </label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                <input
-                                    type="password"
-                                    name="confirmPassword"
-                                    value={formData.confirmPassword}
-                                    onChange={handleInputChange}
-                                    placeholder="Confirm your password"
-                                    className="input-field pl-10"
-                                    required
-                                />
-                            </div>
-                        </div>
+                    <div className="pt-6 flex justify-end items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={() => router.push('/auth/login')}
+                            className="px-8 py-2 bg-slate-200 text-slate-800 font-medium hover:bg-slate-300 transition-colors rounded-sm"
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="px-8 py-2 bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm rounded-sm"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                'Next'
+                            )}
+                        </button>
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
-                    >
-                        {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                            <>
-                                Create Account
-                                <ArrowRight className="h-5 w-5" />
-                            </>
-                        )}
-                    </button>
                 </form>
 
-                {/* Back to Login */}
-                <div className="text-center mt-6">
-                    <span className="text-gray-500">Already have an account? </span>
-                    <Link href="/auth/login?role=patient" className="text-primary-600 font-medium hover:underline">
-                        Sign In
-                    </Link>
-                </div>
+                <p className="mt-8 text-center text-xs text-slate-500">
+                    <Link href="/auth/register/doctor" className="hover:underline hover:text-primary-600">Register as a Doctor instead</Link>
+                </p>
+            </div>
 
-                {/* Back to Home */}
-                <div className="text-center mt-4">
-                    <Link href="/" className="text-gray-500 hover:text-gray-700 text-sm">
-                        Back to Home
-                    </Link>
-                </div>
+            <div className="absolute bottom-4 right-4 text-slate-500/50 text-xs text-white mix-blend-overlay">
+                MedVision AI • Privacy & Terms
             </div>
         </div>
     )

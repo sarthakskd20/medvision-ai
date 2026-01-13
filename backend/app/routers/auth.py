@@ -100,6 +100,13 @@ async def register(data: RegisterRequest):
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except ConnectionError as e:
+        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}. Please check Firebase configuration.")
+    except Exception as e:
+        print(f"[REGISTER ERROR] Unexpected error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 @router.post("/login", response_model=LoginResponse)

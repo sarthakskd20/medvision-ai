@@ -6,6 +6,19 @@ import os
 import json
 from typing import Optional, Dict, List
 from datetime import datetime
+from pathlib import Path
+
+# Load .env file BEFORE Firebase import
+from dotenv import load_dotenv
+
+# Find and load .env file from backend directory
+backend_dir = Path(__file__).parent.parent.parent
+env_path = backend_dir / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"Loaded .env from: {env_path}")
+else:
+    print(f"WARNING: .env file not found at {env_path}")
 
 # Firebase Admin SDK
 try:
@@ -55,9 +68,20 @@ class FirebaseService:
             client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
             private_key = os.getenv("FIREBASE_PRIVATE_KEY")
             
+            # Debug: Print what we found (masked)
+            print(f"Firebase config check:")
+            print(f"  - PROJECT_ID: {'SET' if project_id else 'NOT SET'}")
+            print(f"  - CLIENT_EMAIL: {'SET' if client_email else 'NOT SET'}")
+            print(f"  - PRIVATE_KEY: {'SET (' + str(len(private_key)) + ' chars)' if private_key else 'NOT SET'}")
+            
             if project_id and client_email and private_key:
-                # Fix private key formatting (newlines)
-                private_key = private_key.replace("\\n", "\n")
+                # Fix private key formatting - handle both escaped and actual newlines
+                if "\\n" in private_key:
+                    private_key = private_key.replace("\\n", "\n")
+                
+                # Remove surrounding quotes if present
+                if private_key.startswith('"') and private_key.endswith('"'):
+                    private_key = private_key[1:-1]
                 
                 cred_dict = {
                     "type": "service_account",
@@ -77,6 +101,8 @@ class FirebaseService:
                 
         except Exception as e:
             print(f"Firebase initialization error: {e}")
+            import traceback
+            traceback.print_exc()
     
     @property
     def db(self):
@@ -271,6 +297,197 @@ class FirebaseService:
             return DEMO_PATIENT_SARAH
         
         return None
+
+    # ===========================================
+    # SOCIAL / PROFILE OPERATIONS  
+    # ===========================================
+    
+    async def get_doctor_profile(self, doctor_id: str) -> Optional[dict]:
+        """Get extended profile for doctor."""
+        if not self.is_connected:
+            return None
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        doc = doc_ref.get()
+        return doc.to_dict() if doc.exists else None
+    
+    async def update_doctor_profile(self, doctor_id: str, profile_data: dict) -> dict:
+        """Update extended profile for doctor."""
+        if not self.is_connected:
+            raise ConnectionError("Firebase not connected")
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        profile_data["updated_at"] = datetime.utcnow().isoformat()
+        doc_ref.set(profile_data, merge=True)
+        return profile_data
+    
+    async def create_follow(self, follow_data: dict) -> dict:
+        """Create a follow relationship."""
+        if not self.is_connected:
+            raise ConnectionError("Firebase not connected")
+        
+        doc_ref = self._db.collection("follows").document(follow_data['id'])
+        doc_ref.set(follow_data)
+        return follow_data
+    
+    async def delete_follow(self, follower_id: str, following_id: str) -> bool:
+        """Delete a follow relationship."""
+        if not self.is_connected:
+            return False
+        
+        # Find the follow document
+        docs = self._db.collection("follows")\
+            .where("follower_id", "==", follower_id)\
+            .where("following_id", "==", following_id)\
+            .limit(1).stream()
+        
+        for doc in docs:
+            doc.reference.delete()
+            return True
+        return False
+    
+    async def is_following(self, follower_id: str, following_id: str) -> bool:
+        """Check if one doctor follows another."""
+        if not self.is_connected:
+            return False
+        
+        docs = self._db.collection("follows")\
+            .where("follower_id", "==", follower_id)\
+            .where("following_id", "==", following_id)\
+            .limit(1).stream()
+        
+        return any(True for _ in docs)
+    
+    async def get_followers(self, doctor_id: str, limit: int = 20) -> list:
+        """Get list of followers for a doctor."""
+        if not self.is_connected:
+            return []
+        
+        followers = []
+        docs = self._db.collection("follows")\
+            .where("following_id", "==", doctor_id)\
+            .limit(limit).stream()
+        
+        for doc in docs:
+            data = doc.to_dict()
+            # Get follower's basic info
+            follower = await self.get_doctor_by_id(data['follower_id'])
+            if follower:
+                followers.append({
+                    'id': data['follower_id'],
+                    'name': follower.get('name', 'Doctor'),
+                    'specialization': follower.get('specialization', ''),
+                    'profile_photo': None  # Will be from profile
+                })
+        return followers
+    
+    async def get_following(self, doctor_id: str, limit: int = 20) -> list:
+        """Get list of doctors that a doctor is following."""
+        if not self.is_connected:
+            return []
+        
+        following = []
+        docs = self._db.collection("follows")\
+            .where("follower_id", "==", doctor_id)\
+            .limit(limit).stream()
+        
+        for doc in docs:
+            data = doc.to_dict()
+            # Get following doctor's info
+            followed = await self.get_doctor_by_id(data['following_id'])
+            if followed:
+                following.append({
+                    'id': data['following_id'],
+                    'name': followed.get('name', 'Doctor'),
+                    'specialization': followed.get('specialization', ''),
+                    'profile_photo': None
+                })
+        return following
+    
+    async def increment_follower_count(self, doctor_id: str):
+        """Increment follower count for a doctor."""
+        if not self.is_connected:
+            return
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            current = doc.to_dict().get('followers_count', 0)
+            doc_ref.update({"followers_count": current + 1})
+        else:
+            doc_ref.set({"followers_count": 1}, merge=True)
+    
+    async def decrement_follower_count(self, doctor_id: str):
+        """Decrement follower count for a doctor."""
+        if not self.is_connected:
+            return
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            current = doc.to_dict().get('followers_count', 0)
+            doc_ref.update({"followers_count": max(0, current - 1)})
+    
+    async def increment_following_count(self, doctor_id: str):
+        """Increment following count for a doctor."""
+        if not self.is_connected:
+            return
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            current = doc.to_dict().get('following_count', 0)
+            doc_ref.update({"following_count": current + 1})
+        else:
+            doc_ref.set({"following_count": 1}, merge=True)
+    
+    async def decrement_following_count(self, doctor_id: str):
+        """Decrement following count for a doctor."""
+        if not self.is_connected:
+            return
+        
+        doc_ref = self._db.collection("doctor_profiles").document(doctor_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            current = doc.to_dict().get('following_count', 0)
+            doc_ref.update({"following_count": max(0, current - 1)})
+    
+    async def get_suggested_doctors(self, current_id: str, specialization: str, limit: int = 10) -> list:
+        """Get suggested doctors to follow based on specialization."""
+        if not self.is_connected:
+            return []
+        
+        suggestions = []
+        
+        # Get doctors with same specialization
+        docs = self._db.collection("doctors")\
+            .where("specialization", "==", specialization)\
+            .limit(limit + 10).stream()  # Get extra to filter
+        
+        for doc in docs:
+            data = doc.to_dict()
+            doctor_id = data.get('id', '')
+            
+            # Skip self
+            if doctor_id == current_id:
+                continue
+            
+            # Skip if already following
+            if await self.is_following(current_id, doctor_id):
+                continue
+            
+            suggestions.append({
+                'id': doctor_id,
+                'name': data.get('name', 'Doctor'),
+                'specialization': data.get('specialization', ''),
+                'hospital': data.get('hospital', ''),
+                'verification_status': data.get('verification_status', 'pending')
+            })
+            
+            if len(suggestions) >= limit:
+                break
+        
+        return suggestions
 
 
 # ===========================================

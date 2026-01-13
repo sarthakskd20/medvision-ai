@@ -402,6 +402,54 @@ def get_patient_by_email(email: str) -> Optional[PatientInDB]:
     return None
 
 
+# ===========================================
+# FASTAPI DEPENDENCIES
+# ===========================================
+
+from fastapi import Header, HTTPException
+
+async def get_current_doctor_from_token(authorization: str = Header(...)):
+    """Get current doctor from Authorization header token.
+    
+    Usage: current_doctor = Depends(get_current_doctor_from_token)
+    """
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.replace("Bearer ", "")
+    payload = verify_token(token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    if payload.role != UserRole.DOCTOR:
+        raise HTTPException(status_code=403, detail="Access denied. Doctor role required.")
+    
+    return {
+        "id": payload.sub,
+        "email": payload.email,
+        "role": payload.role.value
+    }
+
+
+async def get_current_user_from_token(authorization: str = Header(...)):
+    """Get current user (doctor or patient) from Authorization header token."""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.replace("Bearer ", "")
+    payload = verify_token(token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    return {
+        "id": payload.sub,
+        "email": payload.email,
+        "role": payload.role.value
+    }
+
+
 # Legacy compatibility - these are no longer used but kept for imports
 doctors_db: Dict[str, DoctorInDB] = {}
 patients_db: Dict[str, PatientInDB] = {}

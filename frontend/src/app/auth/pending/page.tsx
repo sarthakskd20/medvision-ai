@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
     Activity,
@@ -10,10 +11,11 @@ import {
     CheckCircle,
     XCircle,
     RefreshCw,
-    LogOut
+    LogOut,
+    Loader2
 } from 'lucide-react'
 
-export default function PendingVerificationPage() {
+function PendingVerificationContent() {
     const router = useRouter()
     const [user, setUser] = useState<any>(null)
     const [status, setStatus] = useState<string>('pending')
@@ -67,31 +69,31 @@ export default function PendingVerificationPage() {
         switch (status) {
             case 'approved':
                 return {
-                    icon: <CheckCircle className="h-16 w-16 text-green-500" />,
-                    title: 'Verification Approved',
-                    message: 'Your account has been verified. You can now access the dashboard.',
-                    color: 'green'
+                    icon: <CheckCircle className="h-12 w-12 text-green-600" />,
+                    title: 'Approved',
+                    message: 'Your account is verified.',
+                    color: 'text-green-600'
                 }
             case 'rejected':
                 return {
-                    icon: <XCircle className="h-16 w-16 text-red-500" />,
-                    title: 'Verification Rejected',
-                    message: 'Unfortunately, your documents could not be verified. Please contact support or try registering again with clearer documents.',
-                    color: 'red'
+                    icon: <XCircle className="h-12 w-12 text-red-600" />,
+                    title: 'Verification Failed',
+                    message: 'Please review your documents.',
+                    color: 'text-red-600'
                 }
             case 'manual_review':
                 return {
-                    icon: <FileText className="h-16 w-16 text-amber-500" />,
-                    title: 'Under Manual Review',
-                    message: 'Your documents are being reviewed by our team. This usually takes 1-2 business days.',
-                    color: 'amber'
+                    icon: <FileText className="h-12 w-12 text-amber-600" />,
+                    title: 'In Review',
+                    message: 'We are checking your details.',
+                    color: 'text-amber-600'
                 }
             default:
                 return {
-                    icon: <Clock className="h-16 w-16 text-primary-500" />,
+                    icon: <Clock className="h-12 w-12 text-primary-600" />,
                     title: 'Verification Pending',
-                    message: 'We are verifying your documents using AI analysis. This usually takes a few moments.',
-                    color: 'primary'
+                    message: 'Verifying with AI...',
+                    color: 'text-primary-600'
                 }
         }
     }
@@ -99,79 +101,109 @@ export default function PendingVerificationPage() {
     const statusInfo = getStatusInfo()
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-secondary-100 to-white flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <Link href="/" className="inline-flex items-center gap-2 mb-4">
-                        <Activity className="h-10 w-10 text-primary-500" />
-                        <span className="text-2xl font-bold text-gray-900">MedVision AI</span>
-                    </Link>
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#e6f0ff] p-4">
+            {/* Background Image */}
+            <div className="absolute inset-0 z-0">
+                <Image
+                    src="/images/auth-bg.png"
+                    alt="Background"
+                    layout="fill"
+                    objectFit="cover"
+                    className="opacity-100"
+                    priority
+                />
+            </div>
+
+            <div className="relative z-10 w-full max-w-[480px] bg-white p-10 shadow-2xl rounded-sm sm:rounded-lg text-center">
+                <div className="mb-8">
+                    <div className="flex justify-center mb-4">
+                        <div className="p-3 bg-slate-50 rounded-full">
+                            <Activity className="h-8 w-8 text-primary-600" />
+                        </div>
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900">MedVision AI</h1>
                 </div>
 
-                <div className="card p-8 text-center">
-                    <div className="mb-6">{statusInfo.icon}</div>
-
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                <div className="mb-8">
+                    <div className="flex justify-center mb-4">{statusInfo.icon}</div>
+                    <h2 className={`text-xl font-bold mb-2 ${statusInfo.color}`}>
                         {statusInfo.title}
-                    </h1>
-
-                    <p className="text-gray-600 mb-6">
+                    </h2>
+                    <p className="text-slate-600">
                         {statusInfo.message}
                     </p>
+                </div>
 
-                    {user && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-                            <h3 className="font-medium text-gray-700 mb-2">Your Details:</h3>
-                            <div className="space-y-1 text-sm text-gray-600">
-                                <p><strong>Name:</strong> {user.name}</p>
-                                <p><strong>Email:</strong> {user.email}</p>
-                                <p><strong>Specialization:</strong> {user.specialization}</p>
-                                <p><strong>Registration:</strong> {user.registration_number}</p>
+                {user && (
+                    <div className="bg-slate-50 p-4 mb-8 text-left rounded border border-slate-100">
+                        <div className="space-y-2 text-sm text-slate-600">
+                            <div className="flex justify-between border-b border-slate-200 pb-2">
+                                <span className="font-medium">Name</span>
+                                <span>{user.name}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-slate-200 pb-2 pt-1">
+                                <span className="font-medium">Registration</span>
+                                <span>{user.registration_number}</span>
+                            </div>
+                            <div className="flex justify-between pt-1">
+                                <span className="font-medium">Email</span>
+                                <span>{user.email}</span>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                <div className="space-y-3">
+                    {status === 'approved' && (
+                        <Link href="/dashboard" className="w-full block py-2.5 bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors shadow-sm rounded-sm">
+                            Go to Dashboard
+                        </Link>
                     )}
 
-                    <div className="space-y-3">
-                        {status === 'approved' && (
-                            <Link href="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2">
-                                Go to Dashboard
-                            </Link>
-                        )}
-
-                        {status === 'pending' && (
-                            <button
-                                onClick={checkStatus}
-                                disabled={isChecking}
-                                className="btn-primary w-full flex items-center justify-center gap-2"
-                            >
-                                {isChecking ? (
-                                    <RefreshCw className="h-5 w-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        <RefreshCw className="h-5 w-5" />
-                                        Check Status
-                                    </>
-                                )}
-                            </button>
-                        )}
-
-                        {status === 'rejected' && (
-                            <Link href="/auth/register/doctor" className="btn-primary w-full flex items-center justify-center gap-2">
-                                Register Again
-                            </Link>
-                        )}
-
+                    {status === 'pending' && (
                         <button
-                            onClick={handleLogout}
-                            className="btn-secondary w-full flex items-center justify-center gap-2"
+                            onClick={checkStatus}
+                            disabled={isChecking}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed shadow-sm rounded-sm"
                         >
-                            <LogOut className="h-5 w-5" />
-                            Logout
+                            {isChecking ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                            ) : (
+                                <>
+                                    <RefreshCw className="h-4 w-4" />
+                                    Check Status
+                                </>
+                            )}
                         </button>
-                    </div>
+                    )}
+
+                    {status === 'rejected' && (
+                        <Link href="/auth/register/doctor" className="w-full block py-2.5 bg-slate-800 text-white font-medium hover:bg-slate-900 transition-colors rounded-sm">
+                            Register Again
+                        </Link>
+                    )}
+
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-slate-600 border border-slate-300 font-medium hover:bg-slate-50 transition-colors rounded-sm mt-4"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                    </button>
+                </div>
+
+                <div className="mt-8 text-xs text-slate-400">
+                    Need help? <a href="#" className="text-primary-600 hover:underline">Contact Support</a>
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function PendingVerificationPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>}>
+            <PendingVerificationContent />
+        </Suspense>
     )
 }

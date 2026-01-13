@@ -3,6 +3,8 @@ MedVision AI - Backend Configuration
 """
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import os
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -25,8 +27,10 @@ class Settings(BaseSettings):
     api_version: str = "1.0.0"
     
     class Config:
+        # Try multiple possible .env locations
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"  # Ignore extra fields in .env
 
 
 @lru_cache()
