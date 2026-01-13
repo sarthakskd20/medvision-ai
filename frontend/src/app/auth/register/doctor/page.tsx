@@ -604,68 +604,59 @@ export default function DoctorRegisterPage() {
 
                         {/* Step 2: Professional Details */}
                         {step === 2 && (
-                            <div className="space-y-4">
-                                <h2 className="text-lg font-semibold mb-4">Professional Details</h2>
+                            <div className="space-y-5">
+                                <h2 className="text-lg font-semibold text-slate-800 mb-4">Professional Details</h2>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Full Name * (as on medical license)
                                     </label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            placeholder="Dr. John Smith"
-                                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
-                                            required
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        placeholder="Dr. John Smith"
+                                        className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                                        required
+                                    />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Country *
                                     </label>
-                                    <div className="relative">
-                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                        <select
-                                            name="country"
-                                            value={formData.country}
-                                            onChange={handleInputChange}
-                                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
-                                            required
-                                        >
-                                            <option value="">Select country</option>
-                                            {countries.map(c => (
-                                                <option key={c} value={c}>{c}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    <select
+                                        name="country"
+                                        value={formData.country}
+                                        onChange={handleInputChange}
+                                        className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                                        required
+                                    >
+                                        <option value="">Select country</option>
+                                        {countries.map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Medical Registration Number *
                                     </label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            name="registrationNumber"
-                                            value={formData.registrationNumber}
-                                            onChange={handleInputChange}
-                                            placeholder="e.g., MD-12345"
-                                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
-                                            required
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        name="registrationNumber"
+                                        value={formData.registrationNumber}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g., MD-12345"
+                                        className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                                        required
+                                    />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Specialization *
                                     </label>
                                     <select
@@ -683,45 +674,39 @@ export default function DoctorRegisterPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Hospital/Clinic (optional)
                                     </label>
-                                    <div className="relative">
-                                        <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            name="hospital"
-                                            value={formData.hospital}
-                                            onChange={handleInputChange}
-                                            placeholder="Hospital name"
-                                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        name="hospital"
+                                        value={formData.hospital}
+                                        onChange={handleInputChange}
+                                        placeholder="Hospital name"
+                                        className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                                    />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
                                         Phone (optional)
                                     </label>
-                                    <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                        <input
-                                            type="tel"
-                                            name="phone"
-                                            value={formData.phone}
-                                            onChange={handleInputChange}
-                                            placeholder="+1 234 567 8900"
-                                            className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
-                                        />
-                                    </div>
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleInputChange}
+                                        placeholder="+1 234 567 8900"
+                                        className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
+                                    />
                                 </div>
 
-                                <div className="flex gap-3 mt-6">
+                                <div className="flex gap-3 pt-4">
                                     <button onClick={handleBack} className="px-6 py-2.5 bg-slate-100 text-slate-700 font-medium border border-slate-300 hover:bg-slate-200 transition-colors flex items-center gap-2">
-                                        <ArrowLeft className="h-5 w-5" /> Back
+                                        ← Back
                                     </button>
                                     <button onClick={handleNext} className="px-6 py-2.5 bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors flex-1 flex items-center justify-center gap-2">
-                                        Continue <ArrowRight className="h-5 w-5" />
+                                        Continue →
                                     </button>
                                 </div>
                             </div>

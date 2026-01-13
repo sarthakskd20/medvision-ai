@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -14,6 +16,102 @@ import {
     CheckCircle2,
     ChevronRight
 } from 'lucide-react'
+
+// Carousel slides data
+const carouselSlides = [
+    {
+        image: '/images/hero-doctor.png',
+        alt: 'Doctor using AI diagnostics',
+        stat: '94.2%',
+        label: 'Diagnostic Accuracy',
+        bgColor: 'bg-green-100',
+        iconColor: 'text-green-600'
+    },
+    {
+        image: '/images/doctors-collab.png',
+        alt: 'Medical team collaboration',
+        stat: '50K+',
+        label: 'Doctors Connected',
+        bgColor: 'bg-blue-100',
+        iconColor: 'text-blue-600'
+    },
+    {
+        image: '/images/hero-doctor.png',
+        alt: 'AI-powered analysis',
+        stat: '<30s',
+        label: 'Analysis Time',
+        bgColor: 'bg-purple-100',
+        iconColor: 'text-purple-600'
+    }
+]
+
+function HeroCarousel() {
+    const [currentSlide, setCurrentSlide] = useState(0)
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)
+        }, 4000) // Auto-swipe every 4 seconds
+
+        return () => clearInterval(timer)
+    }, [])
+
+    const slide = carouselSlides[currentSlide]
+
+    return (
+        <div className="relative">
+            <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-teal-500/20 rounded-3xl blur-3xl" />
+
+            {/* Image container with transition */}
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10">
+                <div
+                    className="flex transition-transform duration-700 ease-in-out"
+                    style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                    {carouselSlides.map((s, index) => (
+                        <div key={index} className="min-w-full">
+                            <Image
+                                src={s.image}
+                                alt={s.alt}
+                                width={600}
+                                height={600}
+                                className="w-full h-auto"
+                                priority={index === 0}
+                            />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Floating stats card with animation */}
+            <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-5 border border-slate-100 transition-all duration-500">
+                <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-xl ${slide.bgColor} flex items-center justify-center transition-colors duration-500`}>
+                        <LineChart className={`h-6 w-6 ${slide.iconColor} transition-colors duration-500`} />
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold text-slate-900 transition-all duration-300">{slide.stat}</p>
+                        <p className="text-sm text-slate-500 transition-all duration-300">{slide.label}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Carousel indicators */}
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex gap-2">
+                {carouselSlides.map((_, index) => (
+                    <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                                ? 'bg-primary-500 w-6'
+                                : 'bg-slate-300 hover:bg-slate-400'
+                            }`}
+                    />
+                ))}
+            </div>
+        </div>
+    )
+}
 
 export default function HomePage() {
     return (
@@ -84,33 +182,8 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        {/* Hero Image */}
-                        <div className="relative">
-                            <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-teal-500/20 rounded-3xl blur-3xl" />
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-900/10">
-                                <Image
-                                    src="/images/hero-doctor.png"
-                                    alt="Doctor using AI diagnostics"
-                                    width={600}
-                                    height={600}
-                                    className="w-full h-auto"
-                                    priority
-                                />
-                            </div>
-
-                            {/* Floating stats card */}
-                            <div className="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-xl p-5 border border-slate-100">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
-                                        <LineChart className="h-6 w-6 text-green-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-slate-900">94.2%</p>
-                                        <p className="text-sm text-slate-500">Diagnostic Accuracy</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Hero Carousel */}
+                        <HeroCarousel />
                     </div>
                 </div>
             </section>
