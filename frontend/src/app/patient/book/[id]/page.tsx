@@ -54,10 +54,7 @@ interface UploadedDocument {
     file: File
     name: string
     type: string
-    dateCertainty: 'exact' | 'approximate' | 'unknown'
-    exactDate?: string
-    approxYear?: string
-    approxMonth?: string
+    uploadDate: string  // Auto-set to current date, backend will extract from PDF if available
     description: string
 }
 
@@ -188,6 +185,7 @@ export default function BookAppointmentPage() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
         if (files) {
+            const today = new Date().toISOString().split('T')[0]  // Current date as default
             Array.from(files).forEach(file => {
                 if (file.type === 'application/pdf') {
                     setDocuments(prev => [...prev, {
@@ -195,8 +193,7 @@ export default function BookAppointmentPage() {
                         file,
                         name: file.name,
                         type: '',
-                        dateCertainty: 'exact',
-                        exactDate: '',
+                        uploadDate: today,  // Backend will extract actual date from PDF if available
                         description: ''
                     }])
                 }
@@ -232,8 +229,8 @@ export default function BookAppointmentPage() {
                     <div key={title} className="flex items-center">
                         <div className={`flex items-center gap-2 ${index + 1 <= step ? 'text-primary-600' : 'text-slate-400'}`}>
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index + 1 < step ? 'bg-primary-600 text-white' :
-                                    index + 1 === step ? 'bg-primary-100 text-primary-600 border-2 border-primary-600' :
-                                        'bg-slate-100 text-slate-400'
+                                index + 1 === step ? 'bg-primary-100 text-primary-600 border-2 border-primary-600' :
+                                    'bg-slate-100 text-slate-400'
                                 }`}>
                                 {index + 1 < step ? <CheckCircle className="w-5 h-5" /> : index + 1}
                             </div>
@@ -268,8 +265,8 @@ export default function BookAppointmentPage() {
                                         <button
                                             onClick={() => setSelectedMode('online')}
                                             className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedMode === 'online'
-                                                    ? 'border-primary-600 bg-primary-50 text-primary-700'
-                                                    : 'border-slate-200 hover:border-slate-300'
+                                                ? 'border-primary-600 bg-primary-50 text-primary-700'
+                                                : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                         >
                                             <Video className="w-5 h-5" />
@@ -280,8 +277,8 @@ export default function BookAppointmentPage() {
                                         <button
                                             onClick={() => setSelectedMode('offline')}
                                             className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedMode === 'offline'
-                                                    ? 'border-primary-600 bg-primary-50 text-primary-700'
-                                                    : 'border-slate-200 hover:border-slate-300'
+                                                ? 'border-primary-600 bg-primary-50 text-primary-700'
+                                                : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                         >
                                             <MapPin className="w-5 h-5" />
@@ -300,8 +297,8 @@ export default function BookAppointmentPage() {
                                             key={`${slot.date}-${slot.time}`}
                                             onClick={() => setSelectedSlot(slot)}
                                             className={`p-4 rounded-xl border-2 text-left transition-all ${selectedSlot === slot
-                                                    ? 'border-primary-600 bg-primary-50'
-                                                    : 'border-slate-200 hover:border-slate-300'
+                                                ? 'border-primary-600 bg-primary-50'
+                                                : 'border-slate-200 hover:border-slate-300'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
@@ -506,8 +503,8 @@ export default function BookAppointmentPage() {
                                                 className="flex-1"
                                             />
                                             <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${chiefComplaint.severity <= 3 ? 'bg-green-100 text-green-700' :
-                                                    chiefComplaint.severity <= 6 ? 'bg-yellow-100 text-yellow-700' :
-                                                        'bg-red-100 text-red-700'
+                                                chiefComplaint.severity <= 6 ? 'bg-yellow-100 text-yellow-700' :
+                                                    'bg-red-100 text-red-700'
                                                 }`}>
                                                 {chiefComplaint.severity}
                                             </span>
@@ -542,8 +539,8 @@ export default function BookAppointmentPage() {
                                                         }
                                                     }}
                                                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${medicalHistory.conditions.includes(condition)
-                                                            ? 'bg-primary-600 text-white'
-                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                        ? 'bg-primary-600 text-white'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                                         }`}
                                                 >
                                                     {condition}
@@ -601,6 +598,7 @@ export default function BookAppointmentPage() {
                                                 </button>
                                             </div>
 
+
                                             <div className="grid md:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className="block text-xs font-medium text-slate-600 mb-1">Document Type</label>
@@ -615,60 +613,11 @@ export default function BookAppointmentPage() {
                                                 </div>
 
                                                 <div>
-                                                    <label className="block text-xs font-medium text-slate-600 mb-1">When was this done?</label>
-                                                    <select
-                                                        value={doc.dateCertainty}
-                                                        onChange={(e) => updateDocument(doc.id, { dateCertainty: e.target.value as any })}
-                                                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                                                    >
-                                                        <option value="exact">I know the exact date</option>
-                                                        <option value="approximate">I remember approximately</option>
-                                                        <option value="unknown">I don't remember</option>
-                                                    </select>
+                                                    <label className="block text-xs font-medium text-slate-600 mb-1">Upload Date</label>
+                                                    <div className="px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
+                                                        {doc.uploadDate} <span className="text-xs">(auto-detected from PDF)</span>
+                                                    </div>
                                                 </div>
-
-                                                {doc.dateCertainty === 'exact' && (
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
-                                                        <input
-                                                            type="date"
-                                                            value={doc.exactDate || ''}
-                                                            onChange={(e) => updateDocument(doc.id, { exactDate: e.target.value })}
-                                                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                {doc.dateCertainty === 'approximate' && (
-                                                    <div className="flex gap-2">
-                                                        <div className="flex-1">
-                                                            <label className="block text-xs font-medium text-slate-600 mb-1">Year</label>
-                                                            <select
-                                                                value={doc.approxYear || ''}
-                                                                onChange={(e) => updateDocument(doc.id, { approxYear: e.target.value })}
-                                                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                                                            >
-                                                                <option value="">Year</option>
-                                                                {Array.from({ length: 20 }, (_, i) => 2026 - i).map(y => (
-                                                                    <option key={y} value={y}>{y}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <label className="block text-xs font-medium text-slate-600 mb-1">Month (optional)</label>
-                                                            <select
-                                                                value={doc.approxMonth || ''}
-                                                                onChange={(e) => updateDocument(doc.id, { approxMonth: e.target.value })}
-                                                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                                                            >
-                                                                <option value="">Month</option>
-                                                                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
-                                                                    <option key={m} value={i + 1}>{m}</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -793,8 +742,8 @@ export default function BookAppointmentPage() {
                         onClick={handleBack}
                         disabled={step === 1}
                         className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${step === 1
-                                ? 'text-slate-300 cursor-not-allowed'
-                                : 'text-slate-600 hover:bg-slate-100'
+                            ? 'text-slate-300 cursor-not-allowed'
+                            : 'text-slate-600 hover:bg-slate-100'
                             }`}
                     >
                         <ArrowLeft className="w-4 h-4" />

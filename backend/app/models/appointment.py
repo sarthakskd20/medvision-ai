@@ -159,6 +159,9 @@ class DoctorSettings(BaseModel):
     online_consultation_fee: Optional[float] = None
     offline_consultation_fee: Optional[float] = None
     
+    # Doctor's custom Google Meet link (reusable for all online appointments)
+    custom_meet_link: Optional[str] = None  # Doctor provides their own meet.google.com link
+    
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
