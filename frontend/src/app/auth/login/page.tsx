@@ -92,7 +92,7 @@ function LoginContent() {
 
                 localStorage.setItem('auth_token', data.access_token)
                 localStorage.setItem('user', JSON.stringify(data.user))
-                router.push('/patient-portal')
+                router.push('/patient')
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
@@ -106,7 +106,7 @@ function LoginContent() {
         setError('')
         try {
             const user = await signInWithGoogle()
-            router.push(role === 'doctor' ? '/dashboard' : '/patient-portal')
+            router.push(role === 'doctor' ? '/dashboard' : '/patient')
         } catch (err: any) {
             setError(err.message)
         } finally {
