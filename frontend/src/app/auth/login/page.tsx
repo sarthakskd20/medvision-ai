@@ -105,7 +105,7 @@ function LoginContent() {
         setIsLoading(true)
         setError('')
         try {
-            const user = await signInWithGoogle(role)
+            const user = await signInWithGoogle()
             router.push(role === 'doctor' ? '/dashboard' : '/patient-portal')
         } catch (err: any) {
             setError(err.message)

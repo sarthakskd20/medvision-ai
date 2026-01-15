@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import patients, analysis, reports, chat, auth, social
+from app.routers import patients, analysis, reports, chat, auth, social, appointments
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -35,6 +35,7 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["AI Analysis"]
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(social.router, prefix="/api/social", tags=["Social Network"])
+app.include_router(appointments.router, tags=["Appointments"])
 
 
 @app.get("/", tags=["Health"])
