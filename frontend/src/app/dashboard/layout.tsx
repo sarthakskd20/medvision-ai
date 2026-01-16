@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
     LayoutDashboard,
@@ -10,12 +10,10 @@ import {
     Network,
     BarChart3,
     Users,
-    Settings,
-    LogOut,
-    Stethoscope,
-    Activity
+    LogOut
 } from 'lucide-react'
 import Image from 'next/image'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const sidebarItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -27,32 +25,43 @@ const sidebarItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
+    const router = useRouter()
     const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
+    const handleSignOut = () => {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        router.push('/auth/login')
+    }
+
     return (
-        <div className="min-h-screen bg-slate-50 flex">
-            {/* Sidebar */}
-            <aside className="w-80 bg-white border-r border-slate-200 fixed h-full z-30 hidden lg:flex flex-col">
-                {/* Logo Section */}
-                <div className="h-24 flex items-center px-8 border-b border-slate-100 bg-gradient-to-r from-primary-50/50 to-transparent">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-teal-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex">
+            {/* Sidebar - LARGER WIDTH */}
+            <aside className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 fixed h-full z-30 hidden lg:flex flex-col shadow-xl dark:shadow-none">
+                {/* Logo Section - LARGER */}
+                <div className="h-24 flex items-center px-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-primary-50/50 dark:from-primary-900/20 to-transparent">
+                    <Link href="/dashboard" className="flex items-center gap-4">
+                        {/* Using actual MedVision logo image */}
+                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-700 flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-600 overflow-hidden">
                             <Image
                                 src="/images/medvision-logo.png"
                                 alt="MedVision"
-                                width={24}
-                                height={24}
-                                className="w-6 h-6 object-contain brightness-0 invert"
+                                width={48}
+                                height={48}
+                                className="w-12 h-12 object-contain dark:brightness-110"
                             />
                         </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-teal-600">
-                            MedVision
-                        </span>
-                    </div>
+                        <div>
+                            <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-teal-600 dark:from-primary-400 dark:to-teal-400">
+                                MedVision
+                            </span>
+                            <span className="text-sm text-slate-500 dark:text-slate-400 block font-semibold">Doctor Portal</span>
+                        </div>
+                    </Link>
                 </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
+                {/* Navigation - LARGER FONTS */}
+                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                     {sidebarItems.map((item) => {
                         const isActive = pathname === item.href
                         const isHovered = hoveredItem === item.label
@@ -65,34 +74,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 onMouseLeave={() => setHoveredItem(null)}
                                 className="relative block"
                             >
-                                <div className={`relative z-10 flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 ${isActive
-                                        ? 'text-white shadow-lg shadow-primary-500/25'
-                                        : 'text-slate-500 hover:text-primary-600'
+                                <div className={`relative z-10 flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
+                                    ? 'text-white shadow-lg shadow-primary-500/25'
+                                    : 'text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400'
                                     }`}>
                                     {/* Active Background */}
                                     {isActive && (
                                         <motion.div
-                                            layoutId="activeTab"
-                                            className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl"
+                                            layoutId="activeDoctorTab"
+                                            className="absolute inset-0 bg-gradient-to-r from-primary-600 to-teal-500 rounded-xl"
                                             initial={false}
-                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
                                         />
                                     )}
 
-                                    {/* Hover Background (Glass) */}
+                                    {/* Hover Background */}
                                     {!isActive && isHovered && (
                                         <motion.div
-                                            layoutId="hoverTab"
-                                            className="absolute inset-0 bg-primary-50 rounded-2xl"
+                                            layoutId="hoverDoctorTab"
+                                            className="absolute inset-0 bg-primary-50 dark:bg-primary-900/30 rounded-xl"
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
                                         />
                                     )}
 
-                                    {/* Icon & Text */}
-                                    <item.icon className={`w-6 h-6 relative z-10 transition-transform duration-300 ${isHovered ? 'scale-110' : ''}`} />
-                                    <span className={`text-lg font-bold relative z-10`}>{item.label}</span>
+                                    {/* Icon - LARGER */}
+                                    <item.icon className={`w-6 h-6 relative z-10 transition-transform duration-200 ${isHovered && !isActive ? 'scale-110' : ''}`} />
+                                    {/* Label - LARGER & BOLDER */}
+                                    <span className="text-lg font-bold relative z-10">{item.label}</span>
 
                                     {/* Active Pulse Dot */}
                                     {isActive && (
@@ -105,24 +115,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </nav>
 
                 {/* Bottom Section */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all font-semibold group">
+                <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 space-y-3">
+                    <div className="flex items-center justify-between px-4">
+                        <span className="text-base font-bold text-slate-500 dark:text-slate-400">Theme</span>
+                        <ThemeToggle />
+                    </div>
+                    <button
+                        onClick={handleSignOut}
+                        className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all font-bold group text-lg"
+                    >
                         <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                         Sign Out
                     </button>
 
-                    <div className="mt-6 px-4 pb-2">
-                        <div className="flex items-center gap-3">
+                    <div className="px-4 pb-2">
+                        <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-xs font-semibold text-slate-400">System Operational</span>
+                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500">System Operational</span>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            {/* Main Content */}
+            {/* Main Content - adjusted margin for wider sidebar */}
             <main className="flex-1 lg:ml-80 min-h-screen">
-                <div className="p-8 md:p-12 max-w-[1600px] mx-auto">
+                <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
                     {children}
                 </div>
             </main>

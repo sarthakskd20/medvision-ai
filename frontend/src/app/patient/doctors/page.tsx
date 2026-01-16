@@ -14,7 +14,9 @@ import {
     Stethoscope,
     X,
     Calendar,
-    CheckCircle
+    CheckCircle,
+    Award,
+    Sparkles
 } from 'lucide-react'
 
 const container = {
@@ -30,7 +32,6 @@ const item = {
     show: { opacity: 1, y: 0 }
 }
 
-// Mock data - will be replaced with API calls
 const specializations = [
     'All Specializations',
     'General Physician',
@@ -115,7 +116,6 @@ export default function FindDoctorsPage() {
     useEffect(() => {
         let result = doctors
 
-        // Filter by search query
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             result = result.filter(d =>
@@ -125,12 +125,10 @@ export default function FindDoctorsPage() {
             )
         }
 
-        // Filter by specialization
         if (selectedSpecialization !== 'All Specializations') {
             result = result.filter(d => d.specialization === selectedSpecialization)
         }
 
-        // Filter by mode
         if (modeFilter === 'online') {
             result = result.filter(d => d.acceptsOnline)
         } else if (modeFilter === 'offline') {
@@ -148,15 +146,23 @@ export default function FindDoctorsPage() {
             className="space-y-6"
         >
             {/* Header */}
-            <motion.div variants={item}>
-                <h1 className="text-3xl font-bold text-slate-900">Find a Doctor</h1>
-                <p className="text-slate-500 mt-1">Search and book appointments with verified doctors</p>
+            <motion.div variants={item} className="relative">
+                <div className="absolute -top-4 -right-4 w-32 h-32 bg-gradient-to-br from-primary-100/50 to-teal-100/50 dark:from-primary-900/30 dark:to-teal-900/30 rounded-full blur-2xl" />
+                <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-gradient-to-br from-blue-100/50 to-primary-100/50 dark:from-blue-900/30 dark:to-primary-900/30 rounded-full blur-xl" />
+
+                <div className="relative">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="w-5 h-5 text-primary-500" />
+                        <span className="text-primary-600 dark:text-primary-400 font-bold text-sm uppercase tracking-wide">Verified Specialists</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white">Find a Doctor</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg font-medium">Search and book appointments with our expert medical team</p>
+                </div>
             </motion.div>
 
             {/* Search Bar */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4">
-                    {/* Search Input */}
                     <div className="flex-1 relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input
@@ -164,27 +170,25 @@ export default function FindDoctorsPage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search by doctor name, specialization, or hospital..."
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-700"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-700 dark:text-slate-200 placeholder:text-slate-400"
                         />
                     </div>
 
-                    {/* Specialization Dropdown */}
                     <select
                         value={selectedSpecialization}
                         onChange={(e) => setSelectedSpecialization(e.target.value)}
-                        className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-700 font-medium"
+                        className="px-4 py-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-slate-700 dark:text-slate-200 font-medium"
                     >
                         {specializations.map(spec => (
                             <option key={spec} value={spec}>{spec}</option>
                         ))}
                     </select>
 
-                    {/* Filter Button */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all ${showFilters
-                                ? 'bg-primary-600 text-white'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600'
                             }`}
                     >
                         <Filter className="w-5 h-5" />
@@ -192,15 +196,14 @@ export default function FindDoctorsPage() {
                     </button>
                 </div>
 
-                {/* Expanded Filters */}
                 {showFilters && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="mt-4 pt-4 border-t border-slate-100"
+                        className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700"
                     >
                         <div className="flex flex-wrap gap-3">
-                            <span className="text-sm font-medium text-slate-600 self-center">Consultation Mode:</span>
+                            <span className="text-sm font-medium text-slate-600 dark:text-slate-400 self-center">Consultation Mode:</span>
                             {[
                                 { value: 'all', label: 'All', icon: null },
                                 { value: 'online', label: 'Online', icon: Video },
@@ -210,8 +213,8 @@ export default function FindDoctorsPage() {
                                     key={mode.value}
                                     onClick={() => setModeFilter(mode.value as typeof modeFilter)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${modeFilter === mode.value
-                                            ? 'bg-primary-600 text-white'
-                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        ? 'bg-primary-600 text-white'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                                         }`}
                                 >
                                     {mode.icon && <mode.icon className="w-4 h-4" />}
@@ -225,10 +228,10 @@ export default function FindDoctorsPage() {
 
             {/* Results Count */}
             <motion.div variants={item} className="flex items-center justify-between">
-                <p className="text-slate-600">
-                    <span className="font-bold text-slate-900">{filteredDoctors.length}</span> doctors found
+                <p className="text-slate-600 dark:text-slate-400">
+                    <span className="font-bold text-slate-900 dark:text-white">{filteredDoctors.length}</span> doctors found
                 </p>
-                <select className="text-sm bg-transparent text-slate-600 font-medium">
+                <select className="text-sm bg-transparent text-slate-600 dark:text-slate-400 font-medium">
                     <option>Sort by: Relevance</option>
                     <option>Rating: High to Low</option>
                     <option>Experience: High to Low</option>
@@ -242,106 +245,142 @@ export default function FindDoctorsPage() {
                     <motion.div
                         key={doctor.id}
                         variants={item}
-                        className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:border-primary-200 transition-all group"
+                        whileHover={{
+                            y: -8,
+                            scale: 1.02,
+                            transition: { type: "spring", stiffness: 300, damping: 20 }
+                        }}
+                        className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm hover:shadow-2xl hover:shadow-primary-500/10 dark:hover:shadow-primary-500/5 hover:border-primary-300 dark:hover:border-primary-600 transition-all duration-300 group relative overflow-hidden"
                     >
-                        <div className="flex gap-4">
-                            {/* Doctor Avatar */}
-                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-100 to-teal-100 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                                <Stethoscope className="w-10 h-10 text-primary-600" />
-                            </div>
+                        {/* Animated gradient background on hover */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 via-transparent to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                            {/* Doctor Info */}
+                        <div className="relative flex gap-4">
+                            {/* Doctor Avatar with pulse animation on hover */}
+                            <motion.div
+                                whileHover={{ rotate: [0, -5, 5, 0] }}
+                                transition={{ duration: 0.5 }}
+                                className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-100 to-teal-100 dark:from-primary-900/50 dark:to-teal-900/50 flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary-500/30 transition-all duration-300"
+                            >
+                                <Stethoscope className="w-10 h-10 text-primary-600 dark:text-primary-400 group-hover:animate-pulse" />
+                            </motion.div>
+
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-start justify-between gap-2">
                                     <div>
-                                        <h3 className="font-bold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">
+                                        {/* Name stays white - changed from color transition to text-shadow glow */}
+                                        <h3 className="font-extrabold text-xl text-slate-900 dark:text-white group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-300">
                                             {doctor.name}
                                         </h3>
-                                        <p className="text-primary-600 font-medium">{doctor.specialization}</p>
+                                        <p className="text-primary-600 dark:text-primary-400 font-bold text-lg group-hover:tracking-wide transition-all duration-300">{doctor.specialization}</p>
                                     </div>
-                                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg">
-                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                        <span className="font-bold text-slate-800">{doctor.rating}</span>
-                                    </div>
+                                    {/* Rating badge with bounce on hover */}
+                                    <motion.div
+                                        whileHover={{ scale: 1.1 }}
+                                        className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-xl group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/50 transition-colors"
+                                    >
+                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 group-hover:animate-spin" style={{ animationDuration: '2s' }} />
+                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.rating}</span>
+                                    </motion.div>
                                 </div>
 
-                                <p className="text-sm text-slate-500 mt-1 flex items-center gap-1">
-                                    <MapPin className="w-4 h-4" />
+                                <p className="text-base text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1 font-medium group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
+                                    <MapPin className="w-4 h-4 group-hover:text-primary-500 transition-colors" />
                                     {doctor.hospital}
                                 </p>
 
-                                <div className="flex items-center gap-4 mt-3 text-sm">
-                                    <span className="text-slate-600">
-                                        <strong>{doctor.experience}</strong> yrs exp
-                                    </span>
-                                    <span className="text-slate-600">
-                                        <strong>{doctor.reviewCount}</strong> reviews
+                                <div className="flex items-center gap-3 mt-4">
+                                    <motion.div
+                                        whileHover={{ scale: 1.05 }}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-50 to-teal-50 dark:from-primary-900/40 dark:to-teal-900/40 border border-primary-100 dark:border-primary-800 rounded-xl group-hover:border-primary-300 dark:group-hover:border-primary-600 transition-colors"
+                                    >
+                                        <Award className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                                        <span className="font-extrabold text-primary-700 dark:text-primary-300">{doctor.experience} Years</span>
+                                        <span className="text-slate-500 dark:text-slate-400 font-medium">Experience</span>
+                                    </motion.div>
+                                    <span className="text-slate-400 dark:text-slate-600">|</span>
+                                    <span className="text-slate-600 dark:text-slate-400 font-semibold group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                        {doctor.reviewCount} reviews
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Availability & Modes */}
-                        <div className="mt-4 pt-4 border-t border-slate-100">
+                        <div className="relative mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 group-hover:border-primary-100 dark:group-hover:border-primary-800 transition-colors">
                             <div className="flex flex-wrap items-center gap-2 mb-3">
                                 {doctor.acceptsOnline && (
-                                    <span className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-semibold">
+                                    <motion.span
+                                        whileHover={{ scale: 1.1 }}
+                                        className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-default"
+                                    >
                                         <Video className="w-3 h-3" /> Online
-                                    </span>
+                                    </motion.span>
                                 )}
                                 {doctor.acceptsOffline && (
-                                    <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-semibold">
+                                    <motion.span
+                                        whileHover={{ scale: 1.1 }}
+                                        className="flex items-center gap-1 px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors cursor-default"
+                                    >
                                         <MapPin className="w-3 h-3" /> In-Person
-                                    </span>
+                                    </motion.span>
                                 )}
-                                <span className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
+                                <motion.span
+                                    whileHover={{ scale: 1.1 }}
+                                    className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors cursor-default"
+                                >
                                     <CheckCircle className="w-3 h-3" /> Verified
-                                </span>
+                                </motion.span>
                             </div>
 
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-slate-500">Next Available</p>
-                                    <p className="font-semibold text-slate-800 flex items-center gap-1">
-                                        <Clock className="w-4 h-4 text-green-500" />
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Next Available</p>
+                                    <p className="font-semibold text-slate-800 dark:text-white flex items-center gap-1">
+                                        <Clock className="w-4 h-4 text-green-500 animate-pulse" />
                                         {doctor.nextAvailable}
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm text-slate-500">Consultation Fee</p>
-                                    <p className="font-bold text-xl text-slate-900">₹{doctor.consultationFee}</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Consultation Fee</p>
+                                    <p className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">₹{doctor.consultationFee}</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Book Button */}
-                        <Link
-                            href={`/patient/book/${doctor.id}`}
-                            className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 transition-all active:scale-95"
+                        {/* Enhanced Book Button with shimmer effect */}
+                        <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                         >
-                            <Calendar className="w-5 h-5" />
-                            Book Appointment
-                        </Link>
+                            <Link
+                                href={`/patient/book/${doctor.id}`}
+                                className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/40 transition-all relative overflow-hidden group/btn"
+                            >
+                                {/* Shimmer effect */}
+                                <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                <Calendar className="w-5 h-5 relative z-10" />
+                                <span className="relative z-10">Book Appointment</span>
+                            </Link>
+                        </motion.div>
                     </motion.div>
                 ))}
             </motion.div>
 
-            {/* No Results */}
             {filteredDoctors.length === 0 && (
                 <motion.div
                     variants={item}
                     className="text-center py-12"
                 >
-                    <Search className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">No doctors found</h3>
-                    <p className="text-slate-500">Try adjusting your search or filters</p>
+                    <Search className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">No doctors found</h3>
+                    <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or filters</p>
                     <button
                         onClick={() => {
                             setSearchQuery('')
                             setSelectedSpecialization('All Specializations')
                             setModeFilter('all')
                         }}
-                        className="mt-4 px-6 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 transition-colors"
+                        className="mt-4 px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                     >
                         Clear Filters
                     </button>

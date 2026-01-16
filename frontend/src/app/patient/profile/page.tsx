@@ -16,8 +16,11 @@ import {
     Droplet,
     Shield,
     Bell,
-    Lock
+    Lock,
+    Camera,
+    Upload
 } from 'lucide-react'
+import Image from 'next/image'
 
 const container = {
     hidden: { opacity: 0 },
@@ -50,10 +53,15 @@ export default function PatientProfilePage() {
     })
 
     const [editedProfile, setEditedProfile] = useState(profile)
+    const [profileImage, setProfileImage] = useState<string | null>(null)
+    const [imageLoading, setImageLoading] = useState(false)
 
     useEffect(() => {
-        // Load from localStorage
         const userData = localStorage.getItem('user')
+        const savedImage = localStorage.getItem('profileImage')
+        if (savedImage) {
+            setProfileImage(savedImage)
+        }
         if (userData) {
             try {
                 const user = JSON.parse(userData)
@@ -71,10 +79,70 @@ export default function PatientProfilePage() {
         }
     }, [])
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setImageLoading(true)
+
+            // Create an image element to resize
+            const img = document.createElement('img')
+            const reader = new FileReader()
+
+            reader.onload = (event) => {
+                img.src = event.target?.result as string
+
+                img.onload = () => {
+                    // Create canvas for resizing
+                    const canvas = document.createElement('canvas')
+                    const ctx = canvas.getContext('2d')
+
+                    // Max dimensions for profile image (keeps file size small)
+                    const MAX_SIZE = 200
+                    let width = img.width
+                    let height = img.height
+
+                    // Calculate new dimensions maintaining aspect ratio
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height = (height * MAX_SIZE) / width
+                            width = MAX_SIZE
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width = (width * MAX_SIZE) / height
+                            height = MAX_SIZE
+                        }
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+
+                    // Draw resized image
+                    ctx?.drawImage(img, 0, 0, width, height)
+
+                    // Convert to compressed JPEG (0.7 quality)
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
+
+                    setProfileImage(compressedBase64)
+
+                    try {
+                        localStorage.setItem('profileImage', compressedBase64)
+                    } catch (storageError) {
+                        console.warn('Could not save image to localStorage:', storageError)
+                        // Image is still displayed, just not persisted
+                    }
+
+                    setImageLoading(false)
+                }
+            }
+
+            reader.readAsDataURL(file)
+        }
+    }
+
     const handleSave = () => {
         setProfile(editedProfile)
         setIsEditing(false)
-        // TODO: Save to API
     }
 
     const handleCancel = () => {
@@ -103,8 +171,8 @@ export default function PatientProfilePage() {
             {/* Header */}
             <motion.div variants={item} className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
-                    <p className="text-slate-500 mt-1">Manage your personal information</p>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">My Profile</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your personal information</p>
                 </div>
                 {!isEditing ? (
                     <button
@@ -118,7 +186,7 @@ export default function PatientProfilePage() {
                     <div className="flex gap-2">
                         <button
                             onClick={handleCancel}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                         >
                             <X className="w-4 h-4" />
                             Cancel
@@ -135,12 +203,40 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Profile Card */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
                 {/* Cover & Avatar */}
                 <div className="h-32 bg-gradient-to-r from-primary-500 to-teal-500 relative">
                     <div className="absolute -bottom-12 left-6">
-                        <div className="w-24 h-24 bg-white rounded-2xl border-4 border-white shadow-lg flex items-center justify-center">
-                            <User className="w-12 h-12 text-slate-400" />
+                        <div className="relative group">
+                            <div className="w-24 h-24 bg-white dark:bg-slate-700 rounded-2xl border-4 border-white dark:border-slate-800 shadow-lg flex items-center justify-center overflow-hidden">
+                                {profileImage ? (
+                                    <Image
+                                        src={profileImage}
+                                        alt="Profile"
+                                        width={96}
+                                        height={96}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <User className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+                                )}
+                                {imageLoading && (
+                                    <div className="absolute inset-0 bg-white/80 dark:bg-slate-800/80 flex items-center justify-center">
+                                        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                )}
+                            </div>
+                            {isEditing && (
+                                <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-700 transition-colors">
+                                    <Camera className="w-4 h-4 text-white" />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        className="hidden"
+                                    />
+                                </label>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -148,14 +244,14 @@ export default function PatientProfilePage() {
                 <div className="pt-16 pb-6 px-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
-                            <h2 className="text-2xl font-bold text-slate-900">{profile.name}</h2>
-                            <p className="text-slate-500">{profile.email}</p>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{profile.name}</h2>
+                            <p className="text-slate-500 dark:text-slate-400">{profile.email}</p>
                         </div>
                         <div className="flex gap-3">
-                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">
                                 {profile.bloodGroup}
                             </span>
-                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
                                 {calculateAge(profile.dateOfBirth)} years
                             </span>
                         </div>
@@ -164,94 +260,94 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Personal Information */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary-600" />
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                     Personal Information
                 </h3>
                 <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Full Name</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Full Name</label>
                         {isEditing ? (
                             <input
                                 type="text"
                                 value={editedProfile.name}
                                 onChange={(e) => setEditedProfile({ ...editedProfile, name: e.target.value })}
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         ) : (
-                            <p className="text-slate-900 font-medium">{profile.name}</p>
+                            <p className="text-slate-900 dark:text-white font-medium">{profile.name}</p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
-                        <p className="text-slate-900 font-medium flex items-center gap-2">
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Email</label>
+                        <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                             <Mail className="w-4 h-4 text-slate-400" />
                             {profile.email}
                         </p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Phone</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phone</label>
                         {isEditing ? (
                             <input
                                 type="tel"
                                 value={editedProfile.phone}
                                 onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         ) : (
-                            <p className="text-slate-900 font-medium flex items-center gap-2">
+                            <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                                 <Phone className="w-4 h-4 text-slate-400" />
                                 {profile.phone}
                             </p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Date of Birth</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Date of Birth</label>
                         {isEditing ? (
                             <input
                                 type="date"
                                 value={editedProfile.dateOfBirth}
                                 onChange={(e) => setEditedProfile({ ...editedProfile, dateOfBirth: e.target.value })}
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         ) : (
-                            <p className="text-slate-900 font-medium flex items-center gap-2">
+                            <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-slate-400" />
                                 {new Date(profile.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Gender</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Gender</label>
                         {isEditing ? (
                             <select
                                 value={editedProfile.gender}
                                 onChange={(e) => setEditedProfile({ ...editedProfile, gender: e.target.value })}
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             >
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                                 <option value="Other">Other</option>
                             </select>
                         ) : (
-                            <p className="text-slate-900 font-medium">{profile.gender}</p>
+                            <p className="text-slate-900 dark:text-white font-medium">{profile.gender}</p>
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-1">Blood Group</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Blood Group</label>
                         {isEditing ? (
                             <select
                                 value={editedProfile.bloodGroup}
                                 onChange={(e) => setEditedProfile({ ...editedProfile, bloodGroup: e.target.value })}
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             >
                                 {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
                                     <option key={bg} value={bg}>{bg}</option>
                                 ))}
                             </select>
                         ) : (
-                            <p className="text-slate-900 font-medium flex items-center gap-2">
+                            <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                                 <Droplet className="w-4 h-4 text-red-500" />
                                 {profile.bloodGroup}
                             </p>
@@ -261,37 +357,37 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Medical Information */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <Heart className="w-5 h-5 text-red-500" />
                     Medical Information
                 </h3>
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-2">Known Allergies</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Known Allergies</label>
                         <div className="flex flex-wrap gap-2">
                             {profile.allergies.map((allergy, i) => (
-                                <span key={i} className="px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm font-medium">
+                                <span key={i} className="px-3 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
                                     {allergy}
                                 </span>
                             ))}
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-2">Current Medications</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Current Medications</label>
                         <div className="flex flex-wrap gap-2">
                             {profile.medications.map((med, i) => (
-                                <span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+                                <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
                                     {med}
                                 </span>
                             ))}
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-600 mb-2">Medical Conditions</label>
+                        <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Medical Conditions</label>
                         <div className="flex flex-wrap gap-2">
                             {profile.conditions.map((cond, i) => (
-                                <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium">
+                                <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium">
                                     {cond}
                                 </span>
                             ))}
@@ -301,22 +397,22 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Emergency Contact */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-orange-500" />
                     Emergency Contact
                 </h3>
                 <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">Emergency Phone</label>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Emergency Phone</label>
                     {isEditing ? (
                         <input
                             type="tel"
                             value={editedProfile.emergencyContact}
                             onChange={(e) => setEditedProfile({ ...editedProfile, emergencyContact: e.target.value })}
-                            className="w-full md:w-1/2 px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            className="w-full md:w-1/2 px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                         />
                     ) : (
-                        <p className="text-slate-900 font-medium flex items-center gap-2">
+                        <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                             <Phone className="w-4 h-4 text-slate-400" />
                             {profile.emergencyContact}
                         </p>
