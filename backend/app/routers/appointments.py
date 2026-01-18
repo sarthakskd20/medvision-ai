@@ -68,7 +68,12 @@ async def create_appointment(request: CreateAppointmentRequest):
             doctor_timezone=doctor.get("timezone", "Asia/Kolkata") if doctor else "Asia/Kolkata",
             queue_number=queue_number,
             queue_date=queue_date,
-            hospital_address=(doctor.get("hospital_address") if doctor else None) if request.mode == AppointmentMode.OFFLINE else None
+            hospital_address=(doctor.get("hospital_address") if doctor else None) if request.mode == AppointmentMode.OFFLINE else None,
+            # Patient display info for doctor dashboard
+            patient_name=request.patient_name,
+            patient_age=request.patient_age,
+            patient_gender=request.patient_gender,
+            chief_complaint=request.chief_complaint
         )
         
         # Save to Firestore

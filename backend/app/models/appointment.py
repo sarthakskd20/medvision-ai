@@ -123,6 +123,12 @@ class Appointment(BaseModel):
     patient_profile_id: Optional[str] = None
     ai_conversation_id: Optional[str] = None
     
+    # Patient display info (for doctor dashboard before full profile is submitted)
+    patient_name: Optional[str] = None
+    patient_age: Optional[int] = None
+    patient_gender: Optional[str] = None
+    chief_complaint: Optional[str] = None
+    
     # Metadata
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -215,6 +221,12 @@ class CreateAppointmentRequest(BaseModel):
     scheduled_time: datetime
     mode: AppointmentMode
     patient_timezone: str = "Asia/Kolkata"
+    
+    # Optional patient display info (sent from booking form)
+    patient_name: Optional[str] = None
+    patient_age: Optional[int] = None
+    patient_gender: Optional[str] = None
+    chief_complaint: Optional[str] = None
 
 
 class UpdateAppointmentStatusRequest(BaseModel):

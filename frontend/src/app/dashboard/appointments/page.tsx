@@ -49,7 +49,8 @@ export default function DoctorAppointmentsPage() {
     useEffect(() => {
         const userData = localStorage.getItem('user')
         const user = userData ? JSON.parse(userData) : {}
-        const id = user.email || user.id
+        // Use document ID first (matches how appointments are created), fallback to email
+        const id = user.id || user.email
         setDoctorId(id)
 
         // Load meet link from localStorage

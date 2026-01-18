@@ -146,6 +146,36 @@ export const api = {
     getAppointmentDetails: (appointmentId: string) =>
         fetchAPI<any>(`/api/appointments/${appointmentId}`),
 
+    submitPatientProfile: (appointmentId: string, profileData: {
+        basic_info: {
+            full_name: string
+            age: number
+            gender: string
+            blood_group?: string
+            allergies?: string[]
+            current_medications?: string[]
+        }
+        chief_complaint: {
+            description: string
+            duration: string
+            duration_unit: string
+            severity: number
+            previous_treatment?: string
+        }
+        medical_history?: any[]
+        family_history?: string
+        lifestyle?: any
+        consent_ai_analysis?: boolean
+        consent_data_accuracy?: boolean
+    }) =>
+        fetchAPI<{ success: boolean; profile_id: string; complexity_tier: string }>(
+            `/api/appointments/${appointmentId}/profile`,
+            {
+                method: 'POST',
+                body: JSON.stringify(profileData),
+            }
+        ),
+
     hasActiveAppointmentWithDoctor: (patientId: string, doctorId: string) =>
         fetchAPI<{ has_active: boolean; message?: string }>(
             `/api/appointments/check-active?patient_id=${patientId}&doctor_id=${doctorId}`

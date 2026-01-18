@@ -286,7 +286,12 @@ export default function BookAppointmentPage() {
                 doctor_id: doctorId,
                 scheduled_time: scheduledTime,
                 mode: selectedMode,
-                patient_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                patient_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                // Include patient info for doctor dashboard display
+                patient_name: basicInfo.fullName || patientId,
+                patient_age: basicInfo.age || null,
+                patient_gender: basicInfo.gender || null,
+                chief_complaint: chiefComplaint.description || null
             }
             console.log('Sending appointment data:', appointmentData)
 
