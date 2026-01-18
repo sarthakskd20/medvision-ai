@@ -277,7 +277,16 @@ export default function BookAppointmentPage() {
             }
         } catch (err: any) {
             console.error('Booking error:', err)
-            setError(err.message || 'Failed to book appointment')
+            // Handle different error types properly
+            if (typeof err === 'string') {
+                setError(err)
+            } else if (err?.message) {
+                setError(err.message)
+            } else if (err?.detail) {
+                setError(err.detail)
+            } else {
+                setError('Failed to book appointment. Please try again.')
+            }
         } finally {
             setSubmitting(false)
         }

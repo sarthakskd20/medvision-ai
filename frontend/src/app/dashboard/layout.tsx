@@ -14,13 +14,14 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
+import { Settings, User } from 'lucide-react'
 
 const sidebarItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { label: 'Feed', href: '/dashboard/feed', icon: Newspaper },
-    { label: 'Network', href: '/dashboard/network', icon: Network },
+    { label: 'Appointments', href: '/dashboard/appointments', icon: Users },
+    { label: 'Profile', href: '/dashboard/profile', icon: User },
     { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-    { label: 'Patient Management', href: '/dashboard/patients', icon: Users },
+    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
