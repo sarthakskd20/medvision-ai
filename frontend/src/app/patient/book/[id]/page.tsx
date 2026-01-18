@@ -260,11 +260,18 @@ export default function BookAppointmentPage() {
                 return
             }
 
-            // Create appointment via API
+            // Ensure scheduled_time is in full ISO format (YYYY-MM-DDTHH:MM:SS)
+            // Sometimes it might be just the date string depending on slot generation
+            let scheduledTime = selectedSlot.datetime
+            if (scheduledTime && scheduledTime.indexOf('T') === -1) {
+                // It's just a date, append the time
+                scheduledTime = `${scheduledTime}T${selectedSlot.time}:00`
+            }
+
             const appointmentData = {
                 patient_id: patientId,
                 doctor_id: doctorId,
-                scheduled_time: selectedSlot.datetime,
+                scheduled_time: scheduledTime,
                 mode: selectedMode,
                 patient_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
             }
