@@ -21,7 +21,7 @@ export default function PatientPortalPage() {
     const [file, setFile] = useState<File | null>(null)
 
     const uploadMutation = useMutation({
-        mutationFn: api.uploadAndInterpretReport,
+        mutationFn: (file: File) => api.uploadAndInterpretReport(file),
         onSuccess: (data) => {
             // Store result and navigate
             sessionStorage.setItem('reportResult', JSON.stringify(data))

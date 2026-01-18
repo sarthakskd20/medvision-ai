@@ -58,7 +58,7 @@ export function AnimatedDoctorIcon({ className = "w-16 h-16" }: { className?: st
                 strokeLinecap="round"
                 variants={{
                     initial: { y: 0 },
-                    hover: { y: 2, transition: { duration: 0.3, yoyo: Infinity } }
+                    hover: { y: 2, transition: { duration: 0.3, repeat: Infinity, repeatType: "reverse" as const } }
                 }}
             />
 
