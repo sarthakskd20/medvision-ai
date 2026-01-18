@@ -16,8 +16,10 @@ import {
     Calendar,
     CheckCircle,
     Award,
-    Sparkles
+    Sparkles,
+    Loader2
 } from 'lucide-react'
+import { api } from '@/lib/api'
 
 const container = {
     hidden: { opacity: 0 },
@@ -43,85 +45,80 @@ const specializations = [
     'Psychiatrist',
     'Gynecologist',
     'Oncologist',
-    'Radiologist'
+    'Radiologist',
+    'Urology'
 ]
 
-const mockDoctors = [
-    {
-        id: '1',
-        name: 'Dr. Priya Sharma',
-        specialization: 'Cardiologist',
-        hospital: 'Apollo Hospital, Mumbai',
-        rating: 4.8,
-        reviewCount: 156,
-        experience: 12,
-        acceptsOnline: true,
-        acceptsOffline: true,
-        consultationFee: 800,
-        nextAvailable: 'Today, 4:00 PM',
-        image: null
-    },
-    {
-        id: '2',
-        name: 'Dr. Rajesh Kumar',
-        specialization: 'General Physician',
-        hospital: 'City Hospital, Delhi',
-        rating: 4.6,
-        reviewCount: 234,
-        experience: 8,
-        acceptsOnline: true,
-        acceptsOffline: true,
-        consultationFee: 500,
-        nextAvailable: 'Today, 5:30 PM',
-        image: null
-    },
-    {
-        id: '3',
-        name: 'Dr. Anita Desai',
-        specialization: 'Dermatologist',
-        hospital: 'Skin & Care Clinic, Bangalore',
-        rating: 4.9,
-        reviewCount: 89,
-        experience: 15,
-        acceptsOnline: true,
-        acceptsOffline: false,
-        consultationFee: 1000,
-        nextAvailable: 'Tomorrow, 10:00 AM',
-        image: null
-    },
-    {
-        id: '4',
-        name: 'Dr. Vikram Singh',
-        specialization: 'Orthopedic',
-        hospital: 'Bone & Joint Center, Chennai',
-        rating: 4.7,
-        reviewCount: 178,
-        experience: 20,
-        acceptsOnline: false,
-        acceptsOffline: true,
-        consultationFee: 1200,
-        nextAvailable: 'Today, 6:00 PM',
-        image: null
-    }
-]
+interface Doctor {
+    id: string
+    name: string
+    specialization: string
+    hospital?: string
+    hospital_address?: string
+    rating?: number
+    reviewCount?: number
+    experience?: number
+    years_experience?: number
+    qualification?: string
+    acceptsOnline?: boolean
+    acceptsOffline?: boolean
+    accepts_online?: boolean
+    accepts_offline?: boolean
+    consultationFee?: number
+    consultation_fee?: number
+    online_fee?: number
+    offline_fee?: number
+    nextAvailable?: string
+    image?: string
+    verification_status?: string
+}
 
 export default function FindDoctorsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedSpecialization, setSelectedSpecialization] = useState('All Specializations')
     const [modeFilter, setModeFilter] = useState<'all' | 'online' | 'offline'>('all')
-    const [doctors, setDoctors] = useState(mockDoctors)
-    const [filteredDoctors, setFilteredDoctors] = useState(mockDoctors)
+    const [doctors, setDoctors] = useState<Doctor[]>([])
+    const [filteredDoctors, setFilteredDoctors] = useState<Doctor[]>([])
     const [showFilters, setShowFilters] = useState(false)
+    const [loading, setLoading] = useState(true)
 
+    // Fetch doctors from API on mount
+    useEffect(() => {
+        fetchDoctors()
+    }, [])
+
+    const fetchDoctors = async () => {
+        try {
+            setLoading(true)
+            const result = await api.searchDoctors('', '')
+            if (result && result.doctors) {
+                // Filter only approved doctors
+                const approvedDoctors = result.doctors.filter(
+                    (d: Doctor) => d.verification_status === 'approved'
+                )
+                setDoctors(approvedDoctors)
+                setFilteredDoctors(approvedDoctors)
+            }
+        } catch (e) {
+            console.error('Could not fetch doctors:', e)
+            setDoctors([])
+            setFilteredDoctors([])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Apply filters when search/filters change
     useEffect(() => {
         let result = doctors
 
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             result = result.filter(d =>
-                d.name.toLowerCase().includes(query) ||
-                d.specialization.toLowerCase().includes(query) ||
-                d.hospital.toLowerCase().includes(query)
+                d.name?.toLowerCase().includes(query) ||
+                d.specialization?.toLowerCase().includes(query) ||
+                d.hospital?.toLowerCase().includes(query) ||
+                d.hospital_address?.toLowerCase().includes(query)
             )
         }
 
@@ -130,9 +127,9 @@ export default function FindDoctorsPage() {
         }
 
         if (modeFilter === 'online') {
-            result = result.filter(d => d.acceptsOnline)
+            result = result.filter(d => d.acceptsOnline || d.accepts_online)
         } else if (modeFilter === 'offline') {
-            result = result.filter(d => d.acceptsOffline)
+            result = result.filter(d => d.acceptsOffline || d.accepts_offline)
         }
 
         setFilteredDoctors(result)
@@ -239,8 +236,16 @@ export default function FindDoctorsPage() {
                 </select>
             </motion.div>
 
+            {/* Loading State */}
+            {loading && (
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+                    <span className="ml-3 text-slate-600 font-medium">Loading doctors...</span>
+                </div>
+            )}
+
             {/* Doctor Cards Grid */}
-            <motion.div variants={container} className="grid md:grid-cols-2 gap-6">
+            {!loading && <motion.div variants={container} className="grid md:grid-cols-2 gap-6">
                 {filteredDoctors.map((doctor) => (
                     <motion.div
                         key={doctor.id}
@@ -280,13 +285,13 @@ export default function FindDoctorsPage() {
                                         className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-xl group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/50 transition-colors"
                                     >
                                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 group-hover:animate-spin" style={{ animationDuration: '2s' }} />
-                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.rating}</span>
+                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.rating || '4.5'}</span>
                                     </motion.div>
                                 </div>
 
                                 <p className="text-base text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1 font-medium group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
                                     <MapPin className="w-4 h-4 group-hover:text-primary-500 transition-colors" />
-                                    {doctor.hospital}
+                                    {doctor.hospital || doctor.hospital_address || 'Location not specified'}
                                 </p>
 
                                 <div className="flex items-center gap-3 mt-4">
@@ -295,20 +300,24 @@ export default function FindDoctorsPage() {
                                         className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-50 to-teal-50 dark:from-primary-900/40 dark:to-teal-900/40 border border-primary-100 dark:border-primary-800 rounded-xl group-hover:border-primary-300 dark:group-hover:border-primary-600 transition-colors"
                                     >
                                         <Award className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                        <span className="font-extrabold text-primary-700 dark:text-primary-300">{doctor.experience} Years</span>
+                                        <span className="font-extrabold text-primary-700 dark:text-primary-300">{doctor.experience || doctor.years_experience || 3} Years</span>
                                         <span className="text-slate-500 dark:text-slate-400 font-medium">Experience</span>
                                     </motion.div>
-                                    <span className="text-slate-400 dark:text-slate-600">|</span>
-                                    <span className="text-slate-600 dark:text-slate-400 font-semibold group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                                        {doctor.reviewCount} reviews
-                                    </span>
+                                    {doctor.qualification && (
+                                        <>
+                                            <span className="text-slate-400 dark:text-slate-600">|</span>
+                                            <span className="text-slate-600 dark:text-slate-400 font-semibold">
+                                                {doctor.qualification}
+                                            </span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
                         <div className="relative mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 group-hover:border-primary-100 dark:group-hover:border-primary-800 transition-colors">
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                                {doctor.acceptsOnline && (
+                                {(doctor.acceptsOnline || doctor.accepts_online) && (
                                     <motion.span
                                         whileHover={{ scale: 1.1 }}
                                         className="flex items-center gap-1 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-default"
@@ -316,7 +325,7 @@ export default function FindDoctorsPage() {
                                         <Video className="w-3 h-3" /> Online
                                     </motion.span>
                                 )}
-                                {doctor.acceptsOffline && (
+                                {(doctor.acceptsOffline || doctor.accepts_offline) && (
                                     <motion.span
                                         whileHover={{ scale: 1.1 }}
                                         className="flex items-center gap-1 px-3 py-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors cursor-default"
@@ -342,7 +351,7 @@ export default function FindDoctorsPage() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Consultation Fee</p>
-                                    <p className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">₹{doctor.consultationFee}</p>
+                                    <p className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">₹{doctor.consultationFee || doctor.consultation_fee || doctor.online_fee || 500}</p>
                                 </div>
                             </div>
                         </div>
@@ -364,28 +373,30 @@ export default function FindDoctorsPage() {
                         </motion.div>
                     </motion.div>
                 ))}
-            </motion.div>
+            </motion.div>}
 
-            {filteredDoctors.length === 0 && (
-                <motion.div
-                    variants={item}
-                    className="text-center py-12"
-                >
-                    <Search className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">No doctors found</h3>
-                    <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or filters</p>
-                    <button
-                        onClick={() => {
-                            setSearchQuery('')
-                            setSelectedSpecialization('All Specializations')
-                            setModeFilter('all')
-                        }}
-                        className="mt-4 px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            {!loading &&
+                filteredDoctors.length === 0 && (
+                    <motion.div
+                        variants={item}
+                        className="text-center py-12"
                     >
-                        Clear Filters
-                    </button>
-                </motion.div>
-            )}
-        </motion.div>
+                        <Search className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300 mb-2">No doctors found</h3>
+                        <p className="text-slate-500 dark:text-slate-400">Try adjusting your search or filters</p>
+                        <button
+                            onClick={() => {
+                                setSearchQuery('')
+                                setSelectedSpecialization('All Specializations')
+                                setModeFilter('all')
+                            }}
+                            className="mt-4 px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                        >
+                            Clear Filters
+                        </button>
+                    </motion.div>
+                )
+            }
+        </motion.div >
     )
 }

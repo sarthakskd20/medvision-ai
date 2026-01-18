@@ -1,278 +1,554 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import Link from 'next/link'
-import { useRouter, usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import {
-    Activity,
     User,
     Mail,
     Phone,
-    MapPin,
-    Building2,
     Award,
-    Shield,
+    MapPin,
+    Briefcase,
+    GraduationCap,
+    Lock,
+    Save,
+    CheckCircle,
+    AlertCircle,
+    Settings,
+    Video,
     Clock,
+    DollarSign,
+    ExternalLink,
     Calendar,
-    Home,
-    LogOut,
-    ArrowLeft,
-    Stethoscope,
-    FileText
+    Eye,
+    EyeOff
 } from 'lucide-react'
-import { api } from '@/lib/api'
+
+interface DoctorProfile {
+    id: string
+    name: string
+    email: string
+    phone: string
+    specialization: string
+    registration_number: string
+    qualification: string
+    years_experience: number
+    hospital_address: string
+    verification_status: string
+}
 
 export default function DoctorProfilePage() {
-    const router = useRouter()
-    const pathname = usePathname()
+    const [profile, setProfile] = useState<DoctorProfile | null>(null)
+    const [loading, setLoading] = useState(true)
 
-    const { data: doctor, isLoading, error } = useQuery({
-        queryKey: ['currentDoctor'],
-        queryFn: api.getCurrentDoctor,
-        retry: false,
-    })
+    // Editable fields
+    const [hospitalAddress, setHospitalAddress] = useState('')
 
-    const handleSignOut = () => {
-        localStorage.removeItem('authToken')
-        router.push('/auth/login')
+    // Password change
+    const [showPasswordSection, setShowPasswordSection] = useState(false)
+    const [currentPassword, setCurrentPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [showPasswords, setShowPasswords] = useState(false)
+    const [passwordError, setPasswordError] = useState('')
+
+    // Settings (embedded)
+    const [meetLink, setMeetLink] = useState('')
+    const [workingHoursStart, setWorkingHoursStart] = useState('09:00')
+    const [workingHoursEnd, setWorkingHoursEnd] = useState('18:00')
+    const [onlineFee, setOnlineFee] = useState('500')
+    const [offlineFee, setOfflineFee] = useState('700')
+    const [acceptingOnline, setAcceptingOnline] = useState(true)
+    const [acceptingOffline, setAcceptingOffline] = useState(true)
+
+    // Status
+    const [saved, setSaved] = useState(false)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        loadProfile()
+    }, [])
+
+    const loadProfile = () => {
+        setLoading(true)
+        try {
+            // Load from localStorage
+            const userData = localStorage.getItem('user')
+            if (userData) {
+                const user = JSON.parse(userData)
+                setProfile({
+                    id: user.id || '',
+                    name: user.name || user.fullName || '',
+                    email: user.email || '',
+                    phone: user.phone || '',
+                    specialization: user.specialization || '',
+                    registration_number: user.registration_number || '',
+                    qualification: user.qualification || 'MBBS',
+                    years_experience: user.years_experience || 3,
+                    hospital_address: user.hospital_address || '',
+                    verification_status: user.verification_status || 'approved'
+                })
+                setHospitalAddress(user.hospital_address || '')
+            }
+
+            // Load settings
+            const savedMeetLink = localStorage.getItem('doctor_meet_link') || ''
+            const savedWorkingStart = localStorage.getItem('doctor_working_hours_start') || '09:00'
+            const savedWorkingEnd = localStorage.getItem('doctor_working_hours_end') || '18:00'
+            const savedOnlineFee = localStorage.getItem('doctor_online_fee') || '500'
+            const savedOfflineFee = localStorage.getItem('doctor_offline_fee') || '700'
+            const savedAcceptingOnline = localStorage.getItem('doctor_accepting_online') !== 'false'
+            const savedAcceptingOffline = localStorage.getItem('doctor_accepting_offline') !== 'false'
+
+            setMeetLink(savedMeetLink)
+            setWorkingHoursStart(savedWorkingStart)
+            setWorkingHoursEnd(savedWorkingEnd)
+            setOnlineFee(savedOnlineFee)
+            setOfflineFee(savedOfflineFee)
+            setAcceptingOnline(savedAcceptingOnline)
+            setAcceptingOffline(savedAcceptingOffline)
+        } finally {
+            setLoading(false)
+        }
     }
 
-    if (isLoading) {
+    const validateMeetLink = (link: string) => {
+        if (!link) return true
+        const meetPattern = /^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/i
+        return meetPattern.test(link)
+    }
+
+    const handleSaveProfile = () => {
+        setError('')
+        setSaved(false)
+
+        if (meetLink && !validateMeetLink(meetLink)) {
+            setError('Please enter a valid Google Meet link (e.g., https://meet.google.com/abc-defg-hij)')
+            return
+        }
+
+        // Save hospital address to user profile
+        const userData = localStorage.getItem('user')
+        if (userData) {
+            const user = JSON.parse(userData)
+            user.hospital_address = hospitalAddress
+            localStorage.setItem('user', JSON.stringify(user))
+        }
+
+        // Save settings
+        localStorage.setItem('doctor_meet_link', meetLink)
+        localStorage.setItem('doctor_working_hours_start', workingHoursStart)
+        localStorage.setItem('doctor_working_hours_end', workingHoursEnd)
+        localStorage.setItem('doctor_online_fee', onlineFee)
+        localStorage.setItem('doctor_offline_fee', offlineFee)
+        localStorage.setItem('doctor_accepting_online', String(acceptingOnline))
+        localStorage.setItem('doctor_accepting_offline', String(acceptingOffline))
+
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+    }
+
+    const handleChangePassword = () => {
+        setPasswordError('')
+
+        if (!currentPassword) {
+            setPasswordError('Please enter your current password')
+            return
+        }
+        if (newPassword.length < 8) {
+            setPasswordError('New password must be at least 8 characters')
+            return
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('Passwords do not match')
+            return
+        }
+
+        // TODO: Call API to change password
+        alert('Password change functionality will be implemented with backend integration')
+        setShowPasswordSection(false)
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+    }
+
+    if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-gray-500">Loading profile...</div>
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
             </div>
         )
     }
-
-    if (error || !doctor) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <p className="text-red-500 mb-4">Failed to load profile</p>
-                    <Link href="/auth/login" className="text-primary-500 hover:underline">
-                        Please login again
-                    </Link>
-                </div>
-            </div>
-        )
-    }
-
-    const verificationStatus = doctor.verification_status || 'pending'
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
-            {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center gap-2">
-                        <Activity className="h-7 w-7 text-primary-500" />
-                        <span className="text-lg font-semibold text-gray-900">MedVision AI</span>
+        <div className="max-w-4xl mx-auto space-y-8">
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
+                <p className="text-slate-500 mt-1">Manage your profile information and consultation settings</p>
+            </div>
+
+            {/* Success/Error Messages */}
+            {saved && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3"
+                >
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <p className="text-green-800 font-medium">Profile saved successfully</p>
+                </motion.div>
+            )}
+
+            {error && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3"
+                >
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <p className="text-red-800 font-medium">{error}</p>
+                </motion.div>
+            )}
+
+            {/* Personal Information (Read-Only) */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900">Personal Information</h2>
+                        <p className="text-sm text-slate-500">Your verified profile details</p>
                     </div>
                 </div>
 
-                <nav className="flex-1 p-4">
-                    <ul className="space-y-1">
-                        <li>
-                            <Link
-                                href="/dashboard"
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname === '/dashboard'
-                                        ? 'bg-primary-50 text-primary-600 font-medium'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <Home className="h-5 w-5" />
-                                Dashboard
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/dashboard/profile"
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${pathname === '/dashboard/profile'
-                                        ? 'bg-primary-50 text-primary-600 font-medium'
-                                        : 'text-gray-600 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <User className="h-5 w-5" />
-                                My Profile
-                            </Link>
-                        </li>
-                    </ul>
-                </nav>
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Name */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Full Name</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <User className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.name || 'N/A'}</span>
+                        </div>
+                    </div>
 
-                <div className="p-4 border-t border-gray-200">
+                    {/* Registration Number */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Medical Registration Number</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <Award className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.registration_number || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Email Address</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <Mail className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.email || 'N/A'}</span>
+                        </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Phone Number</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <Phone className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.phone || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Credentials (Read-Only - Verified by Gemini) */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                        <GraduationCap className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900">Credentials & Qualifications</h2>
+                        <p className="text-sm text-slate-500">Verified by MedVision AI during registration</p>
+                    </div>
+                    <div className="ml-auto flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                        <CheckCircle className="w-3 h-3" />
+                        Verified
+                    </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                    {/* Qualification */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Qualification</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <GraduationCap className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.qualification || 'MBBS'}</span>
+                        </div>
+                    </div>
+
+                    {/* Experience */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Years of Experience</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <Briefcase className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.years_experience || 3} Years</span>
+                        </div>
+                    </div>
+
+                    {/* Specialization */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-500 mb-1">Specialization</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                            <Award className="w-4 h-4 text-slate-400" />
+                            <span className="font-semibold text-slate-900">{profile?.specialization || 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+                    These credentials were verified during registration and cannot be changed. Contact support if you need to update your qualifications.
+                </p>
+            </div>
+
+            {/* Hospital Address (Editable) */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900">Hospital / Clinic Location</h2>
+                        <p className="text-sm text-slate-500">Where patients can visit you for in-person consultations</p>
+                    </div>
+                </div>
+
+                <textarea
+                    value={hospitalAddress}
+                    onChange={(e) => setHospitalAddress(e.target.value)}
+                    placeholder="Enter your hospital or clinic address..."
+                    rows={3}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
+                />
+            </div>
+
+            {/* Change Password */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                        <h2 className="text-lg font-bold text-slate-900">Password</h2>
+                        <p className="text-sm text-slate-500">Update your account password</p>
+                    </div>
                     <button
-                        onClick={handleSignOut}
-                        className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowPasswordSection(!showPasswordSection)}
+                        className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                     >
-                        <LogOut className="h-5 w-5" />
-                        Sign Out
+                        {showPasswordSection ? 'Cancel' : 'Change Password'}
                     </button>
                 </div>
-            </aside>
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-auto">
-                {/* Header */}
-                <header className="bg-white border-b border-gray-200 px-8 py-6">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/dashboard"
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            <ArrowLeft className="h-5 w-5 text-gray-600" />
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">My Profile</h1>
-                            <p className="text-gray-500 mt-1">View and manage your account details</p>
+                {showPasswordSection && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-4 pt-4 border-t border-slate-100"
+                    >
+                        {passwordError && (
+                            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                                {passwordError}
+                            </div>
+                        )}
+
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                            <input
+                                type={showPasswords ? 'text' : 'password'}
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
                         </div>
+
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                            <input
+                                type={showPasswords ? 'text' : 'password'}
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+
+                        <div className="relative">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                            <input
+                                type={showPasswords ? 'text' : 'password'}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={showPasswords}
+                                    onChange={(e) => setShowPasswords(e.target.checked)}
+                                    className="rounded"
+                                />
+                                Show passwords
+                            </label>
+                            <button
+                                onClick={handleChangePassword}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                            >
+                                Update Password
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+
+            {/* Settings Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-blue-600" />
                     </div>
-                </header>
-
-                {/* Content */}
-                <div className="p-8 max-w-4xl">
-                    {/* Profile Header Card */}
-                    <div className="card p-6 mb-6">
-                        <div className="flex items-start gap-6">
-                            <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center">
-                                <User className="h-12 w-12 text-primary-500" />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h2 className="text-2xl font-semibold text-gray-900">
-                                        Dr. {doctor.name}
-                                    </h2>
-                                    {verificationStatus === 'approved' ? (
-                                        <span className="flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm">
-                                            <Shield className="h-4 w-4" />
-                                            Verified
-                                        </span>
-                                    ) : verificationStatus === 'rejected' ? (
-                                        <span className="flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm">
-                                            <Shield className="h-4 w-4" />
-                                            Rejected
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-1 px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-sm">
-                                            <Clock className="h-4 w-4" />
-                                            Pending Verification
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-gray-500 flex items-center gap-2">
-                                    <Stethoscope className="h-4 w-4" />
-                                    {doctor.specialization || 'General Practice'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-2 gap-6">
-                        {/* Contact Information */}
-                        <div className="card p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <Mail className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Email</p>
-                                        <p className="text-gray-900">{doctor.email}</p>
-                                    </div>
-                                </div>
-                                {doctor.phone && (
-                                    <div className="flex items-center gap-3">
-                                        <Phone className="h-5 w-5 text-gray-400" />
-                                        <div>
-                                            <p className="text-sm text-gray-500">Phone</p>
-                                            <p className="text-gray-900">{doctor.phone}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="flex items-center gap-3">
-                                    <MapPin className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Country</p>
-                                        <p className="text-gray-900">{doctor.country}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Professional Information */}
-                        <div className="card p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Details</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <FileText className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Registration Number</p>
-                                        <p className="text-gray-900 font-mono">{doctor.registration_number}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Award className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Specialization</p>
-                                        <p className="text-gray-900">{doctor.specialization}</p>
-                                    </div>
-                                </div>
-                                {doctor.hospital && (
-                                    <div className="flex items-center gap-3">
-                                        <Building2 className="h-5 w-5 text-gray-400" />
-                                        <div>
-                                            <p className="text-sm text-gray-500">Hospital / Clinic</p>
-                                            <p className="text-gray-900">{doctor.hospital}</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Account Information */}
-                        <div className="card p-6 col-span-2">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
-                            <div className="grid grid-cols-3 gap-6">
-                                <div className="flex items-center gap-3">
-                                    <Calendar className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Member Since</p>
-                                        <p className="text-gray-900">
-                                            {doctor.created_at
-                                                ? new Date(doctor.created_at).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })
-                                                : 'N/A'
-                                            }
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <Shield className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Verification Status</p>
-                                        <p className={`capitalize ${verificationStatus === 'approved' ? 'text-green-600' :
-                                                verificationStatus === 'rejected' ? 'text-red-600' :
-                                                    'text-yellow-600'
-                                            }`}>
-                                            {verificationStatus}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <User className="h-5 w-5 text-gray-400" />
-                                    <div>
-                                        <p className="text-sm text-gray-500">Account ID</p>
-                                        <p className="text-gray-900 font-mono text-sm">{doctor.id?.slice(0, 8)}...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900">Consultation Settings</h2>
+                        <p className="text-sm text-slate-500">Configure your appointment preferences</p>
                     </div>
                 </div>
-            </main>
+
+                <div className="space-y-6">
+                    {/* Google Meet Link */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <div className="flex items-center gap-2">
+                                <Video className="w-4 h-4 text-blue-600" />
+                                Google Meet Link
+                            </div>
+                        </label>
+                        <input
+                            type="url"
+                            value={meetLink}
+                            onChange={(e) => setMeetLink(e.target.value)}
+                            placeholder="https://meet.google.com/abc-defg-hij"
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        />
+                        <p className="text-xs text-slate-500 mt-2">
+                            Your personal Meet link for all online consultations
+                        </p>
+                    </div>
+
+                    {/* Working Hours */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-purple-600" />
+                                    Start Time
+                                </div>
+                            </label>
+                            <input
+                                type="time"
+                                value={workingHoursStart}
+                                onChange={(e) => setWorkingHoursStart(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-purple-600" />
+                                    End Time
+                                </div>
+                            </label>
+                            <input
+                                type="time"
+                                value={workingHoursEnd}
+                                onChange={(e) => setWorkingHoursEnd(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Consultation Fees */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-green-600" />
+                                    Online Fee (₹)
+                                </div>
+                            </label>
+                            <input
+                                type="number"
+                                value={onlineFee}
+                                onChange={(e) => setOnlineFee(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-green-600" />
+                                    In-Person Fee (₹)
+                                </div>
+                            </label>
+                            <input
+                                type="number"
+                                value={offlineFee}
+                                onChange={(e) => setOfflineFee(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Consultation Modes */}
+                    <div className="flex gap-4">
+                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                            <input
+                                type="checkbox"
+                                checked={acceptingOnline}
+                                onChange={(e) => setAcceptingOnline(e.target.checked)}
+                                className="w-5 h-5 rounded text-primary-600"
+                            />
+                            <div>
+                                <p className="font-medium text-slate-900">Online Consultations</p>
+                                <p className="text-sm text-slate-500">Accept video call appointments</p>
+                            </div>
+                        </label>
+                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                            <input
+                                type="checkbox"
+                                checked={acceptingOffline}
+                                onChange={(e) => setAcceptingOffline(e.target.checked)}
+                                className="w-5 h-5 rounded text-primary-600"
+                            />
+                            <div>
+                                <p className="font-medium text-slate-900">In-Person Visits</p>
+                                <p className="text-sm text-slate-500">Accept clinic appointments</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Save Button */}
+            <button
+                onClick={handleSaveProfile}
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20"
+            >
+                <Save className="w-5 h-5" />
+                Save All Changes
+            </button>
         </div>
     )
 }
