@@ -17,9 +17,11 @@ import {
     Plus,
     Stethoscope,
     Upload,
-    Sparkles
+    Sparkles,
+    Loader2
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import api from '@/lib/api'
 
 const container = {
     hidden: { opacity: 0 },
@@ -34,49 +36,87 @@ const item = {
     show: { opacity: 1, y: 0 }
 }
 
-// Mock data
-const mockUpcomingAppointments = [
-    {
-        id: '1',
-        doctorName: 'Dr. Priya Sharma',
-        specialization: 'Cardiologist',
-        mode: 'online',
-        scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-        status: 'confirmed',
-        doctorImage: null
-    },
-    {
-        id: '2',
-        doctorName: 'Dr. Rajesh Kumar',
-        specialization: 'General Physician',
-        mode: 'offline',
-        scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        status: 'confirmed',
-        hospitalAddress: 'City Hospital, Room 204',
-        doctorImage: null
-    }
-]
+// Demo doctor mapping for hackathon
+const doctorInfo: Record<string, { name: string; specialization: string }> = {
+    '1': { name: 'Dr. Priya Sharma', specialization: 'Cardiologist' },
+    '2': { name: 'Dr. Rajesh Kumar', specialization: 'General Physician' },
+    '3': { name: 'Dr. Amit Patel', specialization: 'Dermatologist' },
+    '4': { name: 'Dr. Sunita Gupta', specialization: 'ENT Specialist' },
+    '5': { name: 'Dr. Vikram Singh', specialization: 'Orthopedic Surgeon' }
+}
 
-const mockRecentRecords = [
-    { id: '1', name: 'Blood Test Report', date: '2026-01-10', type: 'Lab Report' },
-    { id: '2', name: 'Chest X-Ray', date: '2025-12-15', type: 'Imaging' }
-]
+interface Appointment {
+    id: string
+    doctor_id: string
+    doctorName: string
+    specialization: string
+    mode: 'online' | 'offline'
+    scheduled_time: string | Date
+    status: string
+    hospital_address?: string
+}
+
+interface MedicalRecord {
+    id: string
+    name: string
+    date: string
+    type: string
+}
 
 export default function PatientDashboard() {
     const [patientName, setPatientName] = useState('Patient')
-    const [appointments, setAppointments] = useState(mockUpcomingAppointments)
-    const [records, setRecords] = useState(mockRecentRecords)
+    const [appointments, setAppointments] = useState<Appointment[]>([])
+    const [records, setRecords] = useState<MedicalRecord[]>([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const userData = localStorage.getItem('user')
-        if (userData) {
-            try {
-                const user = JSON.parse(userData)
-                setPatientName(user.name?.split(' ')[0] || 'Patient')
-            } catch (e) {
-                console.error('Failed to parse user data')
+        const fetchData = async () => {
+            const userData = localStorage.getItem('user')
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData)
+                    setPatientName(user.name?.split(' ')[0] || 'Patient')
+
+                    const patientId = user.email || user.id
+                    if (patientId) {
+                        // Fetch real appointments
+                        const appointmentsData = await api.getPatientAppointments(patientId)
+                        const mappedAppointments = appointmentsData.map((apt: any) => {
+                            const docInfo = doctorInfo[apt.doctor_id] || {
+                                name: `Dr. Unknown (${apt.doctor_id})`,
+                                specialization: 'Specialist'
+                            }
+                            return {
+                                ...apt,
+                                doctorName: apt.doctorName || docInfo.name,
+                                specialization: apt.specialization || docInfo.specialization
+                            }
+                        })
+                        setAppointments(mappedAppointments)
+
+                        // Fetch real records
+                        try {
+                            const recordsData = await api.getPatientReports(patientId)
+                            const mappedRecords = recordsData.map((report: any, index: number) => ({
+                                id: report.report_id || `report_${index}`,
+                                name: report.report_type || report.file_name || 'Medical Report',
+                                type: report.report_type || 'Other',
+                                date: report.created_at ? new Date(report.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                            }))
+                            setRecords(mappedRecords)
+                        } catch (e) {
+                            // Records API might 404 if no reports exist
+                            setRecords([])
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load data:', e)
+                }
             }
+            setLoading(false)
         }
+
+        fetchData()
     }, [])
 
     const getGreeting = () => {
@@ -86,11 +126,13 @@ export default function PatientDashboard() {
         return 'Good Evening'
     }
 
-    const formatTime = (date: Date) => {
+    const formatTime = (dateArg: Date | string) => {
+        const date = typeof dateArg === 'string' ? new Date(dateArg) : dateArg
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     }
 
-    const formatDate = (date: Date) => {
+    const formatDate = (dateArg: Date | string) => {
+        const date = typeof dateArg === 'string' ? new Date(dateArg) : dateArg
         const today = new Date()
         const tomorrow = new Date(today)
         tomorrow.setDate(tomorrow.getDate() + 1)
@@ -132,8 +174,8 @@ export default function PatientDashboard() {
             {/* Quick Stats */}
             <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Upcoming', value: appointments.length, icon: Calendar, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-                    { label: 'Completed', value: 8, icon: Activity, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
+                    { label: 'Upcoming', value: appointments.filter(a => ['pending', 'confirmed', 'in_progress'].includes(a.status)).length, icon: Calendar, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+                    { label: 'Completed', value: appointments.filter(a => a.status === 'completed').length, icon: Activity, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
                     { label: 'Records', value: records.length, icon: FileText, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/30' },
                     { label: 'Reminders', value: 2, icon: Bell, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' }
                 ].map((stat) => (
@@ -199,11 +241,11 @@ export default function PatientDashboard() {
                                                 <div className="mt-2 flex items-center gap-4 text-base text-slate-600 dark:text-slate-300">
                                                     <span className="flex items-center gap-1">
                                                         <Calendar className="w-4 h-4 text-slate-400" />
-                                                        {formatDate(apt.scheduledTime)}
+                                                        {formatDate(apt.scheduled_time)}
                                                     </span>
                                                     <span className="flex items-center gap-1">
                                                         <Clock className="w-4 h-4 text-slate-400" />
-                                                        {formatTime(apt.scheduledTime)}
+                                                        {formatTime(apt.scheduled_time)}
                                                     </span>
                                                 </div>
                                             </div>

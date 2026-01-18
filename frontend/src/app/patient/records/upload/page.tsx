@@ -13,6 +13,7 @@ import {
     AlertCircle,
     Loader2
 } from 'lucide-react'
+import api from '@/lib/api'
 
 interface UploadedFile {
     id: string
@@ -64,32 +65,50 @@ export default function UploadRecordsPage() {
 
         setFiles((prev) => [...prev, ...uploadFiles])
 
-        // Simulate upload progress
-        uploadFiles.forEach((file) => {
-            simulateUpload(file.id)
+        // Perform real upload
+        newFiles.forEach((file, index) => {
+            const fileId = uploadFiles[index].id
+            performUpload(file, fileId)
         })
     }
 
-    const simulateUpload = (fileId: string) => {
-        let progress = 0
-        const interval = setInterval(() => {
-            progress += Math.random() * 30
-            if (progress >= 100) {
-                progress = 100
-                clearInterval(interval)
+    const performUpload = async (file: File, fileId: string) => {
+        try {
+            // Get patient ID
+            const userData = localStorage.getItem('user')
+            const user = userData ? JSON.parse(userData) : {}
+            const patientId = user.email || user.id
+
+            // Simulate progress for UX while uploading
+            const progressInterval = setInterval(() => {
                 setFiles((prev) =>
-                    prev.map((f) =>
-                        f.id === fileId ? { ...f, progress: 100, status: 'success' } : f
-                    )
+                    prev.map((f) => {
+                        if (f.id === fileId && f.progress < 90) {
+                            return { ...f, progress: f.progress + 10 }
+                        }
+                        return f
+                    })
                 )
-            } else {
-                setFiles((prev) =>
-                    prev.map((f) =>
-                        f.id === fileId ? { ...f, progress } : f
-                    )
+            }, 500)
+
+            // Call API
+            console.log('Uploading file:', file.name, 'for patient:', patientId)
+            await api.uploadAndInterpretReport(file, patientId)
+
+            clearInterval(progressInterval)
+            setFiles((prev) =>
+                prev.map((f) =>
+                    f.id === fileId ? { ...f, progress: 100, status: 'success' } : f
                 )
-            }
-        }, 200)
+            )
+        } catch (error) {
+            console.error('Upload failed:', error)
+            setFiles((prev) =>
+                prev.map((f) =>
+                    f.id === fileId ? { ...f, status: 'error' } : f
+                )
+            )
+        }
     }
 
     const removeFile = (fileId: string) => {
@@ -132,8 +151,8 @@ export default function UploadRecordsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all ${isDragging
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
                     }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}

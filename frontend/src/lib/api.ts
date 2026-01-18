@@ -71,30 +71,6 @@ export const api = {
             }),
         }),
 
-    // Reports
-    uploadAndInterpretReport: async (file: File) => {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = await fetch(`${API_URL}/api/reports/upload-and-interpret`, {
-            method: 'POST',
-            body: formData,
-        })
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({}))
-            throw new Error(error.detail || 'Upload failed')
-        }
-
-        return response.json()
-    },
-
-    interpretReportText: (text: string) =>
-        fetchAPI<{ interpretation: string }>('/api/reports/interpret-text', {
-            method: 'POST',
-            body: JSON.stringify({ text }),
-        }),
-
     // Chat
     sendChatMessage: (message: string, patientId?: string) =>
         fetchAPI<{ response: string; sources: string[] }>('/api/chat/message', {
@@ -119,6 +95,88 @@ export const api = {
                 result_value: resultValue,
                 normal_range: normalRange,
             }),
+        }),
+
+    // Appointments
+    createAppointment: (data: {
+        patient_id: string
+        doctor_id: string
+        scheduled_time: string
+        mode: 'online' | 'offline'
+        patient_timezone?: string
+    }) =>
+        fetchAPI<{ success: boolean; appointment_id: string; queue_number: number; message: string }>(
+            '/api/appointments/',
+            {
+                method: 'POST',
+                body: JSON.stringify(data),
+            }
+        ),
+
+    getPatientAppointments: (patientId: string) =>
+        fetchAPI<any[]>(`/api/appointments/patient/${patientId}`),
+
+    getDoctorAppointmentsToday: (doctorId: string) =>
+        fetchAPI<{ appointments: any[]; stats: any }>(`/api/appointments/doctor/${doctorId}/today`),
+
+    getAvailableSlots: (doctorId: string, date: string) =>
+        fetchAPI<{ date: string; slots: any[]; consultation_duration: number }>(
+            `/api/appointments/doctors/${doctorId}/slots?date=${date}`
+        ),
+
+    searchDoctors: (query?: string, specialization?: string) =>
+        fetchAPI<{ doctors: any[]; total: number }>(
+            `/api/appointments/doctors/search?q=${query || ''}&specialization=${specialization || ''}`
+        ),
+
+    cancelAppointment: (appointmentId: string, reason?: string) =>
+        fetchAPI<{ success: boolean; message: string }>(
+            `/api/appointments/${appointmentId}/cancel`,
+            {
+                method: 'PATCH',
+                body: JSON.stringify({ reason }),
+            }
+        ),
+
+    getAppointmentDetails: (appointmentId: string) =>
+        fetchAPI<any>(`/api/appointments/${appointmentId}`),
+
+    hasActiveAppointmentWithDoctor: (patientId: string, doctorId: string) =>
+        fetchAPI<{ has_active: boolean; message?: string }>(
+            `/api/appointments/check-active?patient_id=${patientId}&doctor_id=${doctorId}`
+        ),
+
+    // Patient Reports
+    getPatientReports: (patientId: string) =>
+        fetchAPI<any[]>(`/api/reports/${patientId}/reports`),
+
+    getPatientReport: (patientId: string, reportId: string) =>
+        fetchAPI<any>(`/api/reports/${patientId}/reports/${reportId}`),
+
+    uploadAndInterpretReport: async (file: File, patientId?: string) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        if (patientId) {
+            formData.append('patient_id', patientId)
+        }
+
+        const response = await fetch(`${API_URL}/api/reports/upload-and-interpret`, {
+            method: 'POST',
+            body: formData,
+        })
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}))
+            throw new Error(error.detail || 'Upload failed')
+        }
+
+        return response.json()
+    },
+
+    interpretReportText: (text: string) =>
+        fetchAPI<{ interpretation: string }>('/api/reports/interpret-text', {
+            method: 'POST',
+            body: JSON.stringify({ text }),
         }),
 }
 

@@ -210,6 +210,7 @@ class AIConversation(BaseModel):
 
 class CreateAppointmentRequest(BaseModel):
     """Request to create a new appointment."""
+    patient_id: str
     doctor_id: str
     scheduled_time: datetime
     mode: AppointmentMode

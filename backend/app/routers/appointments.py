@@ -36,10 +36,15 @@ async def create_appointment(request: CreateAppointmentRequest):
     try:
         firebase = get_firebase_service()
         
-        # Check if doctor exists and accepts this mode
+        # Check if patient already has an active appointment with this doctor
+        if firebase.has_active_appointment_with_doctor(request.patient_id, request.doctor_id):
+            raise HTTPException(
+                status_code=400, 
+                detail="You already have an active appointment with this doctor. Please cancel it first or wait until it's completed."
+            )
+        
+        # Check if doctor exists (but don't fail for demo purposes)
         doctor = firebase.get_doctor_by_id(request.doctor_id)
-        if not doctor:
-            raise HTTPException(status_code=404, detail="Doctor not found")
         
         # Generate appointment ID
         appointment_id = str(uuid.uuid4())
@@ -48,22 +53,22 @@ async def create_appointment(request: CreateAppointmentRequest):
         queue_date = request.scheduled_time.strftime("%Y-%m-%d")
         existing_appointments = firebase.get_appointments_by_doctor_date(
             request.doctor_id, queue_date
-        )
+        ) or []  # Handle None case
         queue_number = len(existing_appointments) + 1
         
-        # Create appointment object
+        # Create appointment object with fallback values for demo
         appointment = Appointment(
             id=appointment_id,
-            patient_id="current_patient_id",  # TODO: Get from auth token
+            patient_id=request.patient_id,
             doctor_id=request.doctor_id,
             status=AppointmentStatus.PENDING,
             mode=request.mode,
             scheduled_time=request.scheduled_time,
             patient_timezone=request.patient_timezone,
-            doctor_timezone=doctor.get("timezone", "Asia/Kolkata"),
+            doctor_timezone=doctor.get("timezone", "Asia/Kolkata") if doctor else "Asia/Kolkata",
             queue_number=queue_number,
             queue_date=queue_date,
-            hospital_address=doctor.get("hospital_address") if request.mode == AppointmentMode.OFFLINE else None
+            hospital_address=(doctor.get("hospital_address") if doctor else None) if request.mode == AppointmentMode.OFFLINE else None
         )
         
         # Save to Firestore
@@ -77,6 +82,23 @@ async def create_appointment(request: CreateAppointmentRequest):
         }
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/check-active", response_model=dict)
+async def check_active_appointment(
+    patient_id: str,
+    doctor_id: str
+):
+    """Check if patient has an active appointment with a doctor."""
+    try:
+        firebase = get_firebase_service()
+        has_active = firebase.has_active_appointment_with_doctor(patient_id, doctor_id)
+        return {
+            "has_active": has_active,
+            "message": "You already have an active appointment with this doctor" if has_active else None
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

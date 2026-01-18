@@ -13,8 +13,10 @@ import {
     AlertCircle,
     CheckCircle,
     XCircle,
-    Filter
+    Filter,
+    Loader2
 } from 'lucide-react'
+import api from '@/lib/api'
 
 const container = {
     hidden: { opacity: 0 },
@@ -29,52 +31,74 @@ const item = {
     show: { opacity: 1, y: 0 }
 }
 
-const mockAppointments = [
-    {
-        id: '1',
-        doctorName: 'Dr. Priya Sharma',
-        specialization: 'Cardiologist',
-        mode: 'online',
-        scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-        status: 'confirmed',
-        meetLink: 'https://meet.google.com/abc-defg-hij',
-        hospitalAddress: null
-    },
-    {
-        id: '2',
-        doctorName: 'Dr. Rajesh Kumar',
-        specialization: 'General Physician',
-        mode: 'offline',
-        scheduledTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        status: 'confirmed',
-        meetLink: null,
-        hospitalAddress: 'City Hospital, Room 204, Mumbai'
-    },
-    {
-        id: '3',
-        doctorName: 'Dr. Amit Patel',
-        specialization: 'Dermatologist',
-        mode: 'online',
-        scheduledTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        status: 'completed',
-        meetLink: null,
-        hospitalAddress: null
-    },
-    {
-        id: '4',
-        doctorName: 'Dr. Sunita Gupta',
-        specialization: 'ENT Specialist',
-        mode: 'offline',
-        scheduledTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-        status: 'completed',
-        meetLink: null,
-        hospitalAddress: 'Max Healthcare, Delhi'
-    }
-]
+interface Appointment {
+    id: string
+    doctor_id: string
+    patient_id: string
+    doctorName?: string
+    specialization?: string
+    mode: 'online' | 'offline'
+    scheduled_time: string
+    status: string
+    meet_link?: string | null
+    hospital_address?: string | null
+    queue_number?: number
+}
 
 export default function PatientAppointmentsPage() {
-    const [appointments, setAppointments] = useState(mockAppointments)
+    const [appointments, setAppointments] = useState<Appointment[]>([])
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all')
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    // Demo doctor mapping for hackathon
+    const doctorInfo: Record<string, { name: string; specialization: string }> = {
+        '1': { name: 'Dr. Priya Sharma', specialization: 'Cardiologist' },
+        '2': { name: 'Dr. Rajesh Kumar', specialization: 'General Physician' },
+        '3': { name: 'Dr. Amit Patel', specialization: 'Dermatologist' },
+        '4': { name: 'Dr. Sunita Gupta', specialization: 'ENT Specialist' },
+        '5': { name: 'Dr. Vikram Singh', specialization: 'Orthopedic Surgeon' }
+    }
+
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+
+                // Get patient ID from localStorage
+                const userData = localStorage.getItem('user')
+                const user = userData ? JSON.parse(userData) : {}
+                const patientId = user.email || user.id
+
+                if (patientId) {
+                    const data = await api.getPatientAppointments(patientId)
+                    // Map the data with doctor info lookup
+                    const mapped = data.map((apt: any) => {
+                        const docInfo = doctorInfo[apt.doctor_id] || {
+                            name: `Dr. Unknown (${apt.doctor_id})`,
+                            specialization: 'Specialist'
+                        }
+                        return {
+                            ...apt,
+                            doctorName: apt.doctorName || docInfo.name,
+                            specialization: apt.specialization || docInfo.specialization
+                        }
+                    })
+                    setAppointments(mapped)
+                } else {
+                    setError('Please log in to view appointments')
+                }
+            } catch (err: any) {
+                console.error('Failed to fetch appointments:', err)
+                setError(err.message || 'Failed to load appointments')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchAppointments()
+    }, [])
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -96,7 +120,8 @@ export default function PatientAppointmentsPage() {
         }
     }
 
-    const formatDate = (date: Date) => {
+    const formatDate = (dateStr: string | Date) => {
+        const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         const tomorrow = new Date(today)
@@ -111,22 +136,42 @@ export default function PatientAppointmentsPage() {
         return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
     }
 
-    const formatTime = (date: Date) => {
+    const formatTime = (dateStr: string | Date) => {
+        const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     }
 
-    const isUpcoming = (date: Date) => date > new Date()
+    const isUpcoming = (dateStr: string | Date) => {
+        const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
+        return date > new Date()
+    }
+
+    const getScheduledTime = (apt: Appointment) => {
+        return typeof apt.scheduled_time === 'string' ? new Date(apt.scheduled_time) : apt.scheduled_time
+    }
 
     const filteredAppointments = appointments.filter(apt => {
+        const scheduledTime = getScheduledTime(apt)
         if (filter === 'all') return true
-        if (filter === 'upcoming') return isUpcoming(apt.scheduledTime) && apt.status !== 'cancelled'
+        // Upcoming includes pending and confirmed appointments (future or recent past awaiting completion)
+        if (filter === 'upcoming') return ['pending', 'confirmed', 'in_progress'].includes(apt.status)
         if (filter === 'completed') return apt.status === 'completed'
         if (filter === 'cancelled') return apt.status === 'cancelled'
         return true
     })
 
-    const upcomingCount = appointments.filter(apt => isUpcoming(apt.scheduledTime) && apt.status !== 'cancelled').length
+    // Count pending/confirmed/in_progress as upcoming (active appointments)
+    const upcomingCount = appointments.filter(apt => ['pending', 'confirmed', 'in_progress'].includes(apt.status)).length
     const completedCount = appointments.filter(apt => apt.status === 'completed').length
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                <span className="ml-3 text-slate-600 dark:text-slate-400">Loading appointments...</span>
+            </div>
+        )
+    }
 
     return (
         <motion.div
@@ -221,8 +266,8 @@ export default function PatientAppointmentsPage() {
                                 {/* Date & Time */}
                                 <div className="flex items-center gap-6">
                                     <div className="text-right">
-                                        <p className="font-semibold text-slate-800 dark:text-white">{formatDate(apt.scheduledTime)}</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{formatTime(apt.scheduledTime)}</p>
+                                        <p className="font-semibold text-slate-800 dark:text-white">{formatDate(apt.scheduled_time)}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{formatTime(apt.scheduled_time)}</p>
                                     </div>
 
                                     {/* Mode Badge */}
@@ -243,11 +288,11 @@ export default function PatientAppointmentsPage() {
                             </div>
 
                             {/* Action Row */}
-                            {isUpcoming(apt.scheduledTime) && apt.status === 'confirmed' && (
+                            {isUpcoming(apt.scheduled_time) && apt.status === 'confirmed' && (
                                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
-                                    {apt.mode === 'online' && apt.meetLink ? (
+                                    {apt.mode === 'online' && apt.meet_link ? (
                                         <a
-                                            href={apt.meetLink}
+                                            href={apt.meet_link}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
@@ -255,10 +300,10 @@ export default function PatientAppointmentsPage() {
                                             <Video className="w-4 h-4" />
                                             Join Meeting
                                         </a>
-                                    ) : apt.mode === 'offline' && apt.hospitalAddress ? (
+                                    ) : apt.mode === 'offline' && apt.hospital_address ? (
                                         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                                             <MapPin className="w-4 h-4 text-slate-400" />
-                                            {apt.hospitalAddress}
+                                            {apt.hospital_address}
                                         </div>
                                     ) : null}
 

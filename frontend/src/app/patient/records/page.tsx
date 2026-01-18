@@ -15,8 +15,10 @@ import {
     Plus,
     File,
     Image,
-    ChevronRight
+    ChevronRight,
+    Loader2
 } from 'lucide-react'
+import api from '@/lib/api'
 
 const container = {
     hidden: { opacity: 0 },
@@ -31,48 +33,55 @@ const item = {
     show: { opacity: 1, y: 0 }
 }
 
-const mockRecords = [
-    {
-        id: '1',
-        name: 'Blood Test Report',
-        type: 'Lab Report',
-        date: '2026-01-10',
-        doctor: 'Dr. Priya Sharma',
-        size: '245 KB'
-    },
-    {
-        id: '2',
-        name: 'Chest X-Ray',
-        type: 'Imaging',
-        date: '2025-12-15',
-        doctor: 'Dr. Rajesh Kumar',
-        size: '1.2 MB'
-    },
-    {
-        id: '3',
-        name: 'ECG Report',
-        type: 'Cardiac',
-        date: '2025-11-20',
-        doctor: 'Dr. Priya Sharma',
-        size: '156 KB'
-    },
-    {
-        id: '4',
-        name: 'Prescription',
-        type: 'Prescription',
-        date: '2025-11-15',
-        doctor: 'Dr. Amit Patel',
-        size: '89 KB'
-    }
-]
+interface MedicalRecord {
+    id: string
+    name: string
+    type: string
+    date: string
+    doctor: string
+    size: string
+}
 
-const recordTypes = ['All Types', 'Lab Report', 'Imaging', 'Cardiac', 'Prescription', 'Surgery', 'Other']
+const recordTypes = ['All Types', 'Lab Report', 'Imaging', 'Cardiac', 'Prescription', 'Surgery', 'Blood Test Report', 'Other']
 
 export default function MedicalRecordsPage() {
-    const [records, setRecords] = useState(mockRecords)
+    const [records, setRecords] = useState<MedicalRecord[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedType, setSelectedType] = useState('All Types')
-    const [filteredRecords, setFilteredRecords] = useState(mockRecords)
+    const [filteredRecords, setFilteredRecords] = useState<MedicalRecord[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchRecords = async () => {
+            try {
+                const userData = localStorage.getItem('user')
+                if (userData) {
+                    const user = JSON.parse(userData)
+                    const patientId = user.email || user.id
+
+                    if (patientId) {
+                        const data = await api.getPatientReports(patientId)
+                        const mappedRecords = data.map((report: any, index: number) => ({
+                            id: report.report_id || `report_${index}`,
+                            name: report.report_type || report.file_name || 'Medical Report',
+                            type: report.report_type || 'Other',
+                            date: report.created_at ? new Date(report.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            doctor: report.doctor || 'Dr. Unknown',
+                            size: report.file_size || 'N/A'
+                        }))
+                        setRecords(mappedRecords)
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch records:', error)
+                // No records found is not an error state
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchRecords()
+    }, [])
 
     useEffect(() => {
         let result = records
@@ -92,14 +101,32 @@ export default function MedicalRecordsPage() {
         setFilteredRecords(result)
     }, [searchQuery, selectedType, records])
 
+    // Calculate this month's records dynamically
+    const thisMonth = new Date().getMonth()
+    const thisYear = new Date().getFullYear()
+    const thisMonthCount = records.filter(r => {
+        const recordDate = new Date(r.date)
+        return recordDate.getMonth() === thisMonth && recordDate.getFullYear() === thisYear
+    }).length
+
     const getTypeColor = (type: string) => {
         switch (type) {
             case 'Lab Report': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
             case 'Imaging': return 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
             case 'Cardiac': return 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
             case 'Prescription': return 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+            case 'Blood Test Report': return 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
             default: return 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
         }
+    }
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                <span className="ml-3 text-slate-600 dark:text-slate-400">Loading records...</span>
+            </div>
+        )
     }
 
     return (
@@ -155,7 +182,7 @@ export default function MedicalRecordsPage() {
                     { label: 'Total Records', value: records.length, icon: FileText, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
                     { label: 'Lab Reports', value: records.filter(r => r.type === 'Lab Report').length, icon: File, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/30' },
                     { label: 'Imaging', value: records.filter(r => r.type === 'Imaging').length, icon: Image, color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/30' },
-                    { label: 'This Month', value: 2, icon: Calendar, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' }
+                    { label: 'This Month', value: thisMonthCount, icon: Calendar, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' }
                 ].map((stat) => (
                     <div key={stat.label} className={`${stat.bg} p-4 rounded-xl border border-slate-200 dark:border-slate-700`}>
                         <div className="flex items-center gap-3">
@@ -196,9 +223,12 @@ export default function MedicalRecordsPage() {
                                     </span>
                                     <span className="text-sm text-slate-400 dark:text-slate-500">{record.size}</span>
                                     <div className="flex items-center gap-2">
-                                        <button className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors">
+                                        <Link
+                                            href={`/patient/records/${record.id}`}
+                                            className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                                        >
                                             <Eye className="w-4 h-4" />
-                                        </button>
+                                        </Link>
                                         <button className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors">
                                             <Download className="w-4 h-4" />
                                         </button>

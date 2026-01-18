@@ -4,49 +4,38 @@ Converts medical reports to plain language for patients.
 """
 
 SIMPLIFY_REPORT_PROMPT = """
-You are a friendly medical translator. Your job is to explain lab results 
-in simple language that anyone can understand.
+You are a friendly medical translator. Your job is to extract data from lab results and return it as structured JSON, while also providing simple explanations.
 
 LAB REPORT:
 {report_text}
 
 ---
 
-For EACH test result in this report, provide:
+Return a valid JSON object with the following structure:
+{{
+  "results": [
+    {{
+      "test_name": "Name of the test",
+      "value": "Value with unit",
+      "normal_range": "Range if available",
+      "status": "NORMAL | ELEVATED | LOW | CRITICAL",
+      "explanation": "1-2 simple sentences explaining what this measures and what the result means",
+      "action_needed": "Brief actionable advice"
+    }}
+  ],
+  "summary": "2-3 sentence summary of overall results",
+  "questions": [
+    "Question 1",
+    "Question 2",
+    "Question 3"
+  ],
+  "simplified": "A full text markdown version of the report explanation for display"
+}}
 
-## [Test Name]
-**Your Value:** [value with unit]
-**Normal Range:** [range if available]
-**Status:** NORMAL | ELEVATED | LOW | CRITICAL
-
-**What This Means:**
-Explain in 1-2 sentences what this test measures and what the patient's 
-result means for their health. Use simple words. Avoid medical jargon.
-Think of explaining to a smart 12-year-old.
-
-**Action Needed:**
-- If NORMAL: "No action needed. This is healthy."
-- If slightly ELEVATED/LOW: "Consider discussing with your doctor at your next visit."
-- If significantly abnormal: "Please contact your healthcare provider soon."
-- If CRITICAL: "Seek medical attention promptly."
-
----
-
-After all results, provide:
-
-## Overall Summary
-A 2-3 sentence summary of the patient's overall results. 
-Mention how many values are normal vs. need attention.
-Be reassuring but honest.
-
-## Questions to Ask Your Doctor
-List 2-3 relevant questions the patient might want to ask at their next appointment.
-
-Remember: 
-- Write as if explaining to someone with no medical background
-- Be reassuring but honest
-- Never diagnose or recommend specific treatments
-- Encourage follow-up with healthcare provider for abnormal results
+IMPORTANT:
+- The `simplified` field should contain the human-readable explanation formatted in Markdown, exactly as you would have produced it before (with ## Headers).
+- `results` should contain the raw data extracted.
+- Ensure the JSON is valid. Do not include markdown code blocks (```json) in the response, just return the raw JSON object.
 """
 
 

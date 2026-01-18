@@ -489,6 +489,234 @@ class FirebaseService:
         
         return suggestions
 
+    # ===========================================
+    # APPOINTMENT OPERATIONS
+    # ===========================================
+    
+    def create_appointment(self, appointment_data: dict) -> dict:
+        """Create a new appointment in Firestore."""
+        if not self.is_connected:
+            raise ConnectionError("Firebase not connected")
+        
+        appointment_id = appointment_data.get("id")
+        doc_ref = self._db.collection("appointments").document(appointment_id)
+        
+        # Convert datetime to string for Firestore
+        data = {**appointment_data}
+        for key in ["scheduled_time", "created_at", "updated_at", "consultation_started_at", 
+                    "consultation_ended_at", "patient_joined_at"]:
+            if key in data and data[key] is not None:
+                if hasattr(data[key], 'isoformat'):
+                    data[key] = data[key].isoformat()
+        
+        doc_ref.set(data)
+        return appointment_data
+    
+    def get_appointment_by_id(self, appointment_id: str) -> Optional[dict]:
+        """Get appointment by ID from Firestore."""
+        if not self.is_connected:
+            return None
+        
+        doc_ref = self._db.collection("appointments").document(appointment_id)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            return doc.to_dict()
+        return None
+    
+    def get_appointments_by_patient(self, patient_id: str, status: Optional[str] = None) -> List[dict]:
+        """Get all appointments for a patient."""
+        if not self.is_connected:
+            return []
+        
+        try:
+            query = self._db.collection("appointments").where("patient_id", "==", patient_id)
+            
+            if status:
+                query = query.where("status", "==", status)
+            
+            # Fetch without ordering to avoid composite index requirement
+            docs = query.stream()
+            results = [doc.to_dict() for doc in docs]
+            
+            # Sort in Python instead
+            results.sort(key=lambda x: x.get("scheduled_time", ""), reverse=True)
+            return results
+        except Exception as e:
+            print(f"Error fetching patient appointments: {e}")
+            return []
+    
+    def get_appointments_by_doctor_date(self, doctor_id: str, date: str) -> List[dict]:
+        """Get all appointments for a doctor on a specific date."""
+        if not self.is_connected:
+            return []
+        
+        try:
+            docs = self._db.collection("appointments")\
+                .where("doctor_id", "==", doctor_id)\
+                .where("queue_date", "==", date)\
+                .stream()
+            
+            return [doc.to_dict() for doc in docs]
+        except Exception as e:
+            print(f"Error fetching doctor appointments: {e}")
+            return []
+    
+    def has_active_appointment_with_doctor(self, patient_id: str, doctor_id: str) -> bool:
+        """Check if patient has an active (pending/confirmed) appointment with this doctor."""
+        if not self.is_connected:
+            return False
+        
+        try:
+            # Get all appointments for this patient with this doctor
+            docs = self._db.collection("appointments")\
+                .where("patient_id", "==", patient_id)\
+                .where("doctor_id", "==", doctor_id)\
+                .stream()
+            
+            active_statuses = ["pending", "confirmed", "in_progress"]
+            for doc in docs:
+                data = doc.to_dict()
+                if data.get("status") in active_statuses:
+                    return True
+            return False
+        except Exception as e:
+            print(f"Error checking active appointments: {e}")
+            return False
+    
+    def update_appointment(self, appointment_id: str, updates: dict) -> Optional[dict]:
+        """Update appointment data in Firestore."""
+        if not self.is_connected:
+            return None
+        
+        doc_ref = self._db.collection("appointments").document(appointment_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            return None
+        
+        # Convert datetime to string
+        for key in ["updated_at", "consultation_started_at", "consultation_ended_at", "patient_joined_at"]:
+            if key in updates and updates[key] is not None:
+                if hasattr(updates[key], 'isoformat'):
+                    updates[key] = updates[key].isoformat()
+        
+        doc_ref.update(updates)
+        return {**doc.to_dict(), **updates}
+    
+    def create_patient_profile(self, profile_data: dict) -> dict:
+        """Create patient profile for an appointment."""
+        if not self.is_connected:
+            raise ConnectionError("Firebase not connected")
+        
+        profile_id = profile_data.get("id")
+        doc_ref = self._db.collection("patient_profiles").document(profile_id)
+        
+        # Convert datetime to string
+        data = {**profile_data}
+        for key in ["created_at", "updated_at"]:
+            if key in data and data[key] is not None:
+                if hasattr(data[key], 'isoformat'):
+                    data[key] = data[key].isoformat()
+        
+        doc_ref.set(data)
+        return profile_data
+    
+    def get_doctor_settings(self, doctor_id: str) -> Optional[dict]:
+        """Get doctor's appointment settings."""
+        if not self.is_connected:
+            return None
+        
+        doc_ref = self._db.collection("doctor_settings").document(doctor_id)
+        doc = doc_ref.get()
+        return doc.to_dict() if doc.exists else None
+    
+    def update_doctor_settings(self, doctor_id: str, settings: dict) -> dict:
+        """Update doctor's appointment settings."""
+        if not self.is_connected:
+            raise ConnectionError("Firebase not connected")
+        
+        doc_ref = self._db.collection("doctor_settings").document(doctor_id)
+        
+        # Convert datetime to string
+        if "updated_at" in settings and settings["updated_at"] is not None:
+            if hasattr(settings["updated_at"], 'isoformat'):
+                settings["updated_at"] = settings["updated_at"].isoformat()
+        
+        doc_ref.set(settings, merge=True)
+        return settings
+    
+    def update_patient_reputation(self, patient_id: str, action: str):
+        """Update patient reputation based on action (no_show, late, completed)."""
+        if not self.is_connected:
+            return
+        
+        doc_ref = self._db.collection("patient_reputations").document(patient_id)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            data = doc.to_dict()
+            if action == "no_show":
+                data["no_show_count"] = data.get("no_show_count", 0) + 1
+                data["reputation_score"] = max(0, data.get("reputation_score", 50) - 10)
+            elif action == "completed":
+                data["completed_appointments"] = data.get("completed_appointments", 0) + 1
+                data["reputation_score"] = min(100, data.get("reputation_score", 50) + 2)
+            data["total_appointments"] = data.get("total_appointments", 0) + 1
+            doc_ref.update(data)
+        else:
+            initial_data = {
+                "patient_id": patient_id,
+                "total_appointments": 1,
+                "completed_appointments": 1 if action == "completed" else 0,
+                "no_show_count": 1 if action == "no_show" else 0,
+                "reputation_score": 40 if action == "no_show" else 52
+            }
+            doc_ref.set(initial_data)
+    
+    def search_doctors(self, filters: dict) -> List[dict]:
+        """Search for doctors with filters."""
+        if not self.is_connected:
+            return []
+        
+        query = self._db.collection("doctors")
+        
+        if filters.get("specialization"):
+            query = query.where("specialization", "==", filters["specialization"])
+        
+        docs = query.limit(50).stream()
+        results = []
+        
+        for doc in docs:
+            data = doc.to_dict()
+            # Apply text search filter if query provided
+            if filters.get("query"):
+                search_text = filters["query"].lower()
+                name = data.get("name", "").lower()
+                spec = data.get("specialization", "").lower()
+                if search_text not in name and search_text not in spec:
+                    continue
+            results.append(data)
+        
+        return results
+    
+    def get_doctor_by_id(self, doctor_id: str) -> Optional[dict]:
+        """Get doctor by ID from Firestore."""
+        if not self.is_connected:
+            return None
+        
+        # Try direct lookup first
+        doc_ref = self._db.collection("doctors").document(doctor_id)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()
+        
+        # Fallback: search by id field
+        docs = self._db.collection("doctors").where("id", "==", doctor_id).limit(1).stream()
+        for doc in docs:
+            return doc.to_dict()
+        
+        return None
 
 # ===========================================
 # HARDCODED DEMO DATA (fallback)

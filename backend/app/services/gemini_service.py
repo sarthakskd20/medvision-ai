@@ -13,6 +13,8 @@ from app.prompts.report_simplification import SIMPLIFY_REPORT_PROMPT
 
 # Thread pool for running sync Gemini calls
 _executor = ThreadPoolExecutor(max_workers=4)
+import json
+import re
 
 
 class GeminiService:
@@ -152,12 +154,31 @@ Be thorough but concise in your reasoning.
         prompt = SIMPLIFY_REPORT_PROMPT.format(report_text=report_text)
         response = await self._call_gemini(prompt, temperature=0.3)
         
-        return {
-            "simplified": response,
-            "results": [],
-            "summary": "",
-            "questions": []
-        }
+        try:
+            # Clean up response if it contains markdown code blocks
+            clean_response = response.strip()
+            if "```json" in clean_response:
+                clean_response = clean_response.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean_response:
+                clean_response = clean_response.split("```")[1].split("```")[0].strip()
+            
+            data = json.loads(clean_response)
+            
+            return {
+                "simplified": data.get("simplified", response),
+                "results": data.get("results", []),
+                "summary": data.get("summary", ""),
+                "questions": data.get("questions", [])
+            }
+        except Exception as e:
+            print(f"Error parsing Gemini JSON: {e}")
+            # Fallback to text
+            return {
+                "simplified": response,
+                "results": [],
+                "summary": "",
+                "questions": []
+            }
     
     async def chat_response(self, message: str, context: str = "") -> dict:
         """Generate a chat response with optional patient context."""
