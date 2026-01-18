@@ -267,6 +267,10 @@ export default function PatientRegisterPage() {
                     Are you a medical professional?{' '}
                     <Link href="/auth/register/doctor" className="font-semibold text-blue-600 hover:underline">Register as a Doctor</Link>
                 </p>
+                <p className="mt-2 text-center text-sm text-slate-500">
+                    Already have an account?{' '}
+                    <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">Sign In</Link>
+                </p>
             </div>
 
             <div className="absolute bottom-4 right-4 text-white/60 text-xs font-medium">

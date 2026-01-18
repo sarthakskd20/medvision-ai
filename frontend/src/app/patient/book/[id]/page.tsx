@@ -7,6 +7,7 @@ import {
     ArrowLeft,
     ArrowRight,
     User,
+    Users,
     Stethoscope,
     FileText,
     Upload,
@@ -399,7 +400,7 @@ export default function BookAppointmentPage() {
                                     exit={{ opacity: 0, x: -20 }}
                                     className="p-6"
                                 >
-                                    <h2 className="text-xl font-bold text-slate-900 mb-6">Select Date & Time</h2>
+                                    <h2 className="text-xl font-bold text-slate-900 mb-6">Select Appointment Date</h2>
 
                                     {/* Consultation Mode */}
                                     <div className="mb-6">
@@ -432,31 +433,70 @@ export default function BookAppointmentPage() {
                                         </div>
                                     </div>
 
-                                    {/* Available Slots */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-3">Available Slots</label>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                            {availableSlots.map((slot) => (
-                                                <button
-                                                    key={`${slot.datetime}-${slot.time}`}
-                                                    onClick={() => setSelectedSlot(slot)}
-                                                    className={`p-4 rounded-xl border-2 text-left transition-all ${selectedSlot === slot
-                                                        ? 'border-primary-600 bg-primary-50'
-                                                        : 'border-slate-200 hover:border-slate-300'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                                                        <Calendar className="w-4 h-4 text-slate-400" />
-                                                        {slot.display.split(',')[0]}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-lg font-bold text-slate-900 mt-1">
-                                                        <Clock className="w-4 h-4 text-primary-600" />
-                                                        {slot.display.split(',')[1]}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                    {/* 7-Day Date Picker */}
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-slate-700 mb-3">Select Date (Next 7 Days)</label>
+                                        <div className="grid grid-cols-7 gap-2">
+                                            {Array.from({ length: 7 }, (_, i) => {
+                                                const date = new Date()
+                                                date.setDate(date.getDate() + i)
+                                                const dateStr = date.toISOString().split('T')[0]
+                                                const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
+                                                const dayNum = date.getDate()
+                                                const monthName = date.toLocaleDateString('en-US', { month: 'short' })
+                                                const isToday = i === 0
+                                                const isTomorrow = i === 1
+                                                const isSelected = selectedSlot?.datetime === dateStr
+
+                                                // Calculate queue position for this date
+                                                const queueForDate = availableSlots.filter(s => s.datetime === dateStr)
+                                                const queuePosition = queueForDate.length > 0 ? parseInt(queueForDate[0].time) : 1
+
+                                                return (
+                                                    <button
+                                                        key={dateStr}
+                                                        onClick={() => setSelectedSlot({
+                                                            time: String(queuePosition),
+                                                            datetime: dateStr,
+                                                            display: `${dayName}, ${monthName} ${dayNum}`
+                                                        })}
+                                                        className={`p-3 rounded-xl border-2 text-center transition-all ${isSelected
+                                                            ? 'border-primary-600 bg-primary-50 shadow-sm'
+                                                            : 'border-slate-200 hover:border-primary-300 hover:bg-slate-50'
+                                                            }`}
+                                                    >
+                                                        <div className="text-xs font-medium text-slate-500">
+                                                            {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : dayName}
+                                                        </div>
+                                                        <div className="text-lg font-bold text-slate-900">{dayNum}</div>
+                                                        <div className="text-xs text-slate-500">{monthName}</div>
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
+
+                                    {/* Queue Info Card */}
+                                    {selectedSlot && (
+                                        <div className="bg-gradient-to-r from-primary-50 to-teal-50 rounded-xl p-4 border border-primary-100">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center">
+                                                    <Users className="w-6 h-6 text-primary-600" />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-slate-600">Queue-Based Appointment</p>
+                                                    <p className="text-lg font-bold text-slate-900">{selectedSlot.display}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs text-slate-500">Your Token</p>
+                                                    <p className="text-2xl font-bold text-primary-600">#{selectedSlot.time}</p>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3 pt-3 border-t border-primary-100 text-xs text-slate-600">
+                                                * Actual consultation time depends on queue progress. You will be notified when your turn approaches.
+                                            </div>
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
 

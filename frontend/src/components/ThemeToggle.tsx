@@ -10,16 +10,10 @@ export default function ThemeToggle() {
 
     useEffect(() => {
         setMounted(true)
-        // Check for saved preference or system preference
-        const savedTheme = localStorage.getItem('theme')
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-
-        if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-            setIsDark(true)
-            document.documentElement.classList.add('dark')
-        } else {
-            document.documentElement.classList.remove('dark')
-        }
+        // Always default to light mode on initial load
+        // Users can manually toggle to dark mode if they prefer
+        document.documentElement.classList.remove('dark')
+        setIsDark(false)
     }, [])
 
     const toggleTheme = () => {
@@ -45,8 +39,8 @@ export default function ThemeToggle() {
         <motion.button
             onClick={toggleTheme}
             className={`relative w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isDark
-                    ? 'bg-slate-700 text-yellow-400 hover:bg-slate-600'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-slate-700 text-yellow-400 hover:bg-slate-600'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
             whileTap={{ scale: 0.95 }}
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
