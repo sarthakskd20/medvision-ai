@@ -261,13 +261,16 @@ export default function BookAppointmentPage() {
             }
 
             // Create appointment via API
-            const result = await api.createAppointment({
+            const appointmentData = {
                 patient_id: patientId,
                 doctor_id: doctorId,
                 scheduled_time: selectedSlot.datetime,
                 mode: selectedMode,
                 patient_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            })
+            }
+            console.log('Sending appointment data:', appointmentData)
+
+            const result = await api.createAppointment(appointmentData)
 
             if (result.success) {
                 console.log('Appointment created:', result)
@@ -277,15 +280,19 @@ export default function BookAppointmentPage() {
             }
         } catch (err: any) {
             console.error('Booking error:', err)
-            // Handle different error types properly
-            if (typeof err === 'string') {
+            // Handle 422 validation errors specifically
+            if (err?.detail && Array.isArray(err.detail)) {
+                // Pydantic validation error
+                const messages = err.detail.map((e: any) => `${e.loc.join('.')}: ${e.msg}`).join(', ')
+                setError(`Validation Error: ${messages}`)
+            } else if (typeof err === 'string') {
                 setError(err)
             } else if (err?.message) {
                 setError(err.message)
             } else if (err?.detail) {
-                setError(err.detail)
+                setError(typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail))
             } else {
-                setError('Failed to book appointment. Please try again.')
+                setError(`Failed to book: ${JSON.stringify(err)}`)
             }
         } finally {
             setSubmitting(false)
