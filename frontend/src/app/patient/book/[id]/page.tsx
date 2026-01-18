@@ -260,12 +260,25 @@ export default function BookAppointmentPage() {
                 return
             }
 
-            // Ensure scheduled_time is in full ISO format (YYYY-MM-DDTHH:MM:SS)
-            // Sometimes it might be just the date string depending on slot generation
+            // Normalize scheduled_time to full ISO format (YYYY-MM-DDTHH:MM:SS)
+            // Handle various malformed formats: "2026-01-19", "2026-01-19T1:00", "2026-01-19T01:00"
             let scheduledTime = selectedSlot.datetime
-            if (scheduledTime && scheduledTime.indexOf('T') === -1) {
-                // It's just a date, append the time
-                scheduledTime = `${scheduledTime}T${selectedSlot.time}:00`
+            if (scheduledTime) {
+                if (scheduledTime.indexOf('T') !== -1) {
+                    // Has 'T' separator, but might be malformed
+                    const [datePart, timePart] = scheduledTime.split('T')
+                    const timeParts = timePart.split(':')
+                    const hour = (timeParts[0] || '00').padStart(2, '0')
+                    const min = (timeParts[1] || '00').padStart(2, '0')
+                    const sec = (timeParts[2] || '00').split('.')[0].padStart(2, '0') // Remove milliseconds if present
+                    scheduledTime = `${datePart}T${hour}:${min}:${sec}`
+                } else {
+                    // No 'T', use slot time
+                    const timeParts = (selectedSlot.time || '09:00').split(':')
+                    const hour = (timeParts[0] || '09').padStart(2, '0')
+                    const min = (timeParts[1] || '00').padStart(2, '0')
+                    scheduledTime = `${scheduledTime}T${hour}:${min}:00`
+                }
             }
 
             const appointmentData = {
