@@ -119,6 +119,11 @@ export const api = {
     getDoctorAppointmentsToday: (doctorId: string) =>
         fetchAPI<{ appointments: any[]; stats: any }>(`/api/appointments/doctor/${doctorId}/today`),
 
+    getDoctorAppointmentsUpcoming: (doctorId: string, days: number = 7) =>
+        fetchAPI<{ appointments_by_date: Record<string, any[]>; stats: any }>(
+            `/api/appointments/doctor/${doctorId}/upcoming?days=${days}`
+        ),
+
     getAvailableSlots: (doctorId: string, date: string) =>
         fetchAPI<{ date: string; slots: any[]; consultation_duration: number }>(
             `/api/appointments/doctors/${doctorId}/slots?date=${date}`

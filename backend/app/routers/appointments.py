@@ -268,6 +268,41 @@ async def get_doctor_appointments_today(doctor_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/doctor/{doctor_id}/upcoming")
+async def get_doctor_appointments_upcoming(doctor_id: str, days: int = 7):
+    """Get all appointments for a doctor for the upcoming N days (excluding today)."""
+    try:
+        firebase = get_firebase_service()
+        appointments_by_date = {}
+        
+        # Get appointments for each day
+        for i in range(1, days + 1):
+            date = (datetime.now() + timedelta(days=i)).strftime("%Y-%m-%d")
+            day_appointments = firebase.get_appointments_by_doctor_date(doctor_id, date)
+            
+            if day_appointments:
+                # Sort by queue number
+                day_appointments.sort(key=lambda x: x.get("queue_number", 0))
+                appointments_by_date[date] = day_appointments
+        
+        # Calculate total stats
+        all_appointments = []
+        for date_apps in appointments_by_date.values():
+            all_appointments.extend(date_apps)
+        
+        total = len(all_appointments)
+        
+        return {
+            "appointments_by_date": appointments_by_date,
+            "stats": {
+                "total": total,
+                "days_with_appointments": len(appointments_by_date)
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.patch("/{appointment_id}/status")
 async def update_appointment_status(
     appointment_id: str,
