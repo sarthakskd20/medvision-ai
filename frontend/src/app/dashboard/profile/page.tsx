@@ -193,7 +193,7 @@ export default function DoctorProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3"
+                    className="bg-green-50 border border-green-200  p-4 flex items-center gap-3"
                 >
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <p className="text-green-800 font-medium">Profile saved successfully</p>
@@ -204,7 +204,7 @@ export default function DoctorProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3"
+                    className="bg-red-50 border border-red-200  p-4 flex items-center gap-3"
                 >
                     <AlertCircle className="w-5 h-5 text-red-600" />
                     <p className="text-red-800 font-medium">{error}</p>
@@ -212,9 +212,9 @@ export default function DoctorProfilePage() {
             )}
 
             {/* Personal Information (Read-Only) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white  border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <div className="w-10 h-10  bg-primary-100 flex items-center justify-center">
                         <User className="w-5 h-5 text-primary-600" />
                     </div>
                     <div>
@@ -227,7 +227,7 @@ export default function DoctorProfilePage() {
                     {/* Name */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Full Name</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <User className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.name || 'N/A'}</span>
                         </div>
@@ -236,7 +236,7 @@ export default function DoctorProfilePage() {
                     {/* Registration Number */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Medical Registration Number</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <Award className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.registration_number || 'N/A'}</span>
                         </div>
@@ -245,7 +245,7 @@ export default function DoctorProfilePage() {
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Email Address</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <Mail className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.email || 'N/A'}</span>
                         </div>
@@ -254,7 +254,7 @@ export default function DoctorProfilePage() {
                     {/* Phone */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Phone Number</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <Phone className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.phone || 'N/A'}</span>
                         </div>
@@ -263,9 +263,9 @@ export default function DoctorProfilePage() {
             </div>
 
             {/* Credentials (Read-Only - Verified by Gemini) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white  border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <div className="w-10 h-10  bg-purple-100 flex items-center justify-center">
                         <GraduationCap className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
@@ -282,7 +282,7 @@ export default function DoctorProfilePage() {
                     {/* Qualification */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Qualification</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <GraduationCap className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.qualification || 'MBBS'}</span>
                         </div>
@@ -291,7 +291,7 @@ export default function DoctorProfilePage() {
                     {/* Experience */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Years of Experience</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <Briefcase className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.years_experience || 3} Years</span>
                         </div>
@@ -300,22 +300,22 @@ export default function DoctorProfilePage() {
                     {/* Specialization */}
                     <div>
                         <label className="block text-sm font-medium text-slate-500 mb-1">Specialization</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 ">
                             <Award className="w-4 h-4 text-slate-400" />
                             <span className="font-semibold text-slate-900">{profile?.specialization || 'N/A'}</span>
                         </div>
                     </div>
                 </div>
 
-                <p className="mt-4 text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+                <p className="mt-4 text-xs text-slate-500 bg-slate-50  p-3">
                     These credentials were verified during registration and cannot be changed. Contact support if you need to update your qualifications.
                 </p>
             </div>
 
             {/* Hospital Address (Editable) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white  border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <div className="w-10 h-10  bg-orange-100 flex items-center justify-center">
                         <MapPin className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
@@ -329,14 +329,14 @@ export default function DoctorProfilePage() {
                     onChange={(e) => setHospitalAddress(e.target.value)}
                     placeholder="Enter your hospital or clinic address..."
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
+                    className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
                 />
             </div>
 
             {/* Change Password */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white  border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                    <div className="w-10 h-10  bg-red-100 flex items-center justify-center">
                         <Lock className="w-5 h-5 text-red-600" />
                     </div>
                     <div className="flex-1">
@@ -345,7 +345,7 @@ export default function DoctorProfilePage() {
                     </div>
                     <button
                         onClick={() => setShowPasswordSection(!showPasswordSection)}
-                        className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50  transition-colors"
                     >
                         {showPasswordSection ? 'Cancel' : 'Change Password'}
                     </button>
@@ -358,7 +358,7 @@ export default function DoctorProfilePage() {
                         className="space-y-4 pt-4 border-t border-slate-100"
                     >
                         {passwordError && (
-                            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 ">
                                 {passwordError}
                             </div>
                         )}
@@ -369,7 +369,7 @@ export default function DoctorProfilePage() {
                                 type={showPasswords ? 'text' : 'password'}
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
@@ -379,7 +379,7 @@ export default function DoctorProfilePage() {
                                 type={showPasswords ? 'text' : 'password'}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
@@ -389,7 +389,7 @@ export default function DoctorProfilePage() {
                                 type={showPasswords ? 'text' : 'password'}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
@@ -405,7 +405,7 @@ export default function DoctorProfilePage() {
                             </label>
                             <button
                                 onClick={handleChangePassword}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                className="px-4 py-2 bg-red-600 text-white  font-medium hover:bg-red-700 transition-colors"
                             >
                                 Update Password
                             </button>
@@ -415,9 +415,9 @@ export default function DoctorProfilePage() {
             </div>
 
             {/* Settings Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white  border border-slate-200 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <div className="w-10 h-10  bg-blue-100 flex items-center justify-center">
                         <Settings className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
@@ -440,7 +440,7 @@ export default function DoctorProfilePage() {
                             value={meetLink}
                             onChange={(e) => setMeetLink(e.target.value)}
                             placeholder="https://meet.google.com/abc-defg-hij"
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                         />
                         <p className="text-xs text-slate-500 mt-2">
                             Your personal Meet link for all online consultations
@@ -460,7 +460,7 @@ export default function DoctorProfilePage() {
                                 type="time"
                                 value={workingHoursStart}
                                 onChange={(e) => setWorkingHoursStart(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                         <div>
@@ -474,7 +474,7 @@ export default function DoctorProfilePage() {
                                 type="time"
                                 value={workingHoursEnd}
                                 onChange={(e) => setWorkingHoursEnd(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                     </div>
@@ -492,7 +492,7 @@ export default function DoctorProfilePage() {
                                 type="number"
                                 value={onlineFee}
                                 onChange={(e) => setOnlineFee(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                         <div>
@@ -506,14 +506,14 @@ export default function DoctorProfilePage() {
                                 type="number"
                                 value={offlineFee}
                                 onChange={(e) => setOfflineFee(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200  focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                     </div>
 
                     {/* Consultation Modes */}
                     <div className="flex gap-4">
-                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                        <label className="flex items-center gap-3 p-4 border border-slate-200  flex-1 cursor-pointer hover:bg-slate-50">
                             <input
                                 type="checkbox"
                                 checked={acceptingOnline}
@@ -525,7 +525,7 @@ export default function DoctorProfilePage() {
                                 <p className="text-sm text-slate-500">Accept video call appointments</p>
                             </div>
                         </label>
-                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                        <label className="flex items-center gap-3 p-4 border border-slate-200  flex-1 cursor-pointer hover:bg-slate-50">
                             <input
                                 type="checkbox"
                                 checked={acceptingOffline}
@@ -544,7 +544,7 @@ export default function DoctorProfilePage() {
             {/* Save Button */}
             <button
                 onClick={handleSaveProfile}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary-600 text-white  font-semibold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20"
             >
                 <Save className="w-5 h-5" />
                 Save All Changes

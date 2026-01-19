@@ -21,7 +21,7 @@
   --primary-800: #004c4c;
   --primary-900: #003333;
 
-  /* Secondary - Warm Sand */
+  /* Secondary - Warm Sand/Beige */
   --secondary-50: #fdfcfa;
   --secondary-100: #f9f7f3;
   --secondary-200: #f5f1e8;
@@ -51,8 +51,8 @@
   --error-500: #ef4444;
   --info-500: #3b82f6;
 
-  /* Theme defaults */
-  --background: #f8fafc;
+  /* Theme defaults - BEIGE/WARM SAND background */
+  --background: #FAF8F5;
   --foreground: #1e293b;
   --card-bg: #ffffff;
   --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -66,18 +66,18 @@
   --space-6: 1.5rem;
   --space-8: 2rem;
 
-  /* Border radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  /* Border radius - MINIMAL for professional look */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  /* Shadows - subtle */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.03);
+  --shadow-md: 0 2px 4px -1px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 4px 8px -2px rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 8px 16px -4px rgb(0 0 0 / 0.1);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -87,14 +87,14 @@
 
 /* Dark mode - using Tailwind's .dark class */
 .dark {
-  --background: #0f172a;
+  --background: #121820;
   --foreground: #f1f5f9;
-  --card-bg: #1e293b;
+  --card-bg: #1a2230;
   --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #000000 100%);
 }
 
 .dark body {
-  background-color: #0f172a;
+  background-color: #121820;
   color: #f1f5f9;
 }
 
@@ -1187,7 +1187,6 @@ select.input-field {
   --accent-light: #dbeafe;
 }
 
-/* Scroll reveal for statistics */
 .reveal-on-scroll {
   opacity: 0;
   transform: translateY(20px);
@@ -1197,4 +1196,274 @@ select.input-field {
 .reveal-on-scroll.revealed {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ============================================
+   Dashboard Redesign - LifeOnes Style
+   ============================================ */
+
+/* Edge-cut card styling */
+.card-edge-cut {
+  background: white;
+  border: 1px solid var(--slate-200);
+  position: relative;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.card-edge-cut::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, transparent 50%, var(--slate-200) 50%);
+}
+
+.dark .card-edge-cut {
+  background: var(--slate-800);
+  border-color: var(--slate-700);
+}
+
+/* Dashboard top header navigation */
+.dashboard-header-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--slate-200);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.dark .dashboard-header-nav {
+  background: rgba(15, 23, 42, 0.95);
+  border-color: var(--slate-700);
+}
+
+/* Enhanced nav link styling */
+.dashboard-nav-link {
+  position: relative;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--slate-600);
+  transition: color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dashboard-nav-link:hover {
+  color: var(--primary-600);
+}
+
+.dashboard-nav-link.active {
+  color: var(--primary-600);
+}
+
+.dashboard-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-600);
+}
+
+.dark .dashboard-nav-link {
+  color: var(--slate-400);
+}
+
+.dark .dashboard-nav-link:hover,
+.dark .dashboard-nav-link.active {
+  color: var(--primary-400);
+}
+
+.dark .dashboard-nav-link.active::after {
+  background: var(--primary-400);
+}
+
+/* Large typography for dashboard */
+.text-display-xl {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.text-display-lg {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 768px) {
+  .text-display-xl {
+    font-size: 2.5rem;
+  }
+
+  .text-display-lg {
+    font-size: 2rem;
+  }
+}
+
+/* Scroll-triggered section animations */
+.section-animate {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.section-animate.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered animation delays */
+.stagger-1 {
+  transition-delay: 0.1s;
+}
+
+.stagger-2 {
+  transition-delay: 0.2s;
+}
+
+.stagger-3 {
+  transition-delay: 0.3s;
+}
+
+.stagger-4 {
+  transition-delay: 0.4s;
+}
+
+/* Pagination dots (visual indicator) */
+.section-dots {
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 40;
+}
+
+.section-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--slate-300);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.section-dot:hover {
+  background: var(--slate-400);
+  transform: scale(1.2);
+}
+
+.section-dot.active {
+  background: var(--primary-600);
+  transform: scale(1.3);
+}
+
+/* Premium button styling */
+.btn-edge {
+  position: relative;
+  padding: 0.875rem 2rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: transparent;
+  border: 2px solid currentColor;
+  color: var(--slate-800);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  transition: all 0.3s ease;
+}
+
+.btn-edge:hover {
+  background: var(--slate-800);
+  color: white;
+}
+
+.btn-edge-primary {
+  background: var(--primary-600);
+  border-color: var(--primary-600);
+  color: white;
+}
+
+.btn-edge-primary:hover {
+  background: var(--primary-700);
+  border-color: var(--primary-700);
+}
+
+/* Minimal stat cards */
+.stat-minimal {
+  padding: 2rem;
+  background: white;
+  border: 1px solid var(--slate-100);
+  transition: all 0.3s ease;
+}
+
+.stat-minimal:hover {
+  border-color: var(--primary-200);
+  transform: translateY(-4px);
+}
+
+.stat-minimal .stat-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--slate-900);
+}
+
+.stat-minimal .stat-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slate-500);
+  margin-top: 0.5rem;
+}
+
+.dark .stat-minimal {
+  background: var(--slate-800);
+  border-color: var(--slate-700);
+}
+
+.dark .stat-minimal .stat-value {
+  color: white;
+}
+
+/* Decorative line element */
+.accent-line {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-300));
+}
+
+/* Content sections with generous spacing */
+.dashboard-section {
+  padding: 4rem 0;
+  min-height: calc(100vh - 72px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .dashboard-section {
+    padding: 2rem 0;
+    min-height: auto;
+  }
 }

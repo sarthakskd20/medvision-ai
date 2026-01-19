@@ -1,22 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
     LayoutDashboard,
-    Newspaper,
-    Network,
-    BarChart3,
     Users,
-    LogOut
+    User,
+    BarChart3,
+    LogOut,
+    Menu,
+    X,
+    ChevronDown
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
-import { User } from 'lucide-react'
+import HeartbeatCanvas from '@/components/HeartbeatCanvas'
 
-const sidebarItems = [
+const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Appointments', href: '/dashboard/appointments', icon: Users },
     { label: 'Profile', href: '/dashboard/profile', icon: User },
@@ -26,7 +28,27 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
-    const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [userMenuOpen, setUserMenuOpen] = useState(false)
+    const [doctorName, setDoctorName] = useState('Doctor')
+
+    useEffect(() => {
+        const userData = localStorage.getItem('user')
+        if (userData) {
+            try {
+                const user = JSON.parse(userData)
+                let name = user.fullName || user.name || user.displayName || ''
+                if (name.toLowerCase().startsWith('dr.')) {
+                    name = name.substring(3).trim()
+                } else if (name.toLowerCase().startsWith('dr ')) {
+                    name = name.substring(2).trim()
+                }
+                setDoctorName(name || 'Doctor')
+            } catch (e) {
+                console.error('Error parsing user data')
+            }
+        }
+    }, [])
 
     const handleSignOut = () => {
         localStorage.removeItem('token')
@@ -35,114 +57,203 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex">
-            {/* Sidebar - LARGER WIDTH */}
-            <aside className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 fixed h-full z-30 hidden lg:flex flex-col shadow-xl dark:shadow-none">
-                {/* Logo Section - LARGER */}
-                <div className="h-24 flex items-center px-6 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-primary-50/50 dark:from-primary-900/20 to-transparent">
-                    <Link href="/dashboard" className="flex items-center gap-4">
-                        {/* Using actual MedVision logo image */}
-                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-700 flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-600 overflow-hidden">
-                            <Image
-                                src="/images/medvision-logo.png"
-                                alt="MedVision"
-                                width={48}
-                                height={48}
-                                className="w-12 h-12 object-contain dark:brightness-110"
-                            />
-                        </div>
-                        <div>
-                            <span className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-teal-600 dark:from-primary-400 dark:to-teal-400">
-                                MedVision
-                            </span>
-                            <span className="text-sm text-slate-500 dark:text-slate-400 block font-semibold">Doctor Portal</span>
-                        </div>
-                    </Link>
-                </div>
+        <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121820] relative overflow-hidden">
+            {/* Large Visible Gradient Blob - Top Right */}
+            <div
+                className="fixed -top-20 -right-20 w-[500px] h-[500px] pointer-events-none z-0"
+                style={{
+                    background: 'radial-gradient(circle, rgba(13, 148, 136, 0.25) 0%, rgba(13, 148, 136, 0.12) 50%, transparent 70%)',
+                }}
+            />
 
-                {/* Navigation - LARGER FONTS */}
-                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    {sidebarItems.map((item) => {
+            {/* Large Visible Gradient Blob - Bottom Left */}
+            <div
+                className="fixed -bottom-32 -left-32 w-[600px] h-[600px] pointer-events-none z-0"
+                style={{
+                    background: 'radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.1) 50%, transparent 70%)',
+                }}
+            />
+
+            {/* Visible Circle Decorations - Top Right */}
+            <div className="fixed top-20 right-20 pointer-events-none z-0">
+                <svg width="300" height="300" viewBox="0 0 300 300" className="opacity-[0.15] dark:opacity-[0.12]">
+                    <circle cx="150" cy="150" r="120" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                    <circle cx="150" cy="150" r="80" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                    <circle cx="150" cy="150" r="40" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
+
+            {/* Visible Heartbeat Line - Bottom */}
+            <div className="fixed bottom-20 left-20 pointer-events-none z-0">
+                <svg width="400" height="100" viewBox="0 0 400 100" className="opacity-[0.15] dark:opacity-[0.12]">
+                    <path d="M0 50 L80 50 L100 20 L120 80 L140 35 L160 50 L400 50" stroke="#0d9488" strokeWidth="2" fill="none" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
+
+            {/* Medical Plus Symbol - Center Left */}
+            <div className="fixed top-1/2 left-10 -translate-y-1/2 pointer-events-none z-0">
+                <svg width="60" height="60" viewBox="0 0 60 60" className="opacity-[0.12] dark:opacity-[0.08]">
+                    <path d="M30 10 L30 50 M10 30 L50 30" stroke="#0d9488" strokeWidth="3" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
+
+
+            {/* Fixed Top Header Navigation */}
+            <header className="dashboard-header-nav">
+                {/* Logo */}
+                <Link href="/dashboard" className="flex items-center gap-3 mr-12">
+                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                        <Image
+                            src="/images/medvision-logo.png"
+                            alt="MedVision"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 object-contain"
+                        />
+                    </div>
+                    <div className="hidden sm:block">
+                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-teal-600 dark:from-primary-400 dark:to-teal-400">
+                            MedVision
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block font-medium tracking-wide uppercase">
+                            Doctor Portal
+                        </span>
+                    </div>
+                </Link>
+
+                {/* Desktop Navigation */}
+                <nav className="hidden lg:flex items-center gap-1 flex-1">
+                    {navItems.map((item) => {
                         const isActive = pathname === item.href
-                        const isHovered = hoveredItem === item.label
-
                         return (
                             <Link
                                 key={item.label}
                                 href={item.href}
-                                onMouseEnter={() => setHoveredItem(item.label)}
-                                onMouseLeave={() => setHoveredItem(null)}
-                                className="relative block"
+                                className={`dashboard-nav-link ${isActive ? 'active' : ''}`}
                             >
-                                <div className={`relative z-10 flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
-                                    ? 'text-white shadow-lg shadow-primary-500/25'
-                                    : 'text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400'
-                                    }`}>
-                                    {/* Active Background */}
-                                    {isActive && (
-                                        <motion.div
-                                            layoutId="activeDoctorTab"
-                                            className="absolute inset-0 bg-gradient-to-r from-primary-600 to-teal-500 rounded-xl"
-                                            initial={false}
-                                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                                        />
-                                    )}
-
-                                    {/* Hover Background */}
-                                    {!isActive && isHovered && (
-                                        <motion.div
-                                            layoutId="hoverDoctorTab"
-                                            className="absolute inset-0 bg-primary-50 dark:bg-primary-900/30 rounded-xl"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                        />
-                                    )}
-
-                                    {/* Icon - LARGER */}
-                                    <item.icon className={`w-6 h-6 relative z-10 transition-transform duration-200 ${isHovered && !isActive ? 'scale-110' : ''}`} />
-                                    {/* Label - LARGER & BOLDER */}
-                                    <span className="text-lg font-bold relative z-10">{item.label}</span>
-
-                                    {/* Active Pulse Dot */}
-                                    {isActive && (
-                                        <div className="absolute right-4 w-2 h-2 bg-white rounded-full animate-pulse z-10" />
-                                    )}
-                                </div>
+                                {item.label}
                             </Link>
                         )
                     })}
                 </nav>
 
-                {/* Bottom Section */}
-                <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 space-y-3">
-                    <div className="flex items-center justify-between px-4">
-                        <span className="text-base font-bold text-slate-500 dark:text-slate-400">Theme</span>
-                        <ThemeToggle />
+                {/* Right Side Controls */}
+                <div className="flex items-center gap-4 ml-auto">
+                    {/* Theme Toggle */}
+                    <ThemeToggle />
+
+                    {/* User Menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm">
+                                {doctorName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="hidden md:block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Dr. {doctorName}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                            {userMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 8 }}
+                                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                                >
+                                    <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">Dr. {doctorName}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Doctor Portal</p>
+                                    </div>
+                                    <div className="p-1">
+                                        <Link
+                                            href="/dashboard/profile"
+                                            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                            onClick={() => setUserMenuOpen(false)}
+                                        >
+                                            <User className="w-4 h-4" />
+                                            View Profile
+                                        </Link>
+                                        <button
+                                            onClick={handleSignOut}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
+
+                    {/* Mobile Menu Toggle */}
                     <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all font-bold group text-lg"
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
-                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        Sign Out
+                        {mobileMenuOpen ? (
+                            <X className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                        ) : (
+                            <Menu className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                        )}
                     </button>
-
-                    <div className="px-4 pb-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-sm font-bold text-slate-400 dark:text-slate-500">System Operational</span>
-                        </div>
-                    </div>
                 </div>
-            </aside>
+            </header>
 
-            {/* Main Content - adjusted margin for wider sidebar */}
-            <main className="flex-1 lg:ml-80 min-h-screen">
-                <div className="p-6 md:p-8 max-w-[1600px] mx-auto">
+            {/* Mobile Menu */}
+            <AnimatePresence>
+                {mobileMenuOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="fixed top-[72px] left-0 right-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 z-40 lg:hidden overflow-hidden"
+                    >
+                        <nav className="p-4 space-y-2">
+                            {navItems.map((item) => {
+                                const isActive = pathname === item.href
+                                return (
+                                    <Link
+                                        key={item.label}
+                                        href={item.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${isActive
+                                            ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                            }`}
+                                    >
+                                        <item.icon className="w-5 h-5" />
+                                        {item.label}
+                                    </Link>
+                                )
+                            })}
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Main Content - with top padding for fixed header */}
+            <main className="relative z-10 pt-[72px] min-h-screen">
+                <div className="px-6 md:px-12 lg:px-16 py-8 max-w-[1600px] mx-auto">
                     {children}
                 </div>
             </main>
+
+            {/* Close menus when clicking outside */}
+            {(userMenuOpen || mobileMenuOpen) && (
+                <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => {
+                        setUserMenuOpen(false)
+                        setMobileMenuOpen(false)
+                    }}
+                />
+            )}
         </div>
     )
 }

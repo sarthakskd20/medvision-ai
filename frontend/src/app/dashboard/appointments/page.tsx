@@ -146,7 +146,7 @@ export default function DoctorAppointmentsPage() {
                 } transition-colors`}
         >
             {/* Token Number */}
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${appointment.status === 'in_progress'
+            <div className={`w-12 h-12  flex items-center justify-center font-bold text-lg ${appointment.status === 'in_progress'
                 ? 'bg-primary-600 text-white'
                 : appointment.status === 'completed'
                     ? 'bg-green-600 text-white'
@@ -240,14 +240,15 @@ export default function DoctorAppointmentsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Appointments</h1>
-                    <p className="text-slate-500 mt-1">
+                    <div className="accent-line mb-4" />
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Appointments</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">
                         {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
                 <button
                     onClick={() => fetchAppointments(doctorId)}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700  transition-colors text-slate-700 dark:text-slate-300"
                 >
                     <RefreshCw className="w-4 h-4" />
                     Refresh
@@ -255,18 +256,18 @@ export default function DoctorAppointmentsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+            <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1  w-fit">
                 <button
                     onClick={() => setActiveTab('today')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'today'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
                 >
                     <Calendar className="w-4 h-4" />
                     Today
                     {appointments.length > 0 && (
-                        <span className="bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full text-xs">
+                        <span className="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full text-xs">
                             {appointments.length}
                         </span>
                     )}
@@ -274,14 +275,14 @@ export default function DoctorAppointmentsPage() {
                 <button
                     onClick={() => setActiveTab('upcoming')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'upcoming'
-                        ? 'bg-white text-slate-900 shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
                 >
                     <CalendarDays className="w-4 h-4" />
                     Next 7 Days
                     {totalUpcoming > 0 && (
-                        <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full text-xs">
+                        <span className="bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full text-xs">
                             {totalUpcoming}
                         </span>
                     )}
@@ -299,49 +300,49 @@ export default function DoctorAppointmentsPage() {
                     >
                         {/* Stats Row */}
                         <div className="grid grid-cols-4 gap-4">
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <Users className="w-5 h-5 text-blue-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                        <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">{appointments.length}</p>
-                                        <p className="text-xs text-slate-500">Total Today</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{appointments.length}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Total Today</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                                        <Clock className="w-5 h-5 text-amber-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                                        <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">{waitingPatients.length}</p>
-                                        <p className="text-xs text-slate-500">Waiting</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{waitingPatients.length}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Waiting</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                                        <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">{completedPatients.length}</p>
-                                        <p className="text-xs text-slate-500">Completed</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{completedPatients.length}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Completed</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                                        <Brain className="w-5 h-5 text-purple-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                                        <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                             {doctorStatus === 'consulting' ? 'Active' : 'Ready'}
                                         </p>
-                                        <p className="text-xs text-slate-500">Status</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Status</p>
                                     </div>
                                 </div>
                             </div>
@@ -373,7 +374,7 @@ export default function DoctorAppointmentsPage() {
                                                 href={meetLink}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+                                                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30  transition-colors"
                                             >
                                                 <Video className="w-4 h-4" />
                                                 Join Meet
@@ -381,14 +382,14 @@ export default function DoctorAppointmentsPage() {
                                         )}
                                         <Link
                                             href={`/dashboard/patient/${currentPatient.patient_id}`}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+                                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30  transition-colors"
                                         >
                                             <Brain className="w-4 h-4" />
                                             AI Analysis
                                         </Link>
                                         <button
                                             onClick={endConsultation}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white text-primary-600 rounded-xl font-semibold hover:bg-white/90 transition-colors"
+                                            className="flex items-center gap-2 px-4 py-2 bg-white text-primary-600  font-semibold hover:bg-white/90 transition-colors"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             End Consultation
@@ -405,17 +406,17 @@ export default function DoctorAppointmentsPage() {
                         )}
 
                         {/* Queue List */}
-                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100">
-                                <h2 className="text-lg font-bold text-slate-900">Today's Queue</h2>
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Today's Queue</h2>
                             </div>
 
                             {loading ? (
-                                <div className="p-8 text-center text-slate-500">Loading appointments...</div>
+                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">Loading appointments...</div>
                             ) : appointments.length === 0 ? (
-                                <div className="p-8 text-center text-slate-500">No appointments for today</div>
+                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">No appointments for today</div>
                             ) : (
-                                <div className="divide-y divide-slate-100">
+                                <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                     {appointments.map((appointment) => renderAppointmentCard(appointment))}
                                 </div>
                             )}
@@ -433,7 +434,7 @@ export default function DoctorAppointmentsPage() {
                     >
                         {/* Upcoming Stats */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white  p-4 border border-slate-200">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
                                         <CalendarDays className="w-5 h-5 text-teal-600" />
@@ -444,7 +445,7 @@ export default function DoctorAppointmentsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 border border-slate-200">
+                            <div className="bg-white  p-4 border border-slate-200">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                                         <Calendar className="w-5 h-5 text-blue-600" />
@@ -493,7 +494,7 @@ export default function DoctorAppointmentsPage() {
 
             {/* No Meet Link Warning */}
             {!meetLink && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
+                <div className="bg-amber-50 border border-amber-200  p-4 flex items-center gap-4">
                     <AlertCircle className="w-6 h-6 text-amber-600" />
                     <div className="flex-1">
                         <p className="text-amber-800 font-medium">Google Meet link not configured</p>
