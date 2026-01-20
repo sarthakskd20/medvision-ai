@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
-import HeartbeatCanvas from '@/components/HeartbeatCanvas'
+import AnimatedBackground from '@/components/AnimatedBackground'
 
 const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -31,6 +31,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [userMenuOpen, setUserMenuOpen] = useState(false)
     const [doctorName, setDoctorName] = useState('Doctor')
+    const [headerVisible, setHeaderVisible] = useState(true)
+    const [lastScrollY, setLastScrollY] = useState(0)
+
+    // Handle scroll to fade header
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY
+            if (currentScrollY > 100) {
+                setHeaderVisible(currentScrollY < lastScrollY)
+            } else {
+                setHeaderVisible(true)
+            }
+            setLastScrollY(currentScrollY)
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [lastScrollY])
+
+    // Set dark mode as default for doctor's dashboard
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme')
+        const dashboardDefaultSet = localStorage.getItem('dashboard_dark_default')
+
+        // Only set dark mode if:
+        // 1. No theme preference saved OR
+        // 2. First time entering dashboard (hasn't been set before)
+        if (!savedTheme || !dashboardDefaultSet) {
+            document.documentElement.classList.add('dark')
+            localStorage.setItem('theme', 'dark')
+            localStorage.setItem('dashboard_dark_default', 'true')
+        }
+    }, [])
+
 
     useEffect(() => {
         const userData = localStorage.getItem('user')
@@ -58,7 +92,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121820] relative overflow-hidden">
+            {/* Animated Background */}
+            <AnimatedBackground />
+
             {/* Large Visible Gradient Blob - Top Right */}
+
             <div
                 className="fixed -top-20 -right-20 w-[500px] h-[500px] pointer-events-none z-0"
                 style={{
@@ -98,17 +136,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
 
 
-            {/* Fixed Top Header Navigation */}
-            <header className="dashboard-header-nav">
+            {/* Fixed Top Header Navigation - Fades on scroll */}
+            <header
+                className={`dashboard-header-nav transition-all duration-300 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full'
+                    }`}
+            >
                 {/* Logo */}
-                <Link href="/dashboard" className="flex items-center gap-3 mr-12">
-                    <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <Link href="/dashboard" className="flex items-center gap-3 mr-12 group">
+                    <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center shadow-sm overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-teal-500/30">
                         <Image
                             src="/images/medvision-logo.png"
                             alt="MedVision"
                             width={32}
                             height={32}
-                            className="w-8 h-8 object-contain"
+                            className="w-8 h-8 object-contain transition-transform duration-500 group-hover:rotate-12"
                         />
                     </div>
                     <div className="hidden sm:block">

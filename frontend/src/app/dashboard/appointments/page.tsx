@@ -434,25 +434,25 @@ export default function DoctorAppointmentsPage() {
                     >
                         {/* Upcoming Stats */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white  p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
-                                        <CalendarDays className="w-5 h-5 text-teal-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+                                        <CalendarDays className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">{totalUpcoming}</p>
-                                        <p className="text-xs text-slate-500">Total Upcoming</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{totalUpcoming}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Total Upcoming</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white  p-4 border border-slate-200">
+                            <div className="bg-white dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                                        <Calendar className="w-5 h-5 text-blue-600" />
+                                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                                        <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900">{Object.keys(upcomingByDate).length}</p>
-                                        <p className="text-xs text-slate-500">Days with Appointments</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{Object.keys(upcomingByDate).length}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Days with Appointments</p>
                                     </div>
                                 </div>
                             </div>
@@ -460,29 +460,29 @@ export default function DoctorAppointmentsPage() {
 
                         {/* Appointments by Date */}
                         {loading ? (
-                            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
                                 Loading upcoming appointments...
                             </div>
                         ) : Object.keys(upcomingByDate).length === 0 ? (
-                            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
-                                <CalendarDays className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                                <p className="font-medium">No upcoming appointments</p>
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center text-slate-500 dark:text-slate-400">
+                                <CalendarDays className="w-12 h-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+                                <p className="font-medium text-slate-700 dark:text-slate-300">No upcoming appointments</p>
                                 <p className="text-sm">Appointments for the next 7 days will appear here</p>
                             </div>
                         ) : (
                             Object.entries(upcomingByDate)
                                 .sort(([a], [b]) => a.localeCompare(b))
                                 .map(([date, dateAppointments]) => (
-                                    <div key={date} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                                        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
-                                            <Calendar className="w-5 h-5 text-slate-600" />
-                                            <h3 className="text-lg font-bold text-slate-900">{formatDate(date)}</h3>
-                                            <span className="text-sm text-slate-500">{date}</span>
-                                            <span className="ml-auto bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs font-medium">
+                                    <div key={date} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex items-center gap-3">
+                                            <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">{formatDate(date)}</h3>
+                                            <span className="text-sm text-slate-500 dark:text-slate-400">{date}</span>
+                                            <span className="ml-auto bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 px-2 py-0.5 rounded-full text-xs font-medium">
                                                 {dateAppointments.length} patient{dateAppointments.length > 1 ? 's' : ''}
                                             </span>
                                         </div>
-                                        <div className="divide-y divide-slate-100">
+                                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
                                             {dateAppointments.map((appointment) => renderAppointmentCard(appointment, true))}
                                         </div>
                                     </div>
@@ -494,17 +494,18 @@ export default function DoctorAppointmentsPage() {
 
             {/* No Meet Link Warning */}
             {!meetLink && (
-                <div className="bg-amber-50 border border-amber-200  p-4 flex items-center gap-4">
-                    <AlertCircle className="w-6 h-6 text-amber-600" />
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-center gap-4">
+                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                     <div className="flex-1">
-                        <p className="text-amber-800 font-medium">Google Meet link not configured</p>
-                        <p className="text-sm text-amber-600">Set up your Meet link in Profile to enable online consultations</p>
+                        <p className="text-red-800 dark:text-red-300 font-medium">Google Meet link not configured</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">Set up your Meet link in Profile to enable online consultations</p>
                     </div>
-                    <Link href="/dashboard/profile" className="text-amber-700 font-semibold hover:underline">
+                    <Link href="/dashboard/profile" className="text-red-700 dark:text-red-300 font-semibold hover:underline">
                         Configure Now
                     </Link>
                 </div>
             )}
+
         </div>
     )
 }

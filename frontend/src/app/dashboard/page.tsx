@@ -127,34 +127,21 @@ export default function DashboardOverview() {
     }
 
     return (
-        <div className="space-y-12">
-            {/* Hero Greeting */}
-            <section className="min-h-[35vh] flex flex-col justify-center">
+        <div className="space-y-8">
+            {/* Compact Greeting */}
+            <section className="pt-4">
                 <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <div className="w-20 h-1 bg-[#0d9488] mb-8" />
-
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <div className="w-12 h-0.5 bg-teal-600 dark:bg-[#16c401] mb-4" />
+                    <h1 className="text-2xl md:text-3xl font-semibold text-slate-700 dark:text-slate-200">
                         {getGreeting()},
                     </h1>
-                    <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-[#0d9488] tracking-tight mt-2">
+                    <h2 className="text-3xl md:text-4xl font-bold text-teal-600 dark:text-[#16c401] mt-1">
                         Dr. {doctorName}
                     </h2>
-                    <p className="text-lg text-slate-500 dark:text-slate-400 mt-6 max-w-xl">
-                        Your clinical overview for today. Manage appointments, track patient progress, and deliver exceptional care.
-                    </p>
-
-                    {/* Quick Search */}
-                    <div className="mt-8 max-w-md">
-                        <input
-                            type="text"
-                            placeholder="Quick search patients..."
-                            className="w-full px-6 py-4 bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 focus:border-[#0d9488] dark:focus:border-[#0d9488] transition-colors font-medium text-slate-700 dark:text-slate-200 outline-none"
-                        />
-                    </div>
                 </motion.div>
             </section>
 
