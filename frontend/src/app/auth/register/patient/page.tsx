@@ -155,18 +155,11 @@ export default function PatientRegisterPage() {
                 {/* Header with Patient Theme */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-blue-500/30">
-                            <Image
-                                src="/images/medvision-logo.png"
-                                alt="MedVision"
-                                width={40}
-                                height={40}
-                                className="w-10 h-10 object-contain transition-transform duration-500 group-hover:rotate-12"
-                            />
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <Activity className="h-6 w-6 text-white" />
                         </div>
                         <span className="text-2xl font-bold text-slate-800">MedVision AI</span>
                     </div>
-
                     <h1 className="text-3xl font-extrabold text-slate-900 mb-2">Create Your Account</h1>
                     <p className="text-lg text-slate-600 font-medium">
                         Patient Registration

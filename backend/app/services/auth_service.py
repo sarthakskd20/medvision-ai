@@ -28,15 +28,15 @@ from app.models.user import (
     PatientInDB,
     PatientResponse
 )
-from app.services.firebase_service import get_firebase_service
+from app.services.database_service import get_database_service
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "medvision-ai-super-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-# Get Firebase service
-firebase = get_firebase_service()
+# Get Database service (replaces Firebase)
+firebase = get_database_service()
 
 
 def hash_password(password: str) -> str:
