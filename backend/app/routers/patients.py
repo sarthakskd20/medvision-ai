@@ -5,10 +5,10 @@ Handles CRUD operations and timeline retrieval for patients.
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 from app.models.patient import Patient, PatientCreate, PatientTimeline
-from app.services.database_service import DatabaseService as FirebaseService
+from app.services.hybrid_service import get_database_service
 
 router = APIRouter()
-firebase = FirebaseService()
+firebase = get_database_service()
 
 
 @router.get("/", response_model=list[dict])

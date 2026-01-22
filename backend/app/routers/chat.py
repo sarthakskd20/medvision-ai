@@ -32,8 +32,8 @@ async def send_chat_message(chat: ChatMessage):
     context = ""
     
     if chat.patient_id:
-        from app.services.database_service import DatabaseService as FirebaseService
-        firebase = FirebaseService()
+        from app.services.hybrid_service import get_database_service
+        firebase = get_database_service()
         
         history = await firebase.get_patient_history(chat.patient_id)
         if history:

@@ -28,14 +28,14 @@ from app.models.user import (
     PatientInDB,
     PatientResponse
 )
-from app.services.database_service import get_database_service
+from app.services.hybrid_service import get_database_service
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "medvision-ai-super-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
-# Get Database service (replaces Firebase)
+# Get Hybrid Database service (Firebase first, SQLite fallback)
 firebase = get_database_service()
 
 

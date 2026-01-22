@@ -15,7 +15,7 @@ from app.models.social import (
     calculate_profile_completion
 )
 from app.services.auth_service import get_current_doctor_from_token
-from app.services.database_service import get_database_service as get_firebase_service
+from app.services.hybrid_service import get_firebase_service
 
 router = APIRouter()
 firebase = get_firebase_service()

@@ -31,8 +31,8 @@ async def generate_clinical_summary(request: SummaryRequest):
     import sys
     sys.stdout.flush()
     try:
-        from app.services.database_service import DatabaseService as FirebaseService
-        firebase = FirebaseService()
+        from app.services.hybrid_service import get_database_service
+        firebase = get_database_service()
         print("Firebase service loaded")
         
         # Lazy instantiation of GeminiService
@@ -70,8 +70,8 @@ async def predict_trajectory(request: TrajectoryRequest):
     Predict patient trajectory based on similar cases.
     Uses Gemini 3's thinking mode for transparent reasoning.
     """
-    from app.services.database_service import DatabaseService as FirebaseService
-    firebase = FirebaseService()
+    from app.services.hybrid_service import get_database_service
+    firebase = get_database_service()
     
     # Load complete patient history
     history = await firebase.get_patient_history(request.patient_id)
@@ -101,8 +101,8 @@ async def compare_scans(
     scan_id_2: str
 ):
     """Compare two scans and detect changes."""
-    from app.services.database_service import DatabaseService as FirebaseService
-    firebase = FirebaseService()
+    from app.services.hybrid_service import get_database_service
+    firebase = get_database_service()
     
     # Get both scans
     scan1 = await firebase.get_scan(scan_id_1)

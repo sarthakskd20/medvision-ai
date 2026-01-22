@@ -20,7 +20,7 @@ from ..models.appointment import (
     PatientProfileCreateRequest,
     DoctorSearchFilters
 )
-from ..services.database_service import get_database_service as get_firebase_service
+from ..services.hybrid_service import get_firebase_service
 
 
 router = APIRouter(prefix="/api/appointments", tags=["appointments"])
