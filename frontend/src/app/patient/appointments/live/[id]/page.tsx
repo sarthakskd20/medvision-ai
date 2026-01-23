@@ -1,0 +1,426 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
+import {
+    Clock, MapPin, Video, Phone,
+    MessageSquare, Send, Bell, AlertTriangle,
+    CheckCircle, User, Coffee, ExternalLink,
+    RefreshCw
+} from 'lucide-react'
+
+interface QueuePosition {
+    appointment_id: string
+    patient_id: string
+    queue_number: number
+    current_serving: number
+    estimated_wait_minutes: number
+    doctor_status: string
+    doctor_unavailable_until?: string
+    unavailability_reason?: string
+}
+
+interface Message {
+    id: string
+    content: string
+    sender_type: 'doctor' | 'patient' | 'system'
+    created_at: string
+}
+
+interface Appointment {
+    id: string
+    doctor_id: string
+    doctor_name: string
+    specialization: string
+    mode: 'online' | 'offline'
+    scheduled_time: string
+    meet_link?: string
+    hospital_address?: string
+    queue_number: number
+    status: string
+}
+
+export default function LiveQueuePage() {
+    const params = useParams()
+    const router = useRouter()
+    const appointmentId = params.id as string
+
+    const [loading, setLoading] = useState(true)
+    const [appointment, setAppointment] = useState<Appointment | null>(null)
+    const [queuePosition, setQueuePosition] = useState<QueuePosition | null>(null)
+    const [messages, setMessages] = useState<Message[]>([])
+    const [newMessage, setNewMessage] = useState('')
+    const [sendingMessage, setSendingMessage] = useState(false)
+    const [isYourTurn, setIsYourTurn] = useState(false)
+    const [showNotification, setShowNotification] = useState(false)
+
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+    useEffect(() => {
+        fetchData()
+
+        // Poll for queue updates every 10 seconds
+        pollIntervalRef.current = setInterval(() => {
+            fetchQueuePosition()
+        }, 10000)
+
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current)
+            }
+        }
+    }, [appointmentId])
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
+
+    useEffect(() => {
+        // Check if it's your turn
+        if (queuePosition && queuePosition.queue_number <= queuePosition.current_serving) {
+            if (!isYourTurn) {
+                setIsYourTurn(true)
+                setShowNotification(true)
+                // Play notification sound (if available)
+                try {
+                    const audio = new Audio('/sounds/notification.mp3')
+                    audio.play().catch(() => { })
+                } catch (e) { }
+            }
+        }
+    }, [queuePosition])
+
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            const token = localStorage.getItem('token')
+
+            // Get appointment details
+            const aptRes = await fetch(`/api/appointments/${appointmentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+
+            if (aptRes.ok) {
+                const aptData = await aptRes.json()
+                setAppointment(aptData)
+            }
+
+            await fetchQueuePosition()
+            await fetchMessages()
+
+        } catch (error) {
+            console.error('Error fetching data:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const fetchQueuePosition = async () => {
+        try {
+            const token = localStorage.getItem('token')
+            const res = await fetch(`/api/consultation/queue/position/${appointmentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+
+            if (res.ok) {
+                const data = await res.json()
+                setQueuePosition(data)
+            }
+        } catch (error) {
+            console.error('Error fetching queue position:', error)
+        }
+    }
+
+    const fetchMessages = async () => {
+        try {
+            const token = localStorage.getItem('token')
+            // Get consultation ID first
+            const consRes = await fetch(`/api/consultation/appointment/${appointmentId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+
+            if (consRes.ok) {
+                const consultation = await consRes.json()
+                if (consultation?.id) {
+                    const msgRes = await fetch(`/api/consultation/${consultation.id}/messages`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    })
+                    if (msgRes.ok) {
+                        const msgData = await msgRes.json()
+                        setMessages(msgData.messages || [])
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error)
+        }
+    }
+
+    const sendMessage = async () => {
+        if (!newMessage.trim()) return
+
+        try {
+            setSendingMessage(true)
+            const token = localStorage.getItem('token')
+
+            // For now, we'll add to local state (actual implementation would use WebSocket)
+            const msg: Message = {
+                id: `msg_${Date.now()}`,
+                content: newMessage,
+                sender_type: 'patient',
+                created_at: new Date().toISOString()
+            }
+            setMessages(prev => [...prev, msg])
+            setNewMessage('')
+
+        } catch (error) {
+            console.error('Error sending message:', error)
+        } finally {
+            setSendingMessage(false)
+        }
+    }
+
+    const getPositionAhead = () => {
+        if (!queuePosition) return 0
+        return Math.max(0, queuePosition.queue_number - queuePosition.current_serving)
+    }
+
+    const formatWaitTime = (minutes: number) => {
+        if (minutes < 60) return `${minutes} min`
+        const hours = Math.floor(minutes / 60)
+        const mins = minutes % 60
+        return `${hours}h ${mins}m`
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-slate-600 dark:text-slate-400">Loading your appointment...</p>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Your Turn Notification */}
+            <AnimatePresence>
+                {showNotification && isYourTurn && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -50 }}
+                        className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-8 py-4 rounded-xl shadow-2xl flex items-center gap-4"
+                    >
+                        <Bell className="w-6 h-6 animate-bounce" />
+                        <div>
+                            <p className="font-bold text-lg">It's Your Turn!</p>
+                            <p className="text-green-100">Please proceed to the consultation</p>
+                        </div>
+                        <button onClick={() => setShowNotification(false)} className="ml-4 text-green-200 hover:text-white">
+                            ✕
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Header Card */}
+            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white text-2xl font-bold">
+                            {appointment?.doctor_name?.charAt(0) || 'D'}
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {appointment?.doctor_name || 'Doctor'}
+                            </h1>
+                            <p className="text-slate-500 dark:text-slate-400">{appointment?.specialization}</p>
+                            <div className="flex items-center gap-3 mt-2 text-sm">
+                                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                                    {appointment?.mode === 'online' ? <Video className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                                    {appointment?.mode === 'online' ? 'Video Consultation' : 'In-Person'}
+                                </span>
+                                <span className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                                    <Clock className="w-4 h-4" />
+                                    {appointment?.scheduled_time ? new Date(appointment.scheduled_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Join Meeting Button (for online appointments) */}
+                    {appointment?.mode === 'online' && appointment?.meet_link && isYourTurn && (
+                        <a
+                            href={appointment.meet_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors animate-pulse"
+                        >
+                            <Video className="w-5 h-5" />
+                            Join Google Meet
+                            <ExternalLink className="w-4 h-4" />
+                        </a>
+                    )}
+                </div>
+            </div>
+
+            {/* Queue Status Card */}
+            <div className="bg-gradient-to-br from-teal-600 to-emerald-600 rounded-xl p-6 text-white">
+                <div className="grid grid-cols-3 gap-6 text-center">
+                    {/* Your Token */}
+                    <div>
+                        <p className="text-teal-100 text-sm font-medium mb-1">Your Token</p>
+                        <p className="text-5xl font-black">#{queuePosition?.queue_number || appointment?.queue_number || '?'}</p>
+                    </div>
+
+                    {/* Currently Serving */}
+                    <div className="border-l border-r border-teal-400/30">
+                        <p className="text-teal-100 text-sm font-medium mb-1">Now Serving</p>
+                        <p className="text-5xl font-black">#{queuePosition?.current_serving || 0}</p>
+                    </div>
+
+                    {/* Position Ahead */}
+                    <div>
+                        <p className="text-teal-100 text-sm font-medium mb-1">Ahead of You</p>
+                        <p className="text-5xl font-black">{getPositionAhead()}</p>
+                    </div>
+                </div>
+
+                {/* Estimated Wait Time */}
+                <div className="mt-6 pt-6 border-t border-teal-400/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Clock className="w-6 h-6 text-teal-200" />
+                        <div>
+                            <p className="text-teal-100 text-sm">Estimated Wait</p>
+                            <p className="text-2xl font-bold">
+                                {queuePosition ? formatWaitTime(queuePosition.estimated_wait_minutes) : 'Calculating...'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={fetchQueuePosition}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            {/* Doctor Status Alert */}
+            {queuePosition?.doctor_status === 'unavailable' && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-300 dark:border-amber-700 rounded-xl p-4 flex items-start gap-4"
+                >
+                    <Coffee className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-bold text-amber-900 dark:text-amber-200">Doctor is currently unavailable</p>
+                        <p className="text-amber-700 dark:text-amber-400">
+                            Reason: {queuePosition.unavailability_reason || 'Short break'}
+                        </p>
+                        {queuePosition.doctor_unavailable_until && (
+                            <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
+                                Expected to return: {new Date(queuePosition.doctor_unavailable_until).toLocaleTimeString()}
+                            </p>
+                        )}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Your Turn Alert */}
+            {isYourTurn && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-6 text-center"
+                >
+                    <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" />
+                    <h2 className="text-2xl font-bold text-green-900 dark:text-green-200">It's Your Turn!</h2>
+                    <p className="text-green-700 dark:text-green-400 mt-2">
+                        {appointment?.mode === 'online'
+                            ? 'Please join the video call using the button above'
+                            : 'Please proceed to the consultation room'}
+                    </p>
+                </motion.div>
+            )}
+
+            {/* Messaging Section */}
+            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-teal-600" />
+                    <h3 className="font-bold text-slate-900 dark:text-white">Message Doctor</h3>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">(Pre-consultation communication)</span>
+                </div>
+
+                <div className="h-64 overflow-y-auto p-4 space-y-3">
+                    {messages.length === 0 ? (
+                        <p className="text-center text-slate-500 dark:text-slate-400 py-8">
+                            No messages yet. You can message the doctor if needed before your appointment.
+                        </p>
+                    ) : (
+                        messages.map(msg => (
+                            <div
+                                key={msg.id}
+                                className={`flex ${msg.sender_type === 'patient' ? 'justify-end' : 'justify-start'}`}
+                            >
+                                <div className={`max-w-[70%] p-3 rounded-lg ${msg.sender_type === 'patient'
+                                        ? 'bg-teal-600 text-white'
+                                        : msg.sender_type === 'system'
+                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 italic'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+                                    }`}>
+                                    <p>{msg.content}</p>
+                                    <p className={`text-xs mt-1 ${msg.sender_type === 'patient' ? 'text-teal-200' : 'text-slate-400'
+                                        }`}>
+                                        {new Date(msg.created_at).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex gap-2">
+                    <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        placeholder="Type a message to the doctor..."
+                        className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg focus:border-teal-500 outline-none text-slate-900 dark:text-white"
+                    />
+                    <button
+                        onClick={sendMessage}
+                        disabled={sendingMessage || !newMessage.trim()}
+                        className="px-6 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                    >
+                        <Send className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Important Notice */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-slate-600 dark:text-slate-400">
+                        <p className="font-medium text-slate-900 dark:text-white mb-1">Important Notice</p>
+                        <p>If you cannot attend your appointment, please message the doctor in advance.
+                            Failure to communicate may affect your token and the appointment will be skipped
+                            to the next patient. Repeated no-shows may result in account restrictions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}

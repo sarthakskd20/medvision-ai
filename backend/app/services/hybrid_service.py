@@ -314,6 +314,107 @@ class HybridDatabaseService:
     
     def get_scan(self, scan_id: str) -> Optional[dict]:
         return self._execute_with_fallback("get_scan", scan_id)
+    
+    def get_patient_profile_by_patient(self, patient_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_patient_profile_by_patient", patient_id)
+    
+    # ===========================================
+    # CONSULTATION OPERATIONS
+    # ===========================================
+    
+    def create_consultation(self, consultation_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_consultation", consultation_data)
+    
+    def get_consultation_by_id(self, consultation_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_consultation_by_id", consultation_id)
+    
+    def get_consultation_by_appointment(self, appointment_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_consultation_by_appointment", appointment_id)
+    
+    def update_consultation(self, consultation_id: str, updates: dict) -> Optional[dict]:
+        return self._execute_with_fallback("update_consultation", consultation_id, updates)
+    
+    # ===========================================
+    # MESSAGING OPERATIONS
+    # ===========================================
+    
+    def create_message(self, message_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_message", message_data)
+    
+    def get_messages_by_consultation(self, consultation_id: str) -> List[dict]:
+        result = self._execute_with_fallback("get_messages_by_consultation", consultation_id)
+        return result if result is not None else []
+    
+    # ===========================================
+    # DOCTOR NOTES OPERATIONS
+    # ===========================================
+    
+    def create_doctor_notes(self, notes_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_doctor_notes", notes_data)
+    
+    def get_doctor_notes_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_doctor_notes_by_consultation", consultation_id)
+    
+    def update_doctor_notes(self, notes_id: str, updates: dict) -> Optional[dict]:
+        return self._execute_with_fallback("update_doctor_notes", notes_id, updates)
+    
+    # ===========================================
+    # PRESCRIPTION OPERATIONS
+    # ===========================================
+    
+    def create_prescription(self, prescription_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_prescription", prescription_data)
+    
+    def get_prescription_by_id(self, prescription_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_prescription_by_id", prescription_id)
+    
+    def get_prescriptions_by_patient(self, patient_id: str) -> List[dict]:
+        result = self._execute_with_fallback("get_prescriptions_by_patient", patient_id)
+        return result if result is not None else []
+    
+    def get_prescriptions_by_consultation(self, consultation_id: str) -> List[dict]:
+        result = self._execute_with_fallback("get_prescriptions_by_consultation", consultation_id)
+        return result if result is not None else []
+    
+    # ===========================================
+    # AI ANALYSIS OPERATIONS
+    # ===========================================
+    
+    def create_ai_analysis(self, analysis_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_ai_analysis", analysis_data)
+    
+    def get_ai_analysis_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_ai_analysis_by_consultation", consultation_id)
+    
+    # ===========================================
+    # AI CHAT OPERATIONS
+    # ===========================================
+    
+    def create_ai_chat(self, chat_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_ai_chat", chat_data)
+    
+    def get_ai_chat_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_ai_chat_by_consultation", consultation_id)
+    
+    def update_ai_chat(self, chat_id: str, updates: dict) -> Optional[dict]:
+        return self._execute_with_fallback("update_ai_chat", chat_id, updates)
+    
+    # ===========================================
+    # DOCTOR UNAVAILABILITY OPERATIONS
+    # ===========================================
+    
+    def create_unavailability(self, unavailability_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_unavailability", unavailability_data)
+    
+    def get_current_unavailability(self, doctor_id: str) -> Optional[dict]:
+        return self._execute_with_fallback("get_current_unavailability", doctor_id)
+    
+    # ===========================================
+    # AUDIT LOG OPERATIONS
+    # ===========================================
+    
+    def create_audit_log(self, log_data: dict) -> Optional[dict]:
+        return self._execute_with_fallback("create_audit_log", log_data)
 
 
 # Singleton instance getter
