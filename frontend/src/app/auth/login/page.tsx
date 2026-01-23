@@ -131,10 +131,19 @@ function LoginContent() {
             {/* Login Card */}
             <div className="relative z-10 w-full max-w-[440px] bg-white p-10 shadow-2xl rounded-none sm:rounded-lg">
                 <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Activity className="h-6 w-6 text-primary-600" />
-                        <span className="text-xl font-semibold text-slate-700">MedVision AI</span>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-teal-500/30">
+                            <Image
+                                src="/images/medvision-logo.png"
+                                alt="MedVision"
+                                width={40}
+                                height={40}
+                                className="w-10 h-10 object-contain transition-transform duration-500 group-hover:rotate-12"
+                            />
+                        </div>
+                        <span className="text-xl font-bold text-slate-700">MedVision AI</span>
                     </div>
+
                     <h1 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h1>
                     <p className="text-sm text-slate-500">
                         to access your medical workspace

@@ -65,15 +65,15 @@ export default function PatientDashboardLayout({ children }: { children: React.R
             <aside className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 fixed h-full z-30 hidden lg:flex flex-col shadow-xl dark:shadow-none">
                 {/* Logo Section with Theme Toggle */}
                 <div className="h-24 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700">
-                    <Link href="/patient" className="flex items-center gap-4">
+                    <Link href="/patient" className="flex items-center gap-4 group">
                         {/* Using actual MedVision logo image with theme contrast */}
-                        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-700 flex items-center justify-center shadow-lg border border-slate-100 dark:border-slate-600 overflow-hidden">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-blue-500/30">
                             <Image
                                 src="/images/medvision-logo.png"
                                 alt="MedVision"
                                 width={48}
                                 height={48}
-                                className="w-12 h-12 object-contain dark:brightness-110"
+                                className="w-12 h-12 object-contain transition-transform duration-500 group-hover:rotate-12"
                             />
                         </div>
                         <div>
@@ -174,14 +174,14 @@ export default function PatientDashboardLayout({ children }: { children: React.R
 
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 z-40 flex items-center justify-between px-4">
-                <Link href="/patient" className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center shadow border border-slate-100 dark:border-slate-600 overflow-hidden">
+                <Link href="/patient" className="flex items-center gap-3 group">
+                    <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/30">
                         <Image
                             src="/images/medvision-logo.png"
                             alt="MedVision"
                             width={32}
                             height={32}
-                            className="w-8 h-8 object-contain"
+                            className="w-8 h-8 object-contain transition-transform duration-500 group-hover:rotate-12"
                         />
                     </div>
                     <span className="font-extrabold text-xl text-slate-800 dark:text-white">MedVision</span>
@@ -208,14 +208,14 @@ export default function PatientDashboardLayout({ children }: { children: React.R
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="p-5 border-b border-slate-100 dark:border-slate-700">
-                            <Link href="/patient" className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center shadow border overflow-hidden">
+                            <Link href="/patient" className="flex items-center gap-3 group">
+                                <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/30">
                                     <Image
                                         src="/images/medvision-logo.png"
                                         alt="MedVision"
                                         width={40}
                                         height={40}
-                                        className="w-10 h-10 object-contain"
+                                        className="w-10 h-10 object-contain transition-transform duration-500 group-hover:rotate-12"
                                     />
                                 </div>
                                 <div>

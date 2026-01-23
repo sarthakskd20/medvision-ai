@@ -184,8 +184,8 @@ export default function DoctorProfilePage() {
         <div className="max-w-4xl mx-auto space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-slate-900">My Profile</h1>
-                <p className="text-slate-500 mt-1">Manage your profile information and consultation settings</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">My Profile</h1>
+                <p className="text-slate-500 dark:text-slate-400 mt-1">Manage your profile information and consultation settings</p>
             </div>
 
             {/* Success/Error Messages */}
@@ -193,7 +193,7 @@ export default function DoctorProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3"
+                    className="bg-green-50 border border-green-200  p-4 flex items-center gap-3"
                 >
                     <CheckCircle className="w-5 h-5 text-green-600" />
                     <p className="text-green-800 font-medium">Profile saved successfully</p>
@@ -204,73 +204,73 @@ export default function DoctorProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3"
+                    className="bg-red-50 border border-red-200  p-4 flex items-center gap-3"
                 >
-                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400\" />
                     <p className="text-red-800 font-medium">{error}</p>
                 </motion.div>
             )}
 
             {/* Personal Information (Read-Only) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary-600" />
+                    <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Personal Information</h2>
-                        <p className="text-sm text-slate-500">Your verified profile details</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Personal Information</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Your verified profile details</p>
                     </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Full Name</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Full Name</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <User className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.name || 'N/A'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.name || 'N/A'}</span>
                         </div>
                     </div>
 
                     {/* Registration Number */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Medical Registration Number</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Medical Registration Number</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Award className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.registration_number || 'N/A'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.registration_number || 'N/A'}</span>
                         </div>
                     </div>
 
                     {/* Email */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Email Address</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Mail className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.email || 'N/A'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.email || 'N/A'}</span>
                         </div>
                     </div>
 
                     {/* Phone */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Phone Number</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Phone Number</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Phone className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.phone || 'N/A'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.phone || 'N/A'}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Credentials (Read-Only - Verified by Gemini) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                        <GraduationCap className="w-5 h-5 text-purple-600" />
+                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                        <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Credentials & Qualifications</h2>
-                        <p className="text-sm text-slate-500">Verified by MedVision AI during registration</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Credentials & Qualifications</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Verified by MedVision AI during registration</p>
                     </div>
                     <div className="ml-auto flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                         <CheckCircle className="w-3 h-3" />
@@ -281,46 +281,46 @@ export default function DoctorProfilePage() {
                 <div className="grid md:grid-cols-3 gap-6">
                     {/* Qualification */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Qualification</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Qualification</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <GraduationCap className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.qualification || 'MBBS'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.qualification || 'MBBS'}</span>
                         </div>
                     </div>
 
                     {/* Experience */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Years of Experience</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Years of Experience</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Briefcase className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.years_experience || 3} Years</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.years_experience || 3} Years</span>
                         </div>
                     </div>
 
                     {/* Specialization */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 mb-1">Specialization</label>
-                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl">
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Specialization</label>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Award className="w-4 h-4 text-slate-400" />
-                            <span className="font-semibold text-slate-900">{profile?.specialization || 'N/A'}</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{profile?.specialization || 'N/A'}</span>
                         </div>
                     </div>
                 </div>
 
-                <p className="mt-4 text-xs text-slate-500 bg-slate-50 rounded-lg p-3">
+                <p className="mt-4 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-3">
                     These credentials were verified during registration and cannot be changed. Contact support if you need to update your qualifications.
                 </p>
             </div>
 
             {/* Hospital Address (Editable) */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                        <MapPin className="w-5 h-5 text-orange-600" />
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Hospital / Clinic Location</h2>
-                        <p className="text-sm text-slate-500">Where patients can visit you for in-person consultations</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Hospital / Clinic Location</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Where patients can visit you for in-person consultations</p>
                     </div>
                 </div>
 
@@ -329,23 +329,23 @@ export default function DoctorProfilePage() {
                     onChange={(e) => setHospitalAddress(e.target.value)}
                     placeholder="Enter your hospital or clinic address..."
                     rows={3}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 resize-none"
                 />
             </div>
 
             {/* Change Password */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                        <Lock className="w-5 h-5 text-red-600" />
+                    <div className="w-10 h-10  bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-red-600 dark:text-red-400\" />
                     </div>
                     <div className="flex-1">
-                        <h2 className="text-lg font-bold text-slate-900">Password</h2>
-                        <p className="text-sm text-slate-500">Update your account password</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Password</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Update your account password</p>
                     </div>
                     <button
                         onClick={() => setShowPasswordSection(!showPasswordSection)}
-                        className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50  transition-colors"
                     >
                         {showPasswordSection ? 'Cancel' : 'Change Password'}
                     </button>
@@ -355,46 +355,46 @@ export default function DoctorProfilePage() {
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-4 pt-4 border-t border-slate-100"
+                        className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700"
                     >
                         {passwordError && (
-                            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                            <div className="text-sm text-red-600 bg-red-50 px-4 py-2 ">
                                 {passwordError}
                             </div>
                         )}
 
                         <div className="relative">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Password</label>
                             <input
                                 type={showPasswords ? 'text' : 'password'}
                                 value={currentPassword}
                                 onChange={(e) => setCurrentPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
                         <div className="relative">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
                             <input
                                 type={showPasswords ? 'text' : 'password'}
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
                         <div className="relative">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
                             <input
                                 type={showPasswords ? 'text' : 'password'}
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
 
                         <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     checked={showPasswords}
@@ -405,7 +405,7 @@ export default function DoctorProfilePage() {
                             </label>
                             <button
                                 onClick={handleChangePassword}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                                className="px-4 py-2 bg-red-600 text-white  font-medium hover:bg-red-700 transition-colors"
                             >
                                 Update Password
                             </button>
@@ -415,23 +415,23 @@ export default function DoctorProfilePage() {
             </div>
 
             {/* Settings Section */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                        <Settings className="w-5 h-5 text-blue-600" />
+                    <div className="w-10 h-10  bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400\" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-slate-900">Consultation Settings</h2>
-                        <p className="text-sm text-slate-500">Configure your appointment preferences</p>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Consultation Settings</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Configure your appointment preferences</p>
                     </div>
                 </div>
 
                 <div className="space-y-6">
                     {/* Google Meet Link */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             <div className="flex items-center gap-2">
-                                <Video className="w-4 h-4 text-blue-600" />
+                                <Video className="w-4 h-4 text-blue-600 dark:text-blue-400\" />
                                 Google Meet Link
                             </div>
                         </label>
@@ -440,9 +440,9 @@ export default function DoctorProfilePage() {
                             value={meetLink}
                             onChange={(e) => setMeetLink(e.target.value)}
                             placeholder="https://meet.google.com/abc-defg-hij"
-                            className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                            className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                         />
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                             Your personal Meet link for all online consultations
                         </p>
                     </div>
@@ -450,7 +450,7 @@ export default function DoctorProfilePage() {
                     {/* Working Hours */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 <div className="flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-purple-600" />
                                     Start Time
@@ -460,11 +460,11 @@ export default function DoctorProfilePage() {
                                 type="time"
                                 value={workingHoursStart}
                                 onChange={(e) => setWorkingHoursStart(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 <div className="flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-purple-600" />
                                     End Time
@@ -474,7 +474,7 @@ export default function DoctorProfilePage() {
                                 type="time"
                                 value={workingHoursEnd}
                                 onChange={(e) => setWorkingHoursEnd(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                     </div>
@@ -482,7 +482,7 @@ export default function DoctorProfilePage() {
                     {/* Consultation Fees */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 <div className="flex items-center gap-2">
                                     <DollarSign className="w-4 h-4 text-green-600" />
                                     Online Fee (₹)
@@ -492,11 +492,11 @@ export default function DoctorProfilePage() {
                                 type="number"
                                 value={onlineFee}
                                 onChange={(e) => setOnlineFee(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                                 <div className="flex items-center gap-2">
                                     <DollarSign className="w-4 h-4 text-green-600" />
                                     In-Person Fee (₹)
@@ -506,14 +506,14 @@ export default function DoctorProfilePage() {
                                 type="number"
                                 value={offlineFee}
                                 onChange={(e) => setOfflineFee(e.target.value)}
-                                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                             />
                         </div>
                     </div>
 
                     {/* Consultation Modes */}
                     <div className="flex gap-4">
-                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                        <label className="flex items-center gap-3 p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 flex-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700">
                             <input
                                 type="checkbox"
                                 checked={acceptingOnline}
@@ -521,11 +521,11 @@ export default function DoctorProfilePage() {
                                 className="w-5 h-5 rounded text-primary-600"
                             />
                             <div>
-                                <p className="font-medium text-slate-900">Online Consultations</p>
-                                <p className="text-sm text-slate-500">Accept video call appointments</p>
+                                <p className="font-medium text-slate-900 dark:text-white">Online Consultations</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Accept video call appointments</p>
                             </div>
                         </label>
-                        <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-xl flex-1 cursor-pointer hover:bg-slate-50">
+                        <label className="flex items-center gap-3 p-4 border border-slate-200 dark:border-slate-700 dark:bg-slate-800 flex-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700">
                             <input
                                 type="checkbox"
                                 checked={acceptingOffline}
@@ -533,18 +533,19 @@ export default function DoctorProfilePage() {
                                 className="w-5 h-5 rounded text-primary-600"
                             />
                             <div>
-                                <p className="font-medium text-slate-900">In-Person Visits</p>
-                                <p className="text-sm text-slate-500">Accept clinic appointments</p>
+                                <p className="font-medium text-slate-900 dark:text-white">In-Person Visits</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Accept clinic appointments</p>
                             </div>
                         </label>
                     </div>
+
                 </div>
             </div>
 
             {/* Save Button */}
             <button
                 onClick={handleSaveProfile}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20"
+                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary-600 text-white  font-semibold hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20"
             >
                 <Save className="w-5 h-5" />
                 Save All Changes
@@ -552,3 +553,7 @@ export default function DoctorProfilePage() {
         </div>
     )
 }
+
+
+
+

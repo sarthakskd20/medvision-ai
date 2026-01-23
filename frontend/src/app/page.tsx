@@ -26,11 +26,7 @@ import {
     CheckCircle2,
     Upload,
     Video,
-    Stethoscope,
-    UserPlus,
-    LogIn,
-    ChevronDown,
-    User
+    Stethoscope
 } from 'lucide-react'
 
 // ===================== ANIMATION VARIANTS =====================
@@ -292,6 +288,121 @@ function MicroButton({
     )
 }
 
+// ===================== NAV DROPDOWN BUTTON =====================
+function NavDropdownButton({
+    label,
+    items,
+    isScrolled
+}: {
+    label: string
+    items: { label: string; href: string; icon: React.ElementType }[]
+    isScrolled: boolean
+}) {
+    const [isOpen, setIsOpen] = useState(false)
+    const [isHovered, setIsHovered] = useState(false)
+
+    return (
+        <div
+            className="relative"
+            onMouseEnter={() => { setIsOpen(true); setIsHovered(true) }}
+            onMouseLeave={() => { setIsOpen(false); setIsHovered(false) }}
+        >
+            {/* Main Button */}
+            <motion.button
+                className={`relative overflow-hidden inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold rounded-xl transition-all duration-300 ${isScrolled
+                    ? 'bg-slate-100 text-slate-700 hover:bg-teal-500 hover:text-white'
+                    : 'bg-white/10 backdrop-blur-sm text-white hover:bg-teal-500'
+                    }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+            >
+                {/* Animated shine effect */}
+                <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: isHovered ? '100%' : '-100%' }}
+                    transition={{ duration: 0.6 }}
+                />
+
+                {/* Glow effect */}
+                <AnimatePresence>
+                    {isHovered && (
+                        <motion.div
+                            className="absolute inset-0 rounded-xl"
+                            initial={{ boxShadow: '0 0 0 0 rgba(20, 184, 166, 0)' }}
+                            animate={{ boxShadow: '0 0 20px 4px rgba(20, 184, 166, 0.4)' }}
+                            exit={{ boxShadow: '0 0 0 0 rgba(20, 184, 166, 0)' }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    )}
+                </AnimatePresence>
+
+                <span className="relative z-10">{label}</span>
+
+                {/* Animated arrow */}
+                <motion.div
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative z-10"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </motion.div>
+            </motion.button>
+
+            {/* Dropdown Panel */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden z-50"
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
+                        {items.map((item, index) => (
+                            <motion.div
+                                key={item.label}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <Link href={item.href}>
+                                    <motion.div
+                                        className="flex items-center gap-3 px-4 py-3 text-slate-700 hover:bg-teal-50 hover:text-teal-600 transition-colors group cursor-pointer"
+                                        whileHover={{ scale: 1.02, x: 4 }}
+                                    >
+                                        {/* Icon with rotation on hover */}
+                                        <motion.div
+                                            className="p-2 bg-slate-100 rounded-lg group-hover:bg-teal-100 transition-colors"
+                                            whileHover={{ rotate: [0, -10, 10, 0] }}
+                                            transition={{ duration: 0.4 }}
+                                        >
+                                            <item.icon className="w-5 h-5" />
+                                        </motion.div>
+                                        <span className="font-medium">{item.label}</span>
+
+                                        {/* Arrow that appears on hover */}
+                                        <motion.div
+                                            className="ml-auto opacity-0 group-hover:opacity-100"
+                                            initial={{ x: -5 }}
+                                            animate={{ x: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <ArrowRight className="w-4 h-4" />
+                                        </motion.div>
+                                    </motion.div>
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    )
+}
+
 // ===================== IMAGE CAROUSEL =====================
 function ImageCarousel({ images }: { images: { src: string; alt: string }[] }) {
     const [currentIndex, setCurrentIndex] = useState(0)
@@ -414,6 +525,8 @@ export default function HomePage() {
     const [isScrolled, setIsScrolled] = useState(false)
     const [showLoading, setShowLoading] = useState(true)
     const [activeSection, setActiveSection] = useState('doctors')
+    const [headerVisible, setHeaderVisible] = useState(true)
+    const [lastScrollY, setLastScrollY] = useState(0)
 
     // Section refs for scroll detection
     const doctorsRef = useRef<HTMLElement>(null)
@@ -422,7 +535,16 @@ export default function HomePage() {
 
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50)
+            const currentScrollY = window.scrollY
+            setIsScrolled(currentScrollY > 50)
+
+            // Scroll-fade effect for header
+            if (currentScrollY > 100) {
+                setHeaderVisible(currentScrollY < lastScrollY)
+            } else {
+                setHeaderVisible(true)
+            }
+            setLastScrollY(currentScrollY)
 
             const sections = [
                 { id: 'doctors', ref: doctorsRef },
@@ -443,7 +565,7 @@ export default function HomePage() {
 
         window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
+    }, [lastScrollY])
 
     const scrollToSection = (sectionId: string) => {
         const element = document.getElementById(sectionId)
@@ -464,9 +586,10 @@ export default function HomePage() {
             <main className="min-h-screen bg-slate-50 overflow-x-hidden">
 
                 {/* ==================== HEADER ==================== */}
-                <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled
-                    ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-slate-900/5'
-                    : 'bg-slate-900/80 backdrop-blur-md'
+                <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full'
+                    } ${isScrolled
+                        ? 'bg-white/95 backdrop-blur-xl shadow-lg shadow-slate-900/5'
+                        : 'bg-slate-900/80 backdrop-blur-md'
                     }`}>
                     <div className="max-w-7xl mx-auto px-6">
                         <div className="flex items-center justify-between h-20">
@@ -507,89 +630,23 @@ export default function HomePage() {
                                 ))}
                             </nav>
 
-                            {/* Register Dropdown */}
-                            <div className="relative group">
-                                <motion.button
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:shadow-teal-500/30 transition-all duration-300"
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <UserPlus className="w-4 h-4" />
-                                    Register
-                                    <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
-                                </motion.button>
-                                <div
-                                    className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 opacity-0 invisible translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-300 origin-top-right"
-                                >
-                                    <Link
-                                        href="/auth/register/doctor"
-                                        className="flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
-                                            <Stethoscope className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-sm">Doctor</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Healthcare provider</p>
-                                        </div>
-                                    </Link>
-                                    <Link
-                                        href="/auth/register/patient"
-                                        className="flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors border-t border-slate-100 dark:border-slate-700"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                                            <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-sm">Patient</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Book appointments</p>
-                                        </div>
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Sign In Dropdown */}
-                            <div className="relative group">
-                                <motion.button
-                                    className={`flex items-center gap-2 px-5 py-2.5 font-semibold rounded-xl transition-all duration-300 ${isScrolled
-                                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                        : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
-                                        }`}
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                >
-                                    <LogIn className="w-4 h-4" />
-                                    Sign In
-                                    <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
-                                </motion.button>
-                                <div
-                                    className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50 opacity-0 invisible translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-300 origin-top-right"
-                                >
-                                    <Link
-                                        href="/auth/login?role=doctor"
-                                        className="flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
-                                            <Stethoscope className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-sm">Doctor</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Access dashboard</p>
-                                        </div>
-                                    </Link>
-                                    <Link
-                                        href="/auth/login?role=patient"
-                                        className="flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors border-t border-slate-100 dark:border-slate-700"
-                                    >
-                                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center">
-                                            <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-sm">Patient</p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">View appointments</p>
-                                        </div>
-                                    </Link>
-                                </div>
+                            <div className="flex items-center gap-3">
+                                <NavDropdownButton
+                                    label="Register"
+                                    isScrolled={isScrolled}
+                                    items={[
+                                        { label: 'For Doctor', href: '/auth/register/doctor', icon: Stethoscope },
+                                        { label: 'For Patient', href: '/auth/register/patient', icon: HeartPulse }
+                                    ]}
+                                />
+                                <NavDropdownButton
+                                    label="Sign In"
+                                    isScrolled={isScrolled}
+                                    items={[
+                                        { label: 'For Doctor', href: '/auth/login?role=doctor', icon: Stethoscope },
+                                        { label: 'For Patient', href: '/auth/login?role=patient', icon: HeartPulse }
+                                    ]}
+                                />
                             </div>
                         </div>
                     </div>
