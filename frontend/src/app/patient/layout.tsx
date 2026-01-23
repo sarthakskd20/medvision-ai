@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
     LayoutDashboard,
     Calendar,
@@ -11,37 +11,67 @@ import {
     User,
     Search,
     LogOut,
-    Bell,
     Menu,
-    X
+    X,
+    ChevronDown
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
+import AnimatedBackground from '@/components/AnimatedBackground'
 
-const patientSidebarItems = [
+const navItems = [
     { label: 'Dashboard', href: '/patient', icon: LayoutDashboard },
     { label: 'Find Doctors', href: '/patient/doctors', icon: Search },
-    { label: 'My Appointments', href: '/patient/appointments', icon: Calendar },
-    { label: 'Medical Records', href: '/patient/records', icon: FileText },
-    { label: 'My Profile', href: '/patient/profile', icon: User },
+    { label: 'Appointments', href: '/patient/appointments', icon: Calendar },
+    { label: 'Records', href: '/patient/records', icon: FileText },
+    { label: 'Profile', href: '/patient/profile', icon: User },
 ]
 
 export default function PatientDashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const router = useRouter()
-    const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-    const [patientName, setPatientName] = useState('Patient')
-    const [notifications, setNotifications] = useState(2)
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [userMenuOpen, setUserMenuOpen] = useState(false)
+    const [patientName, setPatientName] = useState('Patient')
+    const [headerVisible, setHeaderVisible] = useState(true)
+    const [lastScrollY, setLastScrollY] = useState(0)
+
+    // Handle scroll to fade header
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY
+            if (currentScrollY > 100) {
+                setHeaderVisible(currentScrollY < lastScrollY)
+            } else {
+                setHeaderVisible(true)
+            }
+            setLastScrollY(currentScrollY)
+        }
+
+        window.addEventListener('scroll', handleScroll, { passive: true })
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [lastScrollY])
+
+    // Set dark mode as default for patient dashboard
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme')
+        const dashboardDefaultSet = localStorage.getItem('patient_dashboard_dark_default')
+
+        if (!savedTheme || !dashboardDefaultSet) {
+            document.documentElement.classList.add('dark')
+            localStorage.setItem('theme', 'dark')
+            localStorage.setItem('patient_dashboard_dark_default', 'true')
+        }
+    }, [])
 
     useEffect(() => {
         const userData = localStorage.getItem('user')
         if (userData) {
             try {
                 const user = JSON.parse(userData)
-                setPatientName(user.name || 'Patient')
+                setPatientName(user.name || user.fullName || 'Patient')
             } catch (e) {
-                console.error('Failed to parse user data')
+                console.error('Error parsing user data')
             }
         }
     }, [])
@@ -52,130 +82,58 @@ export default function PatientDashboardLayout({ children }: { children: React.R
         router.push('/auth/login')
     }
 
-    const getGreeting = () => {
-        const hour = new Date().getHours()
-        if (hour < 12) return 'Good Morning'
-        if (hour < 17) return 'Good Afternoon'
-        return 'Good Evening'
-    }
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex">
-            {/* Sidebar - LARGER WIDTH */}
-            <aside className="w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 fixed h-full z-30 hidden lg:flex flex-col shadow-xl dark:shadow-none">
-                {/* Logo Section with Theme Toggle */}
-                <div className="h-24 flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-700">
-                    <Link href="/patient" className="flex items-center gap-4 group">
-                        {/* Using actual MedVision logo image with theme contrast */}
-                        <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-blue-500/30">
-                            <Image
-                                src="/images/medvision-logo.png"
-                                alt="MedVision"
-                                width={48}
-                                height={48}
-                                className="w-12 h-12 object-contain transition-transform duration-500 group-hover:rotate-12"
-                            />
-                        </div>
-                        <div>
-                            <span className="text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight">MedVision</span>
-                            <span className="text-sm text-slate-500 dark:text-slate-400 block font-semibold">Patient Portal</span>
-                        </div>
-                    </Link>
-                    {/* Theme Toggle in Sidebar */}
-                    <ThemeToggle />
-                </div>
+        <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121820] relative overflow-hidden">
+            {/* Animated Background */}
+            <AnimatedBackground />
 
-                {/* User Welcome */}
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-primary-50/50 dark:from-primary-900/20 to-transparent">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{getGreeting()}</p>
-                    <p className="text-lg font-extrabold text-slate-800 dark:text-white truncate">{patientName}</p>
-                </div>
+            {/* Large Visible Gradient Blob - Top Right */}
+            <div
+                className="fixed -top-20 -right-20 w-[500px] h-[500px] pointer-events-none z-0"
+                style={{
+                    background: 'radial-gradient(circle, rgba(13, 148, 136, 0.25) 0%, rgba(13, 148, 136, 0.12) 50%, transparent 70%)',
+                }}
+            />
 
-                {/* Navigation - LARGER FONTS */}
-                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    {patientSidebarItems.map((navItem) => {
-                        const isActive = pathname === navItem.href ||
-                            (navItem.href !== '/patient' && pathname.startsWith(navItem.href))
-                        const isHovered = hoveredItem === navItem.label
+            {/* Large Visible Gradient Blob - Bottom Left */}
+            <div
+                className="fixed -bottom-32 -left-32 w-[600px] h-[600px] pointer-events-none z-0"
+                style={{
+                    background: 'radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.1) 50%, transparent 70%)',
+                }}
+            />
 
-                        return (
-                            <Link
-                                key={navItem.label}
-                                href={navItem.href}
-                                onMouseEnter={() => setHoveredItem(navItem.label)}
-                                onMouseLeave={() => setHoveredItem(null)}
-                                className="relative block"
-                            >
-                                <div className={`relative z-10 flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
-                                    ? 'text-white shadow-lg shadow-primary-500/25'
-                                    : 'text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400'
-                                    }`}>
-                                    {/* Active Background */}
-                                    {isActive && (
-                                        <motion.div
-                                            layoutId="activePatientTab"
-                                            className="absolute inset-0 bg-gradient-to-r from-primary-600 to-teal-500 rounded-xl"
-                                            initial={false}
-                                            transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                                        />
-                                    )}
+            {/* Visible Circle Decorations - Top Right */}
+            <div className="fixed top-20 right-20 pointer-events-none z-0">
+                <svg width="300" height="300" viewBox="0 0 300 300" className="opacity-[0.15] dark:opacity-[0.12]">
+                    <circle cx="150" cy="150" r="120" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                    <circle cx="150" cy="150" r="80" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                    <circle cx="150" cy="150" r="40" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
 
-                                    {/* Hover Background */}
-                                    {!isActive && isHovered && (
-                                        <motion.div
-                                            layoutId="hoverPatientTab"
-                                            className="absolute inset-0 bg-primary-50 dark:bg-primary-900/30 rounded-xl"
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                        />
-                                    )}
+            {/* Visible Heartbeat Line - Bottom */}
+            <div className="fixed bottom-20 left-20 pointer-events-none z-0">
+                <svg width="400" height="100" viewBox="0 0 400 100" className="opacity-[0.15] dark:opacity-[0.12]">
+                    <path d="M0 50 L80 50 L100 20 L120 80 L140 35 L160 50 L400 50" stroke="#0d9488" strokeWidth="2" fill="none" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
 
-                                    {/* Icon - LARGER */}
-                                    <navItem.icon className={`w-6 h-6 relative z-10 transition-transform duration-200 ${isHovered && !isActive ? 'scale-110' : ''}`} />
+            {/* Medical Plus Symbol - Center Left */}
+            <div className="fixed top-1/2 left-10 -translate-y-1/2 pointer-events-none z-0">
+                <svg width="60" height="60" viewBox="0 0 60 60" className="opacity-[0.12] dark:opacity-[0.08]">
+                    <path d="M30 10 L30 50 M10 30 L50 30" stroke="#0d9488" strokeWidth="3" className="dark:stroke-[#16c401]" />
+                </svg>
+            </div>
 
-                                    {/* Label - LARGER & BOLDER */}
-                                    <span className="text-lg font-bold relative z-10">{navItem.label}</span>
-
-                                    {/* Notification Badge */}
-                                    {navItem.label === 'My Appointments' && notifications > 0 && (
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-red-500 text-white text-sm font-bold rounded-full flex items-center justify-center z-10">
-                                            {notifications}
-                                        </span>
-                                    )}
-                                </div>
-                            </Link>
-                        )
-                    })}
-                </nav>
-
-                {/* Book Appointment CTA */}
-                <div className="px-4 py-4">
-                    <Link
-                        href="/patient/doctors"
-                        className="w-full flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-primary-600 to-teal-500 text-white text-lg font-bold rounded-xl shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all active:scale-95"
-                    >
-                        <Calendar className="w-5 h-5" />
-                        Book Appointment
-                    </Link>
-                </div>
-
-                {/* Bottom Section - Sign Out only */}
-                <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-4 px-4 py-3 text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all font-bold group text-lg"
-                    >
-                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                        Sign Out
-                    </button>
-                </div>
-            </aside>
-
-            {/* Mobile Header */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 z-40 flex items-center justify-between px-4">
-                <Link href="/patient" className="flex items-center gap-3 group">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/30">
+            {/* Fixed Top Header Navigation - Fades on scroll */}
+            <header
+                className={`dashboard-header-nav transition-all duration-300 ${headerVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-full'
+                    }`}
+            >
+                {/* Logo */}
+                <Link href="/patient" className="flex items-center gap-3 mr-12 group">
+                    <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center shadow-sm overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-teal-500/30">
                         <Image
                             src="/images/medvision-logo.png"
                             alt="MedVision"
@@ -184,101 +142,164 @@ export default function PatientDashboardLayout({ children }: { children: React.R
                             className="w-8 h-8 object-contain transition-transform duration-500 group-hover:rotate-12"
                         />
                     </div>
-                    <span className="font-extrabold text-xl text-slate-800 dark:text-white">MedVision</span>
+                    <div className="hidden sm:block">
+                        <span className="text-lg font-extrabold text-slate-800 dark:text-white tracking-tight">MedVision</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 block font-semibold uppercase tracking-wider">Patient Portal</span>
+                    </div>
                 </Link>
-                <div className="flex items-center gap-3">
+
+                {/* Desktop Navigation */}
+                <nav className="hidden md:flex items-center gap-1">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href ||
+                            (item.href !== '/patient' && pathname.startsWith(item.href))
+                        return (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors ${isActive
+                                    ? 'text-teal-600 dark:text-[#16c401] border-b-2 border-teal-600 dark:border-[#16c401]'
+                                    : 'text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-[#16c401]'
+                                    }`}
+                            >
+                                {item.label}
+                            </Link>
+                        )
+                    })}
+                </nav>
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Right Side Actions */}
+                <div className="flex items-center gap-4">
                     <ThemeToggle />
+
+                    {/* User Menu */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setUserMenuOpen(!userMenuOpen)}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                                {patientName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="hidden sm:block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                {patientName}
+                            </span>
+                            <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                            {userMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+                                >
+                                    <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">{patientName}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Patient Account</p>
+                                    </div>
+                                    <div className="p-2">
+                                        <Link
+                                            href="/patient/profile"
+                                            onClick={() => setUserMenuOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            <span className="font-medium">My Profile</span>
+                                        </Link>
+                                        <button
+                                            onClick={handleSignOut}
+                                            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span className="font-medium">Sign Out</span>
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Mobile Menu Button */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                        className="md:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                     >
                         {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
                 </div>
-            </div>
+            </header>
 
-            {/* Mobile Menu */}
-            {mobileMenuOpen && (
-                <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
+            {/* Mobile Menu Overlay */}
+            <AnimatePresence>
+                {mobileMenuOpen && (
                     <motion.div
-                        initial={{ x: '-100%' }}
-                        animate={{ x: 0 }}
-                        exit={{ x: '-100%' }}
-                        className="w-72 h-full bg-white dark:bg-slate-800 shadow-xl"
-                        onClick={e => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40 bg-black/50 md:hidden"
+                        onClick={() => setMobileMenuOpen(false)}
                     >
-                        <div className="p-5 border-b border-slate-100 dark:border-slate-700">
-                            <Link href="/patient" className="flex items-center gap-3 group">
-                                <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/30">
-                                    <Image
-                                        src="/images/medvision-logo.png"
-                                        alt="MedVision"
-                                        width={40}
-                                        height={40}
-                                        className="w-10 h-10 object-contain transition-transform duration-500 group-hover:rotate-12"
-                                    />
-                                </div>
-                                <div>
-                                    <span className="font-extrabold text-xl text-slate-800 dark:text-white">MedVision</span>
-                                    <span className="text-sm text-slate-400 block">Patient Portal</span>
-                                </div>
-                            </Link>
-                        </div>
-                        <nav className="p-4 space-y-2">
-                            {patientSidebarItems.map((navItem) => {
-                                const isActive = pathname === navItem.href
-                                return (
-                                    <Link
-                                        key={navItem.label}
-                                        href={navItem.href}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center gap-4 px-4 py-3 rounded-xl font-bold text-lg ${isActive
-                                            ? 'bg-gradient-to-r from-primary-600 to-teal-500 text-white'
-                                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                                            }`}
-                                    >
-                                        <navItem.icon className="w-6 h-6" />
-                                        {navItem.label}
-                                    </Link>
-                                )
-                            })}
-                        </nav>
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-700">
-                            <button
-                                onClick={handleSignOut}
-                                className="w-full flex items-center gap-4 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold text-lg"
-                            >
-                                <LogOut className="w-5 h-5" />
-                                Sign Out
-                            </button>
-                        </div>
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="absolute right-0 top-0 bottom-0 w-72 bg-white dark:bg-slate-800 shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="p-6 border-b border-slate-100 dark:border-slate-700">
+                                <p className="font-extrabold text-lg text-slate-900 dark:text-white">{patientName}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">Patient Account</p>
+                            </div>
+                            <nav className="p-4 space-y-2">
+                                {navItems.map((item) => {
+                                    const isActive = pathname === item.href
+                                    return (
+                                        <Link
+                                            key={item.label}
+                                            href={item.href}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className={`flex items-center gap-4 px-4 py-3 rounded-xl font-bold ${isActive
+                                                ? 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white'
+                                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                                }`}
+                                        >
+                                            <item.icon className="w-5 h-5" />
+                                            {item.label}
+                                        </Link>
+                                    )
+                                })}
+                            </nav>
+                            <div className="p-4 border-t border-slate-100 dark:border-slate-700">
+                                <button
+                                    onClick={handleSignOut}
+                                    className="w-full flex items-center gap-4 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                    Sign Out
+                                </button>
+                            </div>
+                        </motion.div>
                     </motion.div>
-                </div>
+                )}
+            </AnimatePresence>
+
+            {/* Click outside to close user menu */}
+            {userMenuOpen && (
+                <div
+                    className="fixed inset-0 z-30"
+                    onClick={() => setUserMenuOpen(false)}
+                />
             )}
 
-            {/* Mobile Bottom Nav */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-40 flex items-center justify-around px-2">
-                {patientSidebarItems.slice(0, 5).map((navItem) => {
-                    const isActive = pathname === navItem.href
-                    return (
-                        <Link
-                            key={navItem.label}
-                            href={navItem.href}
-                            className={`flex flex-col items-center gap-0.5 p-2 rounded-xl transition-colors ${isActive
-                                ? 'text-primary-600 dark:text-primary-400'
-                                : 'text-slate-400 dark:text-slate-500'
-                                }`}
-                        >
-                            <navItem.icon className={`w-6 h-6 ${isActive ? 'scale-110' : ''} transition-transform`} />
-                            <span className="text-xs font-bold">{navItem.label.split(' ')[0]}</span>
-                        </Link>
-                    )
-                })}
-            </div>
-
-            {/* Main Content - adjusted margin for wider sidebar */}
-            <main className="flex-1 lg:ml-80 pt-16 pb-16 lg:pt-0 lg:pb-0 min-h-screen">
-                <div className="p-5 md:p-8 max-w-[1400px] mx-auto">
+            {/* Main Content */}
+            <main className="relative z-10 pt-20 pb-8 min-h-screen">
+                <div className="px-6 md:px-12 lg:px-20 max-w-[1600px] mx-auto">
                     {children}
                 </div>
             </main>
