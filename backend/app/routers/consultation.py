@@ -842,22 +842,43 @@ async def generate_ai_analysis(consultation_id: str):
             appointment.get("id")
         ) or {}
         
-        # Build context
+        # Extract nested basic_info
+        basic_info = patient_profile.get("basic_info", {})
+        chief_complaint = patient_profile.get("chief_complaint", {})
+        medical_history = patient_profile.get("medical_history", [])
+        uploaded_documents = patient_profile.get("uploaded_documents", [])
+        
+        # Build comprehensive context with all patient data
         patient_context = {
             "patient_id": appointment.get("patient_id"),
             "doctor_id": appointment.get("doctor_id"),
-            "name": patient_profile.get("patient_name") or appointment.get("patient_name"),
-            "age": patient_profile.get("patient_age") or appointment.get("patient_age"),
-            "gender": patient_profile.get("patient_gender") or appointment.get("patient_gender"),
-            "blood_group": patient_profile.get("blood_group"),
-            "allergies": patient_profile.get("allergies"),
-            "current_medications": patient_profile.get("current_medications"),
-            "chief_complaint": patient_profile.get("chief_complaint"),
-            "medical_history": patient_profile.get("medical_history")
+            # Basic info from nested structure
+            "name": basic_info.get("full_name") or appointment.get("patient_name") or "Unknown",
+            "age": basic_info.get("age") or appointment.get("patient_age"),
+            "gender": basic_info.get("gender") or appointment.get("patient_gender"),
+            "blood_group": basic_info.get("blood_group"),
+            "allergies": basic_info.get("allergies", []),
+            "current_medications": basic_info.get("current_medications", []),
+            # Chief complaint (already structured)
+            "chief_complaint": chief_complaint,
+            # Medical history - handle both list and dict formats
+            "medical_history": medical_history if isinstance(medical_history, dict) else {"conditions": medical_history}
         }
         
-        # Get document IDs from patient profile
-        document_ids = patient_profile.get("document_ids", [])
+        # Extract document IDs from uploaded_documents list
+        # Documents can be stored as dicts with 'id'/'file_id' or as file path strings
+        document_ids = []
+        if uploaded_documents:
+            for doc in uploaded_documents:
+                if isinstance(doc, dict):
+                    doc_id = doc.get("id") or doc.get("file_id") or doc.get("document_id")
+                    if doc_id:
+                        document_ids.append(doc_id)
+                elif isinstance(doc, str):
+                    # If it's a string, it might be the file path/id directly
+                    document_ids.append(doc)
+        
+        print(f"[AI Analysis] Patient: {patient_context.get('name')}, Documents: {len(document_ids)}, Allergies: {patient_context.get('allergies')}, Medications: {patient_context.get('current_medications')}")
         
         # Generate analysis
         result = generate_comprehensive_analysis(

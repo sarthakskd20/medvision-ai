@@ -312,6 +312,8 @@ def _build_analysis_prompt(
     """Build comprehensive analysis prompt."""
     prompt = """You are an expert medical AI assistant. Analyze the following patient information and generate a comprehensive clinical analysis.
 
+**IMPORTANT**: Study ALL provided information carefully including patient demographics, symptoms, medications, allergies, medical history, and uploaded medical documents. Be thorough and transparent in your analysis.
+
 ## Patient Profile
 """
     
@@ -323,35 +325,70 @@ def _build_analysis_prompt(
     if patient_profile.get('blood_group'):
         prompt += f"- **Blood Group**: {patient_profile['blood_group']}\n"
     
-    if patient_profile.get('allergies'):
-        prompt += f"- **Known Allergies**: {patient_profile['allergies']}\n"
+    # Format allergies as readable list
+    allergies = patient_profile.get('allergies', [])
+    if allergies:
+        if isinstance(allergies, list):
+            prompt += f"- **Known Allergies**: {', '.join(allergies)}\n"
+        else:
+            prompt += f"- **Known Allergies**: {allergies}\n"
     
-    if patient_profile.get('current_medications'):
-        prompt += f"- **Current Medications**: {patient_profile['current_medications']}\n"
+    # Format medications as readable list
+    medications = patient_profile.get('current_medications', [])
+    if medications:
+        if isinstance(medications, list):
+            prompt += f"- **Current Medications**: {', '.join(medications)}\n"
+        else:
+            prompt += f"- **Current Medications**: {medications}\n"
     
-    # Chief complaint
+    # Chief complaint - handle various formats
     complaint = patient_profile.get('chief_complaint', {})
+    prompt += f"\n## Chief Complaint\n"
     if isinstance(complaint, dict):
-        prompt += f"\n## Chief Complaint\n"
-        prompt += f"**Description**: {complaint.get('description', 'Not specified')}\n"
-        if complaint.get('details'):
-            details = complaint['details']
-            prompt += f"- Duration: {details.get('duration', '?')} {details.get('duration_unit', '')}\n"
-            prompt += f"- Severity: {details.get('severity', '?')}/10\n"
-            if details.get('previous_treatment'):
-                prompt += f"- Previous Treatment: {details['previous_treatment']}\n"
+        description = complaint.get('description', 'Not specified')
+        prompt += f"**Primary Symptoms**: {description}\n"
+        
+        # Handle both 'details' nested structure and flat structure
+        details = complaint.get('details', complaint)  # Fallback to complaint itself if no details
+        if details:
+            duration = details.get('duration')
+            duration_unit = details.get('duration_unit', '')
+            if duration:
+                prompt += f"- **Duration**: {duration} {duration_unit}\n"
+            
+            severity = details.get('severity')
+            if severity:
+                prompt += f"- **Severity**: {severity}/10\n"
+            
+            previous_treatment = details.get('previous_treatment')
+            if previous_treatment:
+                prompt += f"- **Previous Treatment**: {previous_treatment}\n"
+    elif isinstance(complaint, str):
+        prompt += f"**Primary Symptoms**: {complaint}\n"
     
     # Medical history
     mh = patient_profile.get('medical_history', {})
     if mh:
         prompt += f"\n## Medical History\n"
         if isinstance(mh, dict):
-            if mh.get('conditions'):
-                prompt += f"- Conditions: {', '.join(mh['conditions']) if isinstance(mh['conditions'], list) else mh['conditions']}\n"
+            conditions = mh.get('conditions', [])
+            if conditions:
+                if isinstance(conditions, list):
+                    prompt += f"- **Conditions**: {', '.join(conditions)}\n"
+                else:
+                    prompt += f"- **Conditions**: {conditions}\n"
             if mh.get('surgeries'):
-                prompt += f"- Surgeries: {mh['surgeries']}\n"
+                prompt += f"- **Surgeries**: {mh['surgeries']}\n"
             if mh.get('family_history'):
-                prompt += f"- Family History: {mh['family_history']}\n"
+                prompt += f"- **Family History**: {mh['family_history']}\n"
+            if mh.get('smoking'):
+                prompt += f"- **Smoking**: {mh['smoking']}\n"
+            if mh.get('alcohol'):
+                prompt += f"- **Alcohol**: {mh['alcohol']}\n"
+        elif isinstance(mh, list) and mh:
+            prompt += f"- **Conditions**: {', '.join(str(c) for c in mh)}\n"
+    else:
+        prompt += "\n## Medical History\nNo significant medical history reported.\n"
     
     # Extracted documents
     if extracted_docs:
