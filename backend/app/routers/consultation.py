@@ -35,6 +35,10 @@ from ..services.encryption_service import (
     sanitize_filename
 )
 from ..services.hybrid_service import get_database_service
+from ..services.ai_chat_service import (
+    get_ai_chat_service, 
+    generate_comprehensive_analysis
+)
 
 router = APIRouter(prefix="/api/consultation", tags=["consultation"])
 
@@ -85,7 +89,7 @@ async def start_consultation(appointment_id: str):
         # Update appointment status
         db.update_appointment(appointment_id, {
             'status': 'in_progress',
-            'consultation_started_at': datetime.utcnow().isoformat()
+            'consultation_started_at': datetime.utcnow()
         })
         
         # Create audit log
@@ -183,7 +187,7 @@ async def finish_consultation(
         # Update consultation
         db.update_consultation(consultation_id, {
             'status': ConsultationStatus.COMPLETED.value,
-            'ended_at': datetime.utcnow().isoformat()
+            'ended_at': datetime.utcnow()
         })
         
         # Update doctor notes with final diagnosis
@@ -198,7 +202,7 @@ async def finish_consultation(
         appointment_id = consultation.get('appointment_id')
         db.update_appointment(appointment_id, {
             'status': 'completed',
-            'consultation_ended_at': datetime.utcnow().isoformat(),
+            'consultation_ended_at': datetime.utcnow(),
             'notes': request.treatment_summary
         })
         
@@ -532,6 +536,161 @@ async def get_patient_prescriptions(patient_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/appointment/{appointment_id}")
+async def get_consultation_by_appointment_endpoint(appointment_id: str):
+    """Get consultation by appointment ID - for patient live queue tracking."""
+    try:
+        consultation = db.get_consultation_by_appointment(appointment_id)
+        if not consultation:
+            # Return empty rather than 404 - consultation may not exist yet
+            return None
+        return consultation
+    except Exception as e:
+        print(f"Error getting consultation by appointment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/prescription/appointment/{appointment_id}")
+async def get_prescription_by_appointment(appointment_id: str):
+    """Get prescription by appointment ID - for patient to view after consultation."""
+    try:
+        # First get the consultation for this appointment
+        consultation = db.get_consultation_by_appointment(appointment_id)
+        if not consultation:
+            return {'prescription': None, 'status': 'no_consultation'}
+        
+        # Get prescription for this consultation
+        prescriptions = db.get_prescriptions_by_consultation(consultation.get('id'))
+        if not prescriptions or len(prescriptions) == 0:
+            return {'prescription': None, 'status': 'no_prescription'}
+        
+        # Get doctor notes as well
+        notes = db.get_doctor_notes_by_consultation(consultation.get('id'))
+        
+        # Get appointment for additional context
+        appointment = db.get_appointment_by_id(appointment_id)
+        
+        return {
+            'prescription': prescriptions[0] if prescriptions else None,
+            'doctor_notes': notes,
+            'appointment': appointment,
+            'consultation': consultation,
+            'status': 'found'
+        }
+    except Exception as e:
+        print(f"Error getting prescription by appointment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/messages/appointment/{appointment_id}")
+async def get_messages_by_appointment(appointment_id: str):
+    """Get all messages for an appointment - works before and after consultation."""
+    try:
+        consultation = db.get_consultation_by_appointment(appointment_id)
+        if not consultation:
+            return {'messages': [], 'consultation_id': None}
+        
+        messages = db.get_messages_by_consultation(consultation.get('id'))
+        
+        # Decrypt messages
+        decrypted_messages = []
+        for msg in messages:
+            try:
+                decrypted_content = encryption.decrypt_message(
+                    msg.get('encrypted_content'),
+                    msg.get('iv'),
+                    consultation.get('id')
+                )
+                decrypted_messages.append({
+                    **msg,
+                    'content': decrypted_content,
+                    'encrypted_content': None,
+                    'iv': None
+                })
+            except Exception as e:
+                print(f"Error decrypting message: {e}")
+                decrypted_messages.append({
+                    **msg,
+                    'content': '[Decryption failed]'
+                })
+        
+        return {
+            'messages': decrypted_messages,
+            'consultation_id': consultation.get('id')
+        }
+    except Exception as e:
+        print(f"Error getting messages by appointment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/messages/appointment/{appointment_id}")
+async def send_message_by_appointment(
+    appointment_id: str,
+    message: MessageCreate,
+    sender_type: str = "patient",
+    sender_id: str = ""
+):
+    """Send a message for an appointment - works before and after consultation."""
+    try:
+        # Get or create consultation
+        consultation = db.get_consultation_by_appointment(appointment_id)
+        
+        if not consultation:
+            # Create a basic consultation for messaging (before doctor starts)
+            appointment = db.get_appointment_by_id(appointment_id)
+            if not appointment:
+                raise HTTPException(status_code=404, detail="Appointment not found")
+            
+            consultation_id = encryption.generate_consultation_id()
+            consultation = {
+                'id': consultation_id,
+                'appointment_id': appointment_id,
+                'doctor_id': appointment.get('doctor_id'),
+                'patient_id': appointment.get('patient_id'),
+                'status': 'waiting',
+                'created_at': datetime.utcnow().isoformat()
+            }
+            db.create_consultation(consultation)
+        
+        consultation_id = consultation.get('id')
+        
+        # Encrypt and send message
+        encrypted_content, iv = encryption.encrypt_message(
+            message.content,
+            consultation_id
+        )
+        
+        message_id = encryption.generate_message_id()
+        
+        secure_message = SecureMessage(
+            id=message_id,
+            consultation_id=consultation_id,
+            appointment_id=appointment_id,
+            sender_type=SenderType(sender_type),
+            sender_id=sender_id or consultation.get('patient_id' if sender_type == 'patient' else 'doctor_id'),
+            encrypted_content=encrypted_content,
+            iv=iv,
+            content_type=message.content_type,
+            created_at=datetime.utcnow()
+        )
+        
+        db.create_message(secure_message.model_dump())
+        
+        return {
+            'id': message_id,
+            'content': message.content,
+            'content_type': message.content_type.value if hasattr(message.content_type, 'value') else message.content_type,
+            'sender_type': sender_type,
+            'created_at': secure_message.created_at.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error sending message by appointment: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # =============================================================================
 # QUEUE MANAGEMENT ENDPOINTS
 # =============================================================================
@@ -660,6 +819,348 @@ async def set_doctor_unavailable(
     except Exception as e:
         print(f"Error setting unavailability: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# AI ANALYSIS & CHAT ENDPOINTS
+# =============================================================================
+
+@router.post("/ai/analysis/{consultation_id}")
+async def generate_ai_analysis(consultation_id: str):
+    """Generate comprehensive AI analysis for a consultation."""
+    try:
+        # Get consultation and patient profile
+        consultation = db.get_consultation_by_id(consultation_id)
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation not found")
+        
+        appointment = db.get_appointment_by_id(consultation.get("appointment_id"))
+        if not appointment:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        
+        # Get patient profile
+        patient_profile = db.get_patient_profile_by_appointment(
+            appointment.get("id")
+        ) or {}
+        
+        # Build context
+        patient_context = {
+            "patient_id": appointment.get("patient_id"),
+            "doctor_id": appointment.get("doctor_id"),
+            "name": patient_profile.get("patient_name") or appointment.get("patient_name"),
+            "age": patient_profile.get("patient_age") or appointment.get("patient_age"),
+            "gender": patient_profile.get("patient_gender") or appointment.get("patient_gender"),
+            "blood_group": patient_profile.get("blood_group"),
+            "allergies": patient_profile.get("allergies"),
+            "current_medications": patient_profile.get("current_medications"),
+            "chief_complaint": patient_profile.get("chief_complaint"),
+            "medical_history": patient_profile.get("medical_history")
+        }
+        
+        # Get document IDs from patient profile
+        document_ids = patient_profile.get("document_ids", [])
+        
+        # Generate analysis
+        result = generate_comprehensive_analysis(
+            consultation_id=consultation_id,
+            patient_profile=patient_context,
+            document_ids=document_ids
+        )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating AI analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/analysis/{consultation_id}")
+async def get_ai_analysis(consultation_id: str):
+    """Get existing AI analysis for a consultation."""
+    try:
+        analysis = db.get_ai_analysis_by_consultation(consultation_id)
+        if not analysis:
+            return {"success": False, "message": "No analysis found", "analysis": None}
+        return {"success": True, "analysis": analysis}
+    except Exception as e:
+        print(f"Error getting AI analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/chat/{consultation_id}")
+async def send_ai_chat_message(
+    consultation_id: str,
+    message: MessageCreate
+):
+    """Send a message to AI and get response."""
+    try:
+        ai_chat = get_ai_chat_service()
+        
+        # Get consultation for context
+        consultation = db.get_consultation_by_id(consultation_id)
+        if not consultation:
+            raise HTTPException(status_code=404, detail="Consultation not found")
+        
+        appointment = db.get_appointment_by_id(consultation.get("appointment_id"))
+        patient_profile = db.get_patient_profile_by_appointment(
+            appointment.get("id") if appointment else None
+        ) or {}
+        
+        # Build patient context
+        patient_context = {
+            "name": patient_profile.get("patient_name") or (appointment.get("patient_name") if appointment else "Unknown"),
+            "age": patient_profile.get("patient_age"),
+            "gender": patient_profile.get("patient_gender"),
+            "blood_group": patient_profile.get("blood_group"),
+            "allergies": patient_profile.get("allergies"),
+            "current_medications": patient_profile.get("current_medications"),
+            "chief_complaint": patient_profile.get("chief_complaint"),
+            "medical_history": patient_profile.get("medical_history")
+        }
+        
+        # Send message and get response
+        result = ai_chat.send_message(
+            consultation_id=consultation_id,
+            doctor_id=consultation.get("doctor_id", ""),
+            message=message.content,
+            patient_context=patient_context
+        )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in AI chat: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/chat/{consultation_id}")
+async def get_ai_chat_history(consultation_id: str):
+    """Get AI chat history for a consultation."""
+    try:
+        ai_chat = get_ai_chat_service()
+        messages = ai_chat.get_chat_history(consultation_id)
+        return {"success": True, "messages": messages}
+    except Exception as e:
+        print(f"Error getting AI chat history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/ai/analysis/{consultation_id}/pdf")
+async def download_analysis_pdf(consultation_id: str):
+    """Generate and download AI analysis as PDF."""
+    from fastapi.responses import Response
+    import fitz  # PyMuPDF
+    import io
+    
+    try:
+        analysis = db.get_ai_analysis_by_consultation(consultation_id)
+        if not analysis:
+            raise HTTPException(status_code=404, detail="No analysis found")
+        
+        # Get patient info for header
+        consultation = db.get_consultation_by_id(consultation_id)
+        appointment = db.get_appointment_by_id(consultation.get("appointment_id")) if consultation else None
+        patient_name = appointment.get("patient_name", "Patient") if appointment else "Patient"
+        
+        # Create PDF document
+        doc = fitz.open()
+        
+        # Page settings
+        width, height = 595, 842  # A4 size
+        margin = 50
+        content_width = width - 2 * margin
+        
+        # Create first page
+        page = doc.new_page(width=width, height=height)
+        y_pos = margin
+        
+        # Header
+        page.insert_text(
+            (margin, y_pos + 20),
+            "MedVision AI Analysis Report",
+            fontsize=18,
+            fontname="helv",
+            color=(0.29, 0.44, 0.65)  # Slate blue
+        )
+        y_pos += 40
+        
+        page.insert_text(
+            (margin, y_pos + 12),
+            f"Patient: {patient_name}",
+            fontsize=11,
+            fontname="helv"
+        )
+        y_pos += 20
+        
+        page.insert_text(
+            (margin, y_pos + 12),
+            f"Generated: {analysis.get('created_at', 'N/A')}",
+            fontsize=10,
+            fontname="helv",
+            color=(0.5, 0.5, 0.5)
+        )
+        y_pos += 30
+        
+        # Draw separator line
+        page.draw_line((margin, y_pos), (width - margin, y_pos), color=(0.8, 0.8, 0.8))
+        y_pos += 20
+        
+        # Confidence Score
+        confidence = analysis.get("confidence_score", 70)
+        page.insert_text(
+            (margin, y_pos + 12),
+            f"Analysis Confidence: {confidence:.0f}%",
+            fontsize=11,
+            fontname="helv",
+            color=(0.29, 0.44, 0.65)
+        )
+        y_pos += 25
+        
+        # Executive Summary
+        if analysis.get("executive_summary"):
+            page.insert_text(
+                (margin, y_pos + 14),
+                "Executive Summary",
+                fontsize=13,
+                fontname="helv",
+            )
+            y_pos += 20
+            
+            # Wrap text for summary
+            summary = analysis["executive_summary"]
+            lines = _wrap_text(summary, 80)
+            for line in lines:
+                if y_pos > height - margin - 20:
+                    page = doc.new_page(width=width, height=height)
+                    y_pos = margin
+                page.insert_text((margin, y_pos + 10), line, fontsize=10, fontname="helv")
+                y_pos += 14
+            y_pos += 15
+        
+        # Key Findings
+        if analysis.get("key_findings"):
+            page.insert_text(
+                (margin, y_pos + 14),
+                "Key Findings",
+                fontsize=13,
+                fontname="helv",
+            )
+            y_pos += 20
+            
+            for finding in analysis["key_findings"][:10]:
+                if y_pos > height - margin - 20:
+                    page = doc.new_page(width=width, height=height)
+                    y_pos = margin
+                finding_text = finding.get("finding", str(finding)) if isinstance(finding, dict) else str(finding)
+                lines = _wrap_text(f"• {finding_text}", 75)
+                for line in lines:
+                    page.insert_text((margin + 10, y_pos + 10), line, fontsize=10, fontname="helv")
+                    y_pos += 14
+            y_pos += 15
+        
+        # Uncertainties
+        if analysis.get("uncertainties"):
+            page.insert_text(
+                (margin, y_pos + 14),
+                "Points Requiring Verification",
+                fontsize=13,
+                fontname="helv",
+                color=(0.8, 0.5, 0)
+            )
+            y_pos += 20
+            
+            for uncertainty in analysis["uncertainties"][:5]:
+                if y_pos > height - margin - 20:
+                    page = doc.new_page(width=width, height=height)
+                    y_pos = margin
+                lines = _wrap_text(f"⚠ {uncertainty}", 75)
+                for line in lines:
+                    page.insert_text((margin + 10, y_pos + 10), line, fontsize=10, fontname="helv", color=(0.6, 0.4, 0))
+                    y_pos += 14
+            y_pos += 15
+        
+        # Full Analysis (if space allows)
+        if analysis.get("analysis_markdown"):
+            if y_pos > height - 100:
+                page = doc.new_page(width=width, height=height)
+                y_pos = margin
+            
+            page.insert_text(
+                (margin, y_pos + 14),
+                "Detailed Analysis",
+                fontsize=13,
+                fontname="helv",
+            )
+            y_pos += 20
+            
+            # Clean markdown for PDF (basic conversion)
+            clean_text = analysis["analysis_markdown"]
+            clean_text = clean_text.replace("###", "").replace("##", "").replace("#", "")
+            clean_text = clean_text.replace("**", "").replace("*", "")
+            clean_text = clean_text.replace("```", "")
+            
+            lines = clean_text.split("\n")
+            for line in lines:
+                if not line.strip():
+                    y_pos += 8
+                    continue
+                if y_pos > height - margin - 20:
+                    page = doc.new_page(width=width, height=height)
+                    y_pos = margin
+                wrapped = _wrap_text(line.strip(), 80)
+                for wline in wrapped:
+                    page.insert_text((margin, y_pos + 10), wline, fontsize=9, fontname="helv")
+                    y_pos += 12
+        
+        # Footer on last page
+        page.insert_text(
+            (margin, height - 30),
+            "Generated by MedVision AI - For clinical reference only",
+            fontsize=8,
+            fontname="helv",
+            color=(0.6, 0.6, 0.6)
+        )
+        
+        # Save to bytes
+        pdf_bytes = doc.tobytes()
+        doc.close()
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="analysis_{consultation_id}.pdf"'
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _wrap_text(text: str, max_chars: int) -> list:
+    """Wrap text to specified character width."""
+    words = text.split()
+    lines = []
+    current_line = ""
+    
+    for word in words:
+        if len(current_line) + len(word) + 1 <= max_chars:
+            current_line += (" " if current_line else "") + word
+        else:
+            if current_line:
+                lines.append(current_line)
+            current_line = word
+    
+    if current_line:
+        lines.append(current_line)
+    
+    return lines if lines else [""]
 
 
 # =============================================================================

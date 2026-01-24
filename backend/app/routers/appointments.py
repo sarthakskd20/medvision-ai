@@ -3,10 +3,13 @@ Appointment API Router
 Endpoints for managing patient-doctor appointments.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from typing import List, Optional
 from datetime import datetime, timedelta
 import uuid
+import shutil
+import os
+from pathlib import Path
 
 from ..models.appointment import (
     Appointment,
@@ -29,6 +32,54 @@ router = APIRouter(prefix="/api/appointments", tags=["appointments"])
 # ============================================================================
 # PATIENT ENDPOINTS
 # ============================================================================
+
+@router.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    """Upload a medical document."""
+    try:
+        # Create uploads directory if not exists
+        upload_dir = Path("data/uploads")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate ID and save file
+        file_id = str(uuid.uuid4())
+        file_ext = os.path.splitext(file.filename)[1]
+        file_path = upload_dir / f"{file_id}{file_ext}"
+        
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        return {
+            "success": True,
+            "id": file_id,
+            "url": f"/api/appointments/files/{file_id}", # Placeholder URL
+            "name": file.filename,
+            "type": file.content_type
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/files/{file_id}")
+async def download_file(file_id: str):
+    """Download a specific uploaded file."""
+    try:
+        upload_dir = Path("data/uploads")
+        # Find file with any extension
+        for file_path in upload_dir.glob(f"{file_id}.*"):
+            if file_path.exists():
+                from fastapi.responses import FileResponse
+                return FileResponse(
+                    path=file_path, 
+                    filename=f"medical_document{file_path.suffix}",
+                    media_type='application/octet-stream'
+                )
+        raise HTTPException(status_code=404, detail="File not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/", response_model=dict)
 async def create_appointment(request: CreateAppointmentRequest):
@@ -56,7 +107,7 @@ async def create_appointment(request: CreateAppointmentRequest):
         ) or []  # Handle None case
         queue_number = len(existing_appointments) + 1
         
-        # Create appointment object with fallback values for demo
+        # Create appointment object
         appointment = Appointment(
             id=appointment_id,
             patient_id=request.patient_id,
@@ -76,8 +127,38 @@ async def create_appointment(request: CreateAppointmentRequest):
             chief_complaint=request.chief_complaint
         )
         
-        # Save to Firestore
+        # Save appointment to database
         firebase.create_appointment(appointment.dict())
+        
+        # Create Patient Profile if details are provided
+        if any([request.patient_blood_group, request.patient_allergies, request.patient_medications, request.patient_medical_history]):
+            profile_id = str(uuid.uuid4())
+            profile_data = {
+                "id": profile_id,
+                "appointment_id": appointment_id,
+                "patient_id": request.patient_id,
+                "basic_info": {
+                    "full_name": request.patient_name,
+                    "age": request.patient_age,
+                    "gender": request.patient_gender,
+                    "blood_group": request.patient_blood_group,
+                    "allergies": request.patient_allergies,
+                    "current_medications": request.patient_medications
+                },
+                "chief_complaint": {
+                    "description": request.chief_complaint,
+                    "details": request.patient_symptoms_details or {}
+                },
+                "medical_history": request.patient_medical_history or {},
+                "uploaded_documents": request.document_ids or [],
+                "created_at": datetime.utcnow()
+            }
+            
+            # Save profile
+            firebase.create_patient_profile(profile_data)
+            
+            # Link profile to appointment
+            firebase.update_appointment(appointment_id, {"patient_profile_id": profile_id})
         
         return {
             "success": True,
@@ -113,11 +194,27 @@ async def get_patient_appointments(
     patient_id: str,
     status: Optional[AppointmentStatus] = None
 ):
-    """Get all appointments for a patient."""
+    """Get all appointments for a patient with doctor details."""
     try:
         firebase = get_firebase_service()
         appointments = firebase.get_appointments_by_patient(patient_id, status)
-        return appointments
+        
+        # Enrich appointments with doctor info
+        enriched = []
+        for apt in appointments:
+            doctor_id = apt.get('doctor_id')
+            if doctor_id:
+                doctor = firebase.get_doctor_by_id(doctor_id)
+                if doctor:
+                    apt['doctor_name'] = doctor.get('name') or doctor.get('full_name') or f"Dr. {doctor_id[:8]}"
+                    apt['doctor_specialization'] = doctor.get('specialization') or 'General Physician'
+                    apt['doctor_profile_image'] = doctor.get('profile_image')
+                else:
+                    apt['doctor_name'] = f"Dr. {doctor_id[:8]}"
+                    apt['doctor_specialization'] = 'Specialist'
+            enriched.append(apt)
+        
+        return enriched
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

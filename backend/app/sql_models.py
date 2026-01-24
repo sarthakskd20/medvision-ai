@@ -252,3 +252,140 @@ class PatientReputation(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Consultation(Base):
+    """Consultation session tracking."""
+    __tablename__ = "consultations"
+    
+    id = Column(String(50), primary_key=True)
+    appointment_id = Column(String(50), index=True)
+    doctor_id = Column(String(50), index=True)
+    patient_id = Column(String(50), index=True)
+    
+    status = Column(String(20), default="waiting")
+    is_online = Column(Boolean, default=False)
+    meet_link = Column(String(500))
+    current_token = Column(Integer)
+    
+    consultation_started_at = Column(DateTime)
+    ended_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Message(Base):
+    """Chat messages during consultation."""
+    __tablename__ = "messages"
+    
+    id = Column(String(50), primary_key=True)
+    consultation_id = Column(String(50), index=True)
+    sender_id = Column(String(50))
+    sender_role = Column(String(20))
+    content = Column(Text)
+    type = Column(String(20), default="text")
+    
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    read_at = Column(DateTime)
+
+
+class DoctorNote(Base):
+    """Clinical notes for a consultation."""
+    __tablename__ = "doctor_notes"
+    
+    id = Column(String(50), primary_key=True)
+    consultation_id = Column(String(50), unique=True, index=True)
+    doctor_id = Column(String(50))
+    patient_id = Column(String(50))
+    
+    # SOAP Notes
+    subjective = Column(Text)
+    objective = Column(Text)
+    assessment = Column(Text)
+    plan = Column(Text)
+    
+    provisional_diagnosis = Column(Text)
+    final_diagnosis = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Prescription(Base):
+    """Prescriptions issued during consultation."""
+    __tablename__ = "prescriptions"
+    
+    id = Column(String(50), primary_key=True)
+    consultation_id = Column(String(50), index=True)
+    doctor_id = Column(String(50))
+    patient_id = Column(String(50))
+    
+    medications = Column(JSON, default=list)
+    instructions = Column(Text)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AIAnalysisResult(Base):
+    """AI Analysis results for a consultation."""
+    __tablename__ = "ai_analysis_results"
+    
+    id = Column(String(50), primary_key=True)
+    consultation_id = Column(String(50), unique=True, index=True)
+    doctor_id = Column(String(50))
+    patient_id = Column(String(50))
+    
+    # Analysis content
+    analysis_markdown = Column(Text)  # Full markdown analysis
+    executive_summary = Column(Text)
+    key_findings = Column(JSON, default=list)  # List of findings
+    extracted_documents = Column(JSON, default=list)  # Document extraction results
+    medication_suggestions = Column(JSON, default=list)
+    test_suggestions = Column(JSON, default=list)
+    
+    # Confidence & Uncertainty
+    confidence_score = Column(Float, default=0.0)
+    uncertainties = Column(JSON, default=list)  # List of uncertain points
+    
+    # Token usage
+    tokens_used = Column(Integer, default=0)
+    context_size = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIChatSession(Base):
+    """AI Chat session for doctor-AI conversations during consultation."""
+    __tablename__ = "ai_chat_sessions"
+    
+    id = Column(String(50), primary_key=True)
+    consultation_id = Column(String(50), index=True)
+    doctor_id = Column(String(50))
+    
+    # Context for this session
+    context_summary = Column(Text)  # Summarized patient context
+    analysis_reference_id = Column(String(50))  # Link to AIAnalysisResult
+    
+    is_active = Column(Boolean, default=True)
+    message_count = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIChatMessage(Base):
+    """Individual messages in AI chat sessions."""
+    __tablename__ = "ai_chat_messages"
+    
+    id = Column(String(50), primary_key=True)
+    session_id = Column(String(50), index=True)
+    
+    role = Column(String(20))  # 'doctor' or 'assistant'
+    content = Column(Text)
+    
+    # Metadata
+    tokens_used = Column(Integer, default=0)
+    sources_cited = Column(JSON, default=list)  # Referenced sources/documents
+    
+    created_at = Column(DateTime, default=datetime.utcnow)

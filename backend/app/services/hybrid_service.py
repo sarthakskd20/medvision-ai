@@ -41,45 +41,19 @@ class HybridDatabaseService:
             HybridDatabaseService._initialized = True
     
     def _initialize(self):
-        """Initialize database connections with Firebase-first priority."""
+        """Initialize database connections with SQLite as primary (Firebase disabled for now)."""
         print("\n" + "="*60)
         print("🔧 Initializing Hybrid Database Service")
         print("="*60)
         
-        # Check if Firebase credentials are provided
-        firebase_project_id = os.getenv("FIREBASE_PROJECT_ID")
-        firebase_client_email = os.getenv("FIREBASE_CLIENT_EMAIL") 
-        firebase_private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+        # TEMPORARILY DISABLED: Firebase has async/sync compatibility issues
+        # Force SQLite as primary database for now
+        print("⚠️ Firebase disabled - using SQLite as primary database")
+        print("   (Firebase can be re-enabled once async issues are resolved)")
+        self._use_firebase = False
         
-        firebase_creds_present = all([firebase_project_id, firebase_client_email, firebase_private_key])
-        
-        if FIREBASE_AVAILABLE and firebase_creds_present:
-            print("📡 Firebase credentials detected, attempting connection...")
-            try:
-                self._firebase = FirebaseService()
-                if self._firebase.is_connected:
-                    self._use_firebase = True
-                    print("✅ Firebase Firestore connected successfully!")
-                    print(f"   Project: {firebase_project_id}")
-                else:
-                    print("⚠️ Firebase initialized but not connected, using SQLite fallback")
-            except Exception as e:
-                print(f"❌ Firebase connection failed: {e}")
-                print("⚠️ Falling back to SQLite database")
-        else:
-            if not FIREBASE_AVAILABLE:
-                print("⚠️ Firebase Admin SDK not installed")
-            if not firebase_creds_present:
-                print("⚠️ Firebase credentials not found in environment")
-                if not firebase_project_id:
-                    print("   - FIREBASE_PROJECT_ID: NOT SET")
-                if not firebase_client_email:
-                    print("   - FIREBASE_CLIENT_EMAIL: NOT SET")
-                if not firebase_private_key:
-                    print("   - FIREBASE_PRIVATE_KEY: NOT SET")
-        
-        # Always initialize SQLite as fallback
-        print("\n💾 Initializing SQLite fallback database...")
+        # Initialize SQLite as primary
+        print("\n💾 Initializing SQLite database...")
         try:
             self._sqlite = DatabaseService()
             print("✅ SQLite database ready")
@@ -88,11 +62,8 @@ class HybridDatabaseService:
         
         # Summary
         print("\n" + "-"*60)
-        if self._use_firebase:
-            print("📊 Active Database: Firebase Firestore (Primary)")
-            print("📊 Fallback Database: SQLite (Available)")
-        else:
-            print("📊 Active Database: SQLite (Firebase unavailable)")
+        print("📊 Active Database: SQLite (Primary)")
+        print("📊 Firebase: Disabled (async compatibility)")
         print("="*60 + "\n")
     
     @property

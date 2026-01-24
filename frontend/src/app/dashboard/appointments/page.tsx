@@ -6,17 +6,16 @@ import {
     Users,
     Clock,
     Play,
+    ArrowRight,
     CheckCircle,
-    XCircle,
     User,
     Calendar,
     Video,
     MapPin,
     Brain,
-    ChevronRight,
-    AlertCircle,
     RefreshCw,
-    CalendarDays
+    CalendarDays,
+    X
 } from 'lucide-react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
@@ -41,9 +40,6 @@ export default function DoctorAppointmentsPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [upcomingByDate, setUpcomingByDate] = useState<Record<string, Appointment[]>>({})
     const [loading, setLoading] = useState(true)
-    const [currentPatient, setCurrentPatient] = useState<Appointment | null>(null)
-    const [doctorStatus, setDoctorStatus] = useState<'idle' | 'consulting'>('idle')
-    const [meetLink, setMeetLink] = useState<string>('')
     const [doctorId, setDoctorId] = useState<string>('')
 
     useEffect(() => {
@@ -52,10 +48,6 @@ export default function DoctorAppointmentsPage() {
         // Use document ID first (matches how appointments are created), fallback to email
         const id = user.id || user.email
         setDoctorId(id)
-
-        // Load meet link from localStorage
-        const savedMeetLink = localStorage.getItem('doctor_meet_link') || ''
-        setMeetLink(savedMeetLink)
 
         if (id) {
             fetchAppointments(id)
@@ -91,29 +83,8 @@ export default function DoctorAppointmentsPage() {
         }
     }
 
-    const startConsultation = (appointment: Appointment) => {
-        setCurrentPatient(appointment)
-        setDoctorStatus('consulting')
-        setAppointments(prev => prev.map(a =>
-            a.id === appointment.id ? { ...a, status: 'in_progress' as const } : a
-        ))
-    }
-
-    const endConsultation = () => {
-        if (currentPatient) {
-            setAppointments(prev => prev.map(a =>
-                a.id === currentPatient.id ? { ...a, status: 'completed' as const } : a
-            ))
-        }
-        setCurrentPatient(null)
-        setDoctorStatus('idle')
-    }
-
-    const markNoShow = (appointment: Appointment) => {
-        setAppointments(prev => prev.map(a =>
-            a.id === appointment.id ? { ...a, status: 'no_show' as const } : a
-        ))
-    }
+    // startConsultation now navigates to the dedicated consultation page
+    // The actual status update and no-show marking is handled in the consultation page
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr)
@@ -129,6 +100,7 @@ export default function DoctorAppointmentsPage() {
 
     const waitingPatients = appointments.filter(a => a.status === 'waiting' || a.status === 'pending' || a.status === 'confirmed')
     const completedPatients = appointments.filter(a => a.status === 'completed')
+    const noShowPatients = appointments.filter(a => a.status === 'no_show')
 
     // Count total upcoming appointments
     const totalUpcoming = Object.values(upcomingByDate).reduce((sum, arr) => sum + arr.length, 0)
@@ -137,35 +109,35 @@ export default function DoctorAppointmentsPage() {
         <div
             key={appointment.id}
             className={`p-4 flex items-center gap-4 ${appointment.status === 'in_progress'
-                ? 'bg-primary-50'
+                ? 'bg-primary-50 dark:bg-primary-900/20'
                 : appointment.status === 'completed'
-                    ? 'bg-green-50'
+                    ? 'bg-green-50 dark:bg-green-900/20'
                     : appointment.status === 'no_show'
-                        ? 'bg-red-50'
-                        : 'hover:bg-slate-50'
+                        ? 'bg-red-50 dark:bg-red-900/20'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 } transition-colors`}
         >
             {/* Token Number */}
-            <div className={`w-12 h-12  flex items-center justify-center font-bold text-lg ${appointment.status === 'in_progress'
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${appointment.status === 'in_progress'
                 ? 'bg-primary-600 text-white'
                 : appointment.status === 'completed'
                     ? 'bg-green-600 text-white'
-                    : 'bg-slate-200 text-slate-700'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
                 }`}>
                 #{appointment.queue_number}
             </div>
 
             {/* Patient Info */}
             <div className="flex-1">
-                <h3 className="font-semibold text-slate-900">{appointment.patient_name || appointment.patient_id}</h3>
-                <p className="text-sm text-slate-500">
+                <h3 className="font-semibold text-slate-900 dark:text-white">{appointment.patient_name || appointment.patient_id}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                     {appointment.patient_age ? `${appointment.patient_age} yrs` : ''}
                     {appointment.patient_age && appointment.patient_gender && ', '}
                     {appointment.patient_gender}
                     {appointment.chief_complaint && ` • ${appointment.chief_complaint}`}
                 </p>
                 {showDate && appointment.scheduled_time && (
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         {new Date(appointment.scheduled_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                 )}
@@ -173,8 +145,8 @@ export default function DoctorAppointmentsPage() {
 
             {/* Mode Badge */}
             <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${appointment.mode === 'online'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-orange-100 text-orange-700'
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
                 }`}>
                 {appointment.mode === 'online' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
                 {appointment.mode === 'online' ? 'Online' : 'In-Person'}
@@ -182,12 +154,12 @@ export default function DoctorAppointmentsPage() {
 
             {/* Status Badge */}
             <div className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed'
-                ? 'bg-amber-100 text-amber-700'
+                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
                 : appointment.status === 'in_progress'
-                    ? 'bg-primary-100 text-primary-700'
+                    ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
                     : appointment.status === 'completed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
+                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                        : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                 }`}>
                 {(appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed') && 'Scheduled'}
                 {appointment.status === 'in_progress' && 'In Progress'}
@@ -196,23 +168,15 @@ export default function DoctorAppointmentsPage() {
             </div>
 
             {/* Actions - Only for today's appointments */}
-            {activeTab === 'today' && (appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed') && !currentPatient && (
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => startConsultation(appointment)}
-                        className="flex items-center gap-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
-                    >
-                        <Play className="w-4 h-4" />
-                        Start
-                    </button>
-                    <button
-                        onClick={() => markNoShow(appointment)}
-                        className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                    >
-                        <XCircle className="w-4 h-4" />
-                        No Show
-                    </button>
-                </div>
+            {activeTab === 'today' && (appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed') && (
+                <Link
+                    href={`/dashboard/consultation/${appointment.id}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors group"
+                >
+                    <Play className="w-4 h-4" />
+                    Start Consultation
+                    <ArrowRight className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                </Link>
             )}
 
             {/* View Patient Profile - For upcoming appointments */}
@@ -227,10 +191,14 @@ export default function DoctorAppointmentsPage() {
             )}
 
             {appointment.status === 'in_progress' && (
-                <div className="flex items-center gap-2 text-primary-600">
+                <Link
+                    href={`/dashboard/consultation/${appointment.id}`}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors group"
+                >
                     <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" />
-                    In Session
-                </div>
+                    Continue Consultation
+                    <ArrowRight className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+                </Link>
             )}
         </div>
     )
@@ -322,7 +290,7 @@ export default function DoctorAppointmentsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                                         <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -333,77 +301,18 @@ export default function DoctorAppointmentsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                                        <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
+                                        <X className="w-5 h-5 text-red-600 dark:text-red-400" />
                                     </div>
                                     <div>
-                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                                            {doctorStatus === 'consulting' ? 'Active' : 'Ready'}
-                                        </p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Status</p>
+                                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{noShowPatients.length}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">No Show</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Current Consultation Banner */}
-                        {currentPatient && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-gradient-to-r from-primary-600 to-teal-600 rounded-2xl p-6 text-white"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-                                            <User className="w-7 h-7" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm opacity-80">Currently Consulting</p>
-                                            <h3 className="text-xl font-bold">{currentPatient.patient_name}</h3>
-                                            <p className="text-sm opacity-80">
-                                                Token #{currentPatient.queue_number} • {currentPatient.patient_age} yrs, {currentPatient.patient_gender}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        {currentPatient.mode === 'online' && meetLink && (
-                                            <a
-                                                href={meetLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30  transition-colors"
-                                            >
-                                                <Video className="w-4 h-4" />
-                                                Join Meet
-                                            </a>
-                                        )}
-                                        <Link
-                                            href={`/dashboard/patient/${currentPatient.patient_id}`}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30  transition-colors"
-                                        >
-                                            <Brain className="w-4 h-4" />
-                                            AI Analysis
-                                        </Link>
-                                        <button
-                                            onClick={endConsultation}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white text-primary-600  font-semibold hover:bg-white/90 transition-colors"
-                                        >
-                                            <CheckCircle className="w-4 h-4" />
-                                            End Consultation
-                                        </button>
-                                    </div>
-                                </div>
-                                {currentPatient.chief_complaint && (
-                                    <div className="mt-4 pt-4 border-t border-white/20">
-                                        <p className="text-sm opacity-80">Chief Complaint</p>
-                                        <p className="font-medium">{currentPatient.chief_complaint}</p>
-                                    </div>
-                                )}
-                            </motion.div>
-                        )}
 
                         {/* Queue List */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -492,19 +401,6 @@ export default function DoctorAppointmentsPage() {
                 )}
             </AnimatePresence>
 
-            {/* No Meet Link Warning */}
-            {!meetLink && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-center gap-4">
-                    <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                    <div className="flex-1">
-                        <p className="text-red-800 dark:text-red-300 font-medium">Google Meet link not configured</p>
-                        <p className="text-sm text-red-600 dark:text-red-400">Set up your Meet link in Profile to enable online consultations</p>
-                    </div>
-                    <Link href="/dashboard/profile" className="text-red-700 dark:text-red-300 font-semibold hover:underline">
-                        Configure Now
-                    </Link>
-                </div>
-            )}
 
         </div>
     )

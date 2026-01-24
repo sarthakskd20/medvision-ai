@@ -6,12 +6,14 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
-    User, Clock, MapPin, Video, Phone,
-    FileText, Activity, MessageSquare, Send,
-    Brain, Pill, Calendar, CheckCircle,
+    User, FileText, Send, Clock, MessageSquare, Video,
+    Brain, Pill, Calendar, CheckCircle, MapPin,
     AlertTriangle, Download, Upload, Plus,
-    Trash2, ChevronDown, ExternalLink, X
+    Trash2, ChevronDown, ExternalLink, X, Loader2
 } from 'lucide-react'
+import { MarkdownRenderer, markdownStyles } from '@/components/MarkdownRenderer'
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface PatientProfile {
     basic_info: {
@@ -111,8 +113,11 @@ export default function ConsultationPage() {
     // AI Analysis
     const [aiAnalysisResult, setAiAnalysisResult] = useState<any>(null)
     const [runningAnalysis, setRunningAnalysis] = useState(false)
-    const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: string, content: string }>>([])
+    const [aiChatMessages, setAiChatMessages] = useState<Array<{ id: string, role: string, content: string, created_at: string }>>([]
+    )
     const [aiChatInput, setAiChatInput] = useState('')
+    const [sendingAiChat, setSendingAiChat] = useState(false)
+    const aiChatEndRef = useRef<HTMLDivElement>(null)
 
     // Prescription
     const [medications, setMedications] = useState<Medication[]>([])
@@ -138,7 +143,7 @@ export default function ConsultationPage() {
             const token = localStorage.getItem('token')
 
             // Start or get consultation
-            const startRes = await fetch(`/api/consultation/start/${appointmentId}`, {
+            const startRes = await fetch(`${API_BASE}/api/consultation/start/${appointmentId}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -149,7 +154,7 @@ export default function ConsultationPage() {
                 setStatus(consultationData.status || 'waiting')
 
                 // Get full consultation details
-                const detailsRes = await fetch(`/api/consultation/${consultationData.id}`, {
+                const detailsRes = await fetch(`${API_BASE}/api/consultation/${consultationData.id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
 
@@ -164,7 +169,7 @@ export default function ConsultationPage() {
                 }
 
                 // Get messages
-                const msgRes = await fetch(`/api/consultation/${consultationData.id}/messages`, {
+                const msgRes = await fetch(`${API_BASE}/api/consultation/${consultationData.id}/messages`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (msgRes.ok) {
@@ -182,7 +187,7 @@ export default function ConsultationPage() {
     const updateStatus = async (newStatus: ConsultationStatus) => {
         try {
             const token = localStorage.getItem('token')
-            await fetch(`/api/consultation/${consultation?.id}/status?status=${newStatus}`, {
+            await fetch(`${API_BASE}/api/consultation/${consultation?.id}/status?status=${newStatus}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -199,7 +204,7 @@ export default function ConsultationPage() {
             setSendingMessage(true)
             const token = localStorage.getItem('token')
 
-            const res = await fetch(`/api/consultation/${consultation.id}/messages?sender_type=doctor`, {
+            const res = await fetch(`${API_BASE}/api/consultation/${consultation.id}/messages?sender_type=doctor`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -226,7 +231,7 @@ export default function ConsultationPage() {
     const saveNotes = async () => {
         try {
             const token = localStorage.getItem('token')
-            await fetch(`/api/consultation/${consultation?.id}/notes`, {
+            await fetch(`${API_BASE}/api/consultation/${consultation?.id}/notes`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -251,25 +256,81 @@ export default function ConsultationPage() {
     }
 
     const runAIAnalysis = async () => {
+        if (!consultation?.id) return
         try {
             setRunningAnalysis(true)
-            // Simulated AI analysis for demo
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            setAiAnalysisResult({
-                executive_summary: 'Patient presents with symptoms consistent with mild respiratory infection. No concerning patterns detected in available medical history.',
-                timeline_events: [],
-                medication_suggestions: [
-                    { drug: 'Amoxicillin 500mg', reason: 'Bacterial infection coverage', dosage_suggestion: 'TDS for 5 days' }
-                ],
-                test_suggestions: [
-                    { test: 'Complete Blood Count', reason: 'Rule out secondary infection', urgency: 'routine' }
-                ],
-                confidence: 0.85
+            const token = localStorage.getItem('token')
+
+            // First try to get existing analysis
+            let response = await fetch(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             })
+            let data = await response.json()
+
+            if (!data.success || !data.analysis) {
+                // Generate new analysis
+                response = await fetch(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                data = await response.json()
+            }
+
+            if (data.success && data.analysis) {
+                setAiAnalysisResult(data.analysis)
+            }
+
+            // Also fetch chat history
+            const chatResponse = await fetch(`${API_BASE}/api/consultation/ai/chat/${consultation.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            const chatData = await chatResponse.json()
+            if (chatData.success && chatData.messages) {
+                setAiChatMessages(chatData.messages)
+            }
         } catch (error) {
             console.error('Error running analysis:', error)
         } finally {
             setRunningAnalysis(false)
+        }
+    }
+
+    const sendAiChatMessage = async () => {
+        if (!aiChatInput.trim() || !consultation?.id || sendingAiChat) return
+        try {
+            setSendingAiChat(true)
+            const token = localStorage.getItem('token')
+
+            const response = await fetch(`${API_BASE}/api/consultation/ai/chat/${consultation.id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: aiChatInput })
+            })
+
+            const data = await response.json()
+            if (data.success && data.message) {
+                // Add user message and AI response
+                setAiChatMessages(prev => [...prev, {
+                    id: `user_${Date.now()}`,
+                    role: 'doctor',
+                    content: aiChatInput,
+                    created_at: new Date().toISOString()
+                }, data.message])
+                setAiChatInput('')
+
+                // Scroll to bottom
+                setTimeout(() => aiChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+            }
+        } catch (error) {
+            console.error('AI chat error:', error)
+        } finally {
+            setSendingAiChat(false)
         }
     }
 
@@ -301,9 +362,15 @@ export default function ConsultationPage() {
         try {
             const token = localStorage.getItem('token')
 
+            if (!consultation?.id) {
+                console.error('No consultation ID found')
+                alert('Error: No active consultation found')
+                return
+            }
+
             // Save prescription if any medications
             if (medications.length > 0) {
-                await fetch(`/api/consultation/${consultation?.id}/prescription`, {
+                const prescRes = await fetch(`${API_BASE}/api/consultation/${consultation.id}/prescription`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -316,10 +383,14 @@ export default function ConsultationPage() {
                         special_instructions: specialInstructions
                     })
                 })
+
+                if (!prescRes.ok) {
+                    console.error('Failed to save prescription:', await prescRes.text())
+                }
             }
 
             // Finish consultation
-            await fetch(`/api/consultation/${consultation?.id}/finish`, {
+            const finishRes = await fetch(`${API_BASE}/api/consultation/${consultation.id}/finish`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -333,9 +404,17 @@ export default function ConsultationPage() {
                 })
             })
 
-            router.push('/dashboard/appointments')
+            if (finishRes.ok) {
+                console.log('Consultation finished successfully')
+                router.push('/dashboard/appointments')
+            } else {
+                const errorText = await finishRes.text()
+                console.error('Failed to finish consultation:', errorText)
+                alert('Failed to finish consultation: ' + errorText)
+            }
         } catch (error) {
             console.error('Error finishing consultation:', error)
+            alert('Error finishing consultation. Check console for details.')
         }
     }
 
@@ -431,8 +510,8 @@ export default function ConsultationPage() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-t-lg transition-colors ${activeTab === tab.id
-                                ? 'bg-teal-600 text-white'
-                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            ? 'bg-teal-600 text-white'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                             }`}
                     >
                         <tab.icon className="w-5 h-5" />
@@ -457,13 +536,17 @@ export default function ConsultationPage() {
                                 <div className="flex justify-between">
                                     <span className="text-slate-500">Allergies</span>
                                     <span className="font-semibold text-slate-900 dark:text-white">
-                                        {patientProfile?.basic_info?.allergies?.join(', ') || 'None reported'}
+                                        {patientProfile?.basic_info?.allergies && patientProfile.basic_info.allergies.length > 0
+                                            ? patientProfile.basic_info.allergies.join(', ')
+                                            : 'None reported'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-slate-500">Current Medications</span>
                                     <span className="font-semibold text-slate-900 dark:text-white">
-                                        {patientProfile?.basic_info?.current_medications?.join(', ') || 'None'}
+                                        {patientProfile?.basic_info?.current_medications && patientProfile.basic_info.current_medications.length > 0
+                                            ? patientProfile.basic_info.current_medications.join(', ')
+                                            : 'None'}
                                     </span>
                                 </div>
                             </div>
@@ -473,9 +556,13 @@ export default function ConsultationPage() {
                                 <p className="text-slate-900 dark:text-white font-medium">
                                     {patientProfile?.chief_complaint?.description || 'Not specified'}
                                 </p>
-                                <div className="flex gap-4 mt-2 text-sm text-slate-600 dark:text-slate-400">
-                                    <span>Duration: {patientProfile?.chief_complaint?.duration || 'Unknown'}</span>
-                                    <span>Severity: {patientProfile?.chief_complaint?.severity || '?'}/10</span>
+                                <div className="flex flex-wrap gap-4 mt-2 text-sm text-slate-600 dark:text-slate-400">
+                                    <span>
+                                        Duration: {(patientProfile?.chief_complaint as any)?.details?.duration || patientProfile?.chief_complaint?.duration || '?'} {(patientProfile?.chief_complaint as any)?.details?.duration_unit || ''}
+                                    </span>
+                                    <span>
+                                        Severity: {(patientProfile?.chief_complaint as any)?.details?.severity || patientProfile?.chief_complaint?.severity || '?'}/10
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -485,18 +572,23 @@ export default function ConsultationPage() {
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Uploaded Documents</h3>
                             {patientProfile?.uploaded_documents?.length ? (
                                 <div className="space-y-2">
-                                    {patientProfile.uploaded_documents.map(doc => (
-                                        <div key={doc.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                    {patientProfile.uploaded_documents.map((doc: any) => (
+                                        <div key={doc} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                                             <div className="flex items-center gap-3">
                                                 <FileText className="w-5 h-5 text-teal-600" />
                                                 <div>
-                                                    <p className="font-medium text-slate-900 dark:text-white">{doc.name}</p>
-                                                    <p className="text-sm text-slate-500">{doc.document_type}</p>
+                                                    <p className="font-medium text-slate-900 dark:text-white">
+                                                        {/* Document ID is just a UUID, we don't have the original name stored easily in this view yet, using generic name or ID */}
+                                                        Medical Document
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 font-mono">{typeof doc === 'string' ? doc.substring(0, 8) : doc.id?.substring(0, 8)}...</p>
                                                 </div>
                                             </div>
                                             <a
-                                                href={doc.url}
+                                                href={`${API_BASE}/api/appointments/files/${typeof doc === 'string' ? doc : doc.id}`}
                                                 download
+                                                target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="p-2 text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/30 rounded-lg"
                                             >
                                                 <Download className="w-5 h-5" />
@@ -509,16 +601,33 @@ export default function ConsultationPage() {
                             )}
 
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-4">Medical History</h3>
-                            {patientProfile?.medical_history?.length ? (
+                            {patientProfile?.medical_history &&
+                                ((Array.isArray(patientProfile.medical_history) && patientProfile.medical_history.length > 0) ||
+                                    (typeof patientProfile.medical_history === 'object' && Object.keys(patientProfile.medical_history).length > 0)) ? (
                                 <div className="space-y-2">
-                                    {patientProfile.medical_history.map((item, i) => (
-                                        <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                            <span className="font-medium text-slate-900 dark:text-white">{item.condition}</span>
-                                            <span className="text-sm text-slate-500">
-                                                {item.diagnosed_year || 'Unknown'} {item.is_ongoing ? '(Ongoing)' : '(Resolved)'}
-                                            </span>
-                                        </div>
-                                    ))}
+                                    {/* Handle array format */}
+                                    {Array.isArray(patientProfile.medical_history) ? (
+                                        patientProfile.medical_history.map((item, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                <span className="font-medium text-slate-900 dark:text-white">{item.condition}</span>
+                                                <span className="text-sm text-slate-500">
+                                                    {item.diagnosed_year || 'Unknown'} {item.is_ongoing ? '(Ongoing)' : '(Resolved)'}
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        /* Handle new object format {conditions: [], ...} */
+                                        <>
+                                            {(patientProfile.medical_history as any).conditions?.map((condition: string, i: number) => (
+                                                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                                    <span className="font-medium text-slate-900 dark:text-white">{condition}</span>
+                                                </div>
+                                            ))}
+                                            {(patientProfile.medical_history as any).conditions?.length === 0 && (
+                                                <p className="text-slate-500 dark:text-slate-400">No specific conditions listed.</p>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             ) : (
                                 <p className="text-slate-500 dark:text-slate-400">No medical history recorded</p>
@@ -542,8 +651,8 @@ export default function ConsultationPage() {
                                         className={`flex ${msg.sender_type === 'doctor' ? 'justify-end' : 'justify-start'}`}
                                     >
                                         <div className={`max-w-[70%] p-3 rounded-lg ${msg.sender_type === 'doctor'
-                                                ? 'bg-teal-600 text-white'
-                                                : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+                                            ? 'bg-teal-600 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
                                             }`}>
                                             <p>{msg.content}</p>
                                             <p className={`text-xs mt-1 ${msg.sender_type === 'doctor' ? 'text-teal-200' : 'text-slate-400'
@@ -673,66 +782,177 @@ export default function ConsultationPage() {
 
                 {/* AI Analysis Tab */}
                 {activeTab === 'ai' && (
-                    <div>
-                        <div className="flex items-center justify-between mb-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">MedVision AI Analysis</h3>
-                                <p className="text-slate-500 dark:text-slate-400">Analyze patient documents, history, and notes</p>
+                    <div className="grid lg:grid-cols-2 gap-6">
+                        {/* Analysis Panel */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">MedVision AI Analysis</h3>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Comprehensive patient analysis</p>
+                                </div>
+                                <button
+                                    onClick={runAIAnalysis}
+                                    disabled={runningAnalysis}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
+                                >
+                                    {runningAnalysis ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Brain className="w-4 h-4" />
+                                    )}
+                                    {runningAnalysis ? 'Analyzing...' : 'Run Analysis'}
+                                </button>
                             </div>
-                            <button
-                                onClick={runAIAnalysis}
-                                disabled={runningAnalysis}
-                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
-                            >
-                                <Brain className={`w-5 h-5 ${runningAnalysis ? 'animate-pulse' : ''}`} />
-                                {runningAnalysis ? 'Analyzing...' : 'Run AI Analysis'}
-                            </button>
+
+                            {aiAnalysisResult ? (
+                                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                                    {/* Confidence Score */}
+                                    <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                                        <div className="flex-1">
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="font-medium text-slate-700 dark:text-slate-300">Analysis Confidence</span>
+                                                <span className="font-bold text-purple-600">{aiAnalysisResult.confidence_score?.toFixed(0) || 70}%</span>
+                                            </div>
+                                            <div className="h-2 bg-slate-300 dark:bg-slate-600 rounded-full overflow-hidden">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all"
+                                                    style={{ width: `${aiAnalysisResult.confidence_score || 70}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Executive Summary */}
+                                    {aiAnalysisResult.executive_summary && (
+                                        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                                            <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-2">Executive Summary</h4>
+                                            <p className="text-slate-700 dark:text-slate-300">{aiAnalysisResult.executive_summary}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Uncertainties */}
+                                    {aiAnalysisResult.uncertainties?.length > 0 && (
+                                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                            <h4 className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-200 mb-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                Points to Verify
+                                            </h4>
+                                            <ul className="space-y-1">
+                                                {aiAnalysisResult.uncertainties.map((u: string, i: number) => (
+                                                    <li key={i} className="text-sm text-amber-700 dark:text-amber-300">• {u}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {/* Full Analysis Markdown */}
+                                    {aiAnalysisResult.analysis_markdown && (
+                                        <div className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h4 className="font-bold text-slate-900 dark:text-white">Detailed Analysis</h4>
+                                                <button
+                                                    onClick={() => {
+                                                        if (consultation?.id) {
+                                                            window.open(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}/pdf`, '_blank')
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    Download PDF
+                                                </button>
+                                            </div>
+                                            <div className="prose dark:prose-invert max-w-none text-sm">
+                                                <MarkdownRenderer content={aiAnalysisResult.analysis_markdown} />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Key Findings */}
+                                    {aiAnalysisResult.key_findings?.length > 0 && (
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                            <h4 className="font-bold text-slate-900 dark:text-white mb-2">Key Findings</h4>
+                                            <ul className="space-y-1">
+                                                {aiAnalysisResult.key_findings.map((f: any, i: number) => (
+                                                    <li key={i} className="text-sm text-slate-700 dark:text-slate-300">
+                                                        • {f.finding || f}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-16 text-slate-500 dark:text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg">
+                                    <Brain className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                                    <p className="font-medium">No analysis yet</p>
+                                    <p className="text-sm">Click &quot;Run Analysis&quot; to generate AI insights</p>
+                                </div>
+                            )}
                         </div>
 
-                        {aiAnalysisResult ? (
-                            <div className="space-y-6">
-                                {/* Summary */}
-                                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-                                    <h4 className="font-bold text-purple-900 dark:text-purple-200 mb-2">Executive Summary</h4>
-                                    <p className="text-slate-700 dark:text-slate-300">{aiAnalysisResult.executive_summary}</p>
-                                    <p className="text-sm text-purple-600 dark:text-purple-400 mt-2">
-                                        Confidence: {(aiAnalysisResult.confidence * 100).toFixed(0)}%
-                                    </p>
-                                </div>
+                        {/* AI Chat Panel */}
+                        <div className="flex flex-col bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-purple-600" />
+                                    AI Assistant Chat
+                                </h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Ask follow-up questions about the patient</p>
+                            </div>
 
-                                {/* Suggestions */}
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-3">Medication Suggestions</h4>
-                                        {aiAnalysisResult.medication_suggestions?.map((med: any, i: number) => (
-                                            <div key={i} className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-2">
-                                                <p className="font-medium text-green-900 dark:text-green-200">{med.drug}</p>
-                                                <p className="text-sm text-green-700 dark:text-green-400">{med.reason}</p>
-                                                <p className="text-sm text-green-600 dark:text-green-500">Suggested: {med.dosage_suggestion}</p>
-                                            </div>
-                                        ))}
+                            {/* Chat Messages */}
+                            <div className="flex-1 p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                {aiChatMessages.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-400">
+                                        <p className="text-sm">Start a conversation with the AI</p>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white mb-3">Suggested Tests</h4>
-                                        {aiAnalysisResult.test_suggestions?.map((test: any, i: number) => (
-                                            <div key={i} className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-2">
-                                                <p className="font-medium text-blue-900 dark:text-blue-200">{test.test}</p>
-                                                <p className="text-sm text-blue-700 dark:text-blue-400">{test.reason}</p>
-                                                <span className={`text-xs px-2 py-1 rounded ${test.urgency === 'urgent' ? 'bg-red-200 text-red-800' : 'bg-slate-200 text-slate-700'
-                                                    }`}>
-                                                    {test.urgency}
-                                                </span>
+                                ) : (
+                                    aiChatMessages.map((msg, idx) => (
+                                        <div key={msg.id || idx} className={`flex ${msg.role === 'doctor' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[85%] p-3 rounded-lg ${msg.role === 'doctor'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600'
+                                                }`}>
+                                                {msg.role === 'doctor' ? (
+                                                    <p className="text-sm">{msg.content}</p>
+                                                ) : (
+                                                    <div className="text-sm text-slate-700 dark:text-slate-300">
+                                                        <MarkdownRenderer content={msg.content} />
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    ))
+                                )}
+                                <div ref={aiChatEndRef} />
+                            </div>
+
+                            {/* Chat Input */}
+                            <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={aiChatInput}
+                                        onChange={(e) => setAiChatInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendAiChatMessage()}
+                                        placeholder="Ask about the patient..."
+                                        className="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <button
+                                        onClick={sendAiChatMessage}
+                                        disabled={sendingAiChat || !aiChatInput.trim()}
+                                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        {sendingAiChat ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Send className="w-4 h-4" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                                <Brain className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                                <p>Click "Run AI Analysis" to analyze patient data</p>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 )}
 

@@ -227,6 +227,14 @@ class CreateAppointmentRequest(BaseModel):
     patient_age: Optional[int] = None
     patient_gender: Optional[str] = None
     chief_complaint: Optional[str] = None
+    
+    # Detailed profile info
+    patient_blood_group: Optional[str] = None
+    patient_allergies: List[str] = []
+    patient_medications: List[str] = []
+    patient_symptoms_details: Optional[dict] = None
+    patient_medical_history: Optional[dict] = None
+    document_ids: List[str] = []
 
 
 class UpdateAppointmentStatusRequest(BaseModel):

@@ -32,14 +32,7 @@ interface Appointment {
     hospital_address?: string
 }
 
-// Demo doctor mapping for hackathon
-const doctorInfo: Record<string, { name: string; specialization: string }> = {
-    '1': { name: 'Dr. Priya Sharma', specialization: 'Cardiologist' },
-    '2': { name: 'Dr. Rajesh Kumar', specialization: 'General Physician' },
-    '3': { name: 'Dr. Amit Patel', specialization: 'Dermatologist' },
-    '4': { name: 'Dr. Sunita Gupta', specialization: 'ENT Specialist' },
-    '5': { name: 'Dr. Vikram Singh', specialization: 'Orthopedic Surgeon' }
-}
+// Demo doctor mapping for hackathon - REMOVED: Using API data now
 
 export default function PatientDashboard() {
     const [patientName, setPatientName] = useState('Patient')
@@ -67,19 +60,13 @@ export default function PatientDashboard() {
 
                     const patientId = user.email || user.id
                     if (patientId) {
-                        // Fetch real appointments
+                        // Fetch real appointments - API now returns doctor_name
                         const appointmentsData = await api.getPatientAppointments(patientId)
-                        const mappedAppointments = appointmentsData.map((apt: any) => {
-                            const docInfo = doctorInfo[apt.doctor_id] || {
-                                name: `Dr. Unknown (${apt.doctor_id})`,
-                                specialization: 'Specialist'
-                            }
-                            return {
-                                ...apt,
-                                doctorName: apt.doctorName || docInfo.name,
-                                specialization: apt.specialization || docInfo.specialization
-                            }
-                        })
+                        const mappedAppointments = appointmentsData.map((apt: any) => ({
+                            ...apt,
+                            doctorName: apt.doctor_name || apt.doctorName || `Dr. ${apt.doctor_id?.substring(0, 8) || 'Unknown'}`,
+                            specialization: apt.doctor_specialization || apt.specialization || 'Specialist'
+                        }))
                         setAppointments(mappedAppointments)
 
                         // Calculate stats
@@ -382,7 +369,7 @@ export default function PatientDashboard() {
                                                     </span>
                                                     <span className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4" />
-                                                        {formatDate(appointment.scheduled_time)} at {formatTime(appointment.scheduled_time)}
+                                                        {formatDate(appointment.scheduled_time)}
                                                     </span>
                                                 </div>
                                             </div>

@@ -219,14 +219,19 @@ def login_doctor(data: LoginRequest) -> LoginResponse:
             )
     
     # Check Firebase for registered doctors
+    print(f"[DEBUG] Looking up doctor with email: {data.email}")
     doctor_data = _run_async(firebase.get_doctor_by_email(data.email))
+    print(f"[DEBUG] Doctor data from Firebase: {doctor_data}")
     if not doctor_data:
+        print(f"[DEBUG] No doctor found with email {data.email}")
         raise ValueError("Invalid email or password")
     
     # Reconstruct DoctorInDB
     doctor = DoctorInDB(**doctor_data)
     
+    print(f"[DEBUG] Verifying password for doctor: {doctor.email}")
     if not verify_password(data.password, doctor.password_hash):
+        print(f"[DEBUG] Password verification failed")
         raise ValueError("Invalid email or password")
     
     # Validate registration number (security layer)

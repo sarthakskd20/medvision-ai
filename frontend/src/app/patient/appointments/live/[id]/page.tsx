@@ -8,8 +8,9 @@ import {
     Clock, MapPin, Video, Phone,
     MessageSquare, Send, Bell, AlertTriangle,
     CheckCircle, User, Coffee, ExternalLink,
-    RefreshCw
+    RefreshCw, ArrowLeft
 } from 'lucide-react'
+import { api } from '@/lib/api'
 
 interface QueuePosition {
     appointment_id: string
@@ -96,16 +97,19 @@ export default function LiveQueuePage() {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const token = localStorage.getItem('token')
 
             // Get appointment details
-            const aptRes = await fetch(`/api/appointments/${appointmentId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-
-            if (aptRes.ok) {
-                const aptData = await aptRes.json()
+            try {
+                const aptData = await api.getAppointmentDetails(appointmentId)
                 setAppointment(aptData)
+
+                // If completed, redirect to prescription view
+                if (aptData.status === 'completed') {
+                    router.push(`/patient/appointments/${appointmentId}`)
+                    return
+                }
+            } catch (error) {
+                console.error('Error fetching appointment:', error)
             }
 
             await fetchQueuePosition()
@@ -120,15 +124,8 @@ export default function LiveQueuePage() {
 
     const fetchQueuePosition = async () => {
         try {
-            const token = localStorage.getItem('token')
-            const res = await fetch(`/api/consultation/queue/position/${appointmentId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-
-            if (res.ok) {
-                const data = await res.json()
-                setQueuePosition(data)
-            }
+            const data = await api.getQueuePosition(appointmentId)
+            setQueuePosition(data)
         } catch (error) {
             console.error('Error fetching queue position:', error)
         }
@@ -136,24 +133,8 @@ export default function LiveQueuePage() {
 
     const fetchMessages = async () => {
         try {
-            const token = localStorage.getItem('token')
-            // Get consultation ID first
-            const consRes = await fetch(`/api/consultation/appointment/${appointmentId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-
-            if (consRes.ok) {
-                const consultation = await consRes.json()
-                if (consultation?.id) {
-                    const msgRes = await fetch(`/api/consultation/${consultation.id}/messages`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    })
-                    if (msgRes.ok) {
-                        const msgData = await msgRes.json()
-                        setMessages(msgData.messages || [])
-                    }
-                }
-            }
+            const msgData = await api.getMessagesByAppointment(appointmentId)
+            setMessages(msgData.messages || [])
         } catch (error) {
             console.error('Error fetching messages:', error)
         }
@@ -164,16 +145,15 @@ export default function LiveQueuePage() {
 
         try {
             setSendingMessage(true)
-            const token = localStorage.getItem('token')
 
-            // For now, we'll add to local state (actual implementation would use WebSocket)
-            const msg: Message = {
-                id: `msg_${Date.now()}`,
-                content: newMessage,
+            const result = await api.sendMessageByAppointment(appointmentId, newMessage, 'patient')
+
+            setMessages(prev => [...prev, {
+                id: result.id,
+                content: result.content,
                 sender_type: 'patient',
-                created_at: new Date().toISOString()
-            }
-            setMessages(prev => [...prev, msg])
+                created_at: result.created_at
+            }])
             setNewMessage('')
 
         } catch (error) {
@@ -373,10 +353,10 @@ export default function LiveQueuePage() {
                                 className={`flex ${msg.sender_type === 'patient' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div className={`max-w-[70%] p-3 rounded-lg ${msg.sender_type === 'patient'
-                                        ? 'bg-teal-600 text-white'
-                                        : msg.sender_type === 'system'
-                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 italic'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+                                    ? 'bg-teal-600 text-white'
+                                    : msg.sender_type === 'system'
+                                        ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 italic'
+                                        : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
                                     }`}>
                                     <p>{msg.content}</p>
                                     <p className={`text-xs mt-1 ${msg.sender_type === 'patient' ? 'text-teal-200' : 'text-slate-400'

@@ -12,7 +12,8 @@ import {
     LogOut,
     Menu,
     X,
-    ChevronDown
+    ChevronDown,
+    MessageSquare
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -21,6 +22,7 @@ import AnimatedBackground from '@/components/AnimatedBackground'
 const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'Appointments', href: '/dashboard/appointments', icon: Users },
+    { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
     { label: 'Profile', href: '/dashboard/profile', icon: User },
     { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
 ]

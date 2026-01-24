@@ -98,12 +98,40 @@ export const api = {
         }),
 
     // Appointments
+    uploadDocument: async (file: File) => {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch(`${API_URL}/api/appointments/upload`, {
+            method: 'POST',
+            body: formData,
+        })
+
+        if (!response.ok) {
+            throw new Error('Upload failed')
+        }
+
+        return response.json()
+    },
+
+    getFileUrl: (fileId: string) => `${API_URL}/api/appointments/files/${fileId}`,
+
     createAppointment: (data: {
         patient_id: string
         doctor_id: string
         scheduled_time: string
         mode: 'online' | 'offline'
         patient_timezone?: string
+        patient_name?: string
+        patient_age?: number
+        patient_gender?: string
+        chief_complaint?: string
+        patient_blood_group?: string
+        patient_allergies?: string[]
+        patient_medications?: string[]
+        patient_symptoms_details?: any
+        patient_medical_history?: any
+        document_ids?: string[]
     }) =>
         fetchAPI<{ success: boolean; appointment_id: string; queue_number: number; message: string }>(
             '/api/appointments/',
@@ -213,6 +241,51 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ text }),
         }),
+
+    // Consultation - Queue & Live Tracking
+    getQueuePosition: (appointmentId: string) =>
+        fetchAPI<{
+            appointment_id: string
+            patient_id: string
+            queue_number: number
+            current_serving: number
+            estimated_wait_minutes: number
+            doctor_status: string
+            doctor_unavailable_until?: string
+            unavailability_reason?: string
+        }>(`/api/consultation/queue/position/${appointmentId}`),
+
+    getConsultationByAppointment: (appointmentId: string) =>
+        fetchAPI<any>(`/api/consultation/appointment/${appointmentId}`),
+
+    // Consultation - Prescriptions
+    getPrescriptionByAppointment: (appointmentId: string) =>
+        fetchAPI<{
+            prescription: any
+            doctor_notes: any
+            appointment: any
+            consultation: any
+            status: string
+        }>(`/api/consultation/prescription/appointment/${appointmentId}`),
+
+    // Consultation - Messages
+    getMessagesByAppointment: (appointmentId: string) =>
+        fetchAPI<{ messages: any[]; consultation_id: string | null }>(
+            `/api/consultation/messages/appointment/${appointmentId}`
+        ),
+
+    sendMessageByAppointment: (appointmentId: string, content: string, senderType: string = 'patient') =>
+        fetchAPI<{ id: string; content: string; sender_type: string; created_at: string }>(
+            `/api/consultation/messages/appointment/${appointmentId}`,
+            {
+                method: 'POST',
+                body: JSON.stringify({
+                    content,
+                    content_type: 'text',
+                    sender_type: senderType
+                }),
+            }
+        ),
 }
 
 export default api

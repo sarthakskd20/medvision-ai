@@ -260,6 +260,22 @@ export default function BookAppointmentPage() {
                 return
             }
 
+            // Upload documents first
+            const uploadedDocIds: string[] = []
+            if (documents.length > 0) {
+                for (const doc of documents) {
+                    try {
+                        const res = await api.uploadDocument(doc.file)
+                        if (res.success && res.id) {
+                            uploadedDocIds.push(res.id)
+                        }
+                    } catch (e) {
+                        console.error('Failed to upload document:', doc.name, e)
+                        // Continue with other documents even if one fails
+                    }
+                }
+            }
+
             // Normalize scheduled_time to full ISO format (YYYY-MM-DDTHH:MM:SS)
             // Handle various malformed formats: "2026-01-19", "2026-01-19T1:00", "2026-01-19T01:00"
             let scheduledTime = selectedSlot.datetime
@@ -287,11 +303,25 @@ export default function BookAppointmentPage() {
                 scheduled_time: scheduledTime,
                 mode: selectedMode,
                 patient_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                // Include patient info for doctor dashboard display
+
+                // Patient Display Info
                 patient_name: basicInfo.fullName || patientId,
-                patient_age: basicInfo.age || null,
-                patient_gender: basicInfo.gender || null,
-                chief_complaint: chiefComplaint.description || null
+                patient_age: parseInt(basicInfo.age) || 0,
+                patient_gender: basicInfo.gender,
+                chief_complaint: chiefComplaint.description,
+
+                // Detailed Profile Data
+                patient_blood_group: basicInfo.bloodGroup,
+                patient_allergies: basicInfo.allergies,
+                patient_medications: basicInfo.currentMedications,
+                patient_symptoms_details: {
+                    duration: chiefComplaint.duration,
+                    duration_unit: chiefComplaint.durationUnit,
+                    severity: chiefComplaint.severity,
+                    previous_treatment: chiefComplaint.previousTreatment
+                },
+                patient_medical_history: medicalHistory,
+                document_ids: uploadedDocIds
             }
             console.log('Sending appointment data:', appointmentData)
 

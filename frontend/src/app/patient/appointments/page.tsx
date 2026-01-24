@@ -51,15 +51,6 @@ export default function PatientAppointmentsPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    // Demo doctor mapping for hackathon
-    const doctorInfo: Record<string, { name: string; specialization: string }> = {
-        '1': { name: 'Dr. Priya Sharma', specialization: 'Cardiologist' },
-        '2': { name: 'Dr. Rajesh Kumar', specialization: 'General Physician' },
-        '3': { name: 'Dr. Amit Patel', specialization: 'Dermatologist' },
-        '4': { name: 'Dr. Sunita Gupta', specialization: 'ENT Specialist' },
-        '5': { name: 'Dr. Vikram Singh', specialization: 'Orthopedic Surgeon' }
-    }
-
     useEffect(() => {
         const fetchAppointments = async () => {
             try {
@@ -73,18 +64,12 @@ export default function PatientAppointmentsPage() {
 
                 if (patientId) {
                     const data = await api.getPatientAppointments(patientId)
-                    // Map the data with doctor info lookup
-                    const mapped = data.map((apt: any) => {
-                        const docInfo = doctorInfo[apt.doctor_id] || {
-                            name: `Dr. Unknown (${apt.doctor_id})`,
-                            specialization: 'Specialist'
-                        }
-                        return {
-                            ...apt,
-                            doctorName: apt.doctorName || docInfo.name,
-                            specialization: apt.specialization || docInfo.specialization
-                        }
-                    })
+                    // API now returns doctor_name and doctor_specialization
+                    const mapped = data.map((apt: any) => ({
+                        ...apt,
+                        doctorName: apt.doctor_name || apt.doctorName || `Dr. ${apt.doctor_id?.substring(0, 8) || 'Unknown'}`,
+                        specialization: apt.doctor_specialization || apt.specialization || 'Specialist'
+                    }))
                     setAppointments(mapped)
                 } else {
                     setError('Please log in to view appointments')
@@ -263,11 +248,10 @@ export default function PatientAppointmentsPage() {
                                     </div>
                                 </div>
 
-                                {/* Date & Time */}
+                                {/* Date - Time removed as it was showing incorrect values */}
                                 <div className="flex items-center gap-6">
                                     <div className="text-right">
                                         <p className="font-semibold text-slate-800 dark:text-white">{formatDate(apt.scheduled_time)}</p>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">{formatTime(apt.scheduled_time)}</p>
                                     </div>
 
                                     {/* Mode Badge */}
@@ -287,32 +271,28 @@ export default function PatientAppointmentsPage() {
                                 </div>
                             </div>
 
-                            {/* Action Row */}
-                            {isUpcoming(apt.scheduled_time) && apt.status === 'confirmed' && (
+                            {/* Action Row - Different actions based on status */}
+                            {/* Pending/Confirmed: Show Track Queue button */}
+                            {['pending', 'confirmed'].includes(apt.status) && (
                                 <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
-                                    {apt.mode === 'online' && apt.meet_link ? (
-                                        <a
-                                            href={apt.meet_link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
-                                        >
-                                            <Video className="w-4 h-4" />
-                                            Join Meeting
-                                        </a>
-                                    ) : apt.mode === 'offline' && apt.hospital_address ? (
-                                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                                            <MapPin className="w-4 h-4 text-slate-400" />
-                                            {apt.hospital_address}
-                                        </div>
-                                    ) : null}
-
+                                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                        {apt.queue_number && (
+                                            <span className="font-semibold">Token #{apt.queue_number}</span>
+                                        )}
+                                        {apt.mode === 'offline' && apt.hospital_address && (
+                                            <span className="flex items-center gap-1">
+                                                <MapPin className="w-3 h-3" />
+                                                {apt.hospital_address}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2">
                                         <Link
-                                            href={`/patient/appointments/${apt.id}`}
-                                            className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
+                                            href={`/patient/appointments/live/${apt.id}`}
+                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-teal-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
                                         >
-                                            View Details
+                                            <Clock className="w-4 h-4" />
+                                            Track Queue
                                         </Link>
                                         <button className="px-4 py-2 text-red-600 dark:text-red-400 font-semibold rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-sm">
                                             Cancel
@@ -321,15 +301,53 @@ export default function PatientAppointmentsPage() {
                                 </div>
                             )}
 
+                            {/* In Progress: Show Join Consultation button */}
+                            {apt.status === 'in_progress' && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="font-semibold">Consultation in Progress</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {apt.mode === 'online' && apt.meet_link ? (
+                                            <a
+                                                href={apt.meet_link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors animate-pulse"
+                                            >
+                                                <Video className="w-4 h-4" />
+                                                Join Meeting
+                                            </a>
+                                        ) : (
+                                            <Link
+                                                href={`/patient/appointments/live/${apt.id}`}
+                                                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                                            >
+                                                <Clock className="w-4 h-4" />
+                                                View Status
+                                            </Link>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Completed: Show View Prescription + Message Doctor */}
                             {apt.status === 'completed' && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                                    <span className="text-sm text-slate-500 dark:text-slate-400">Consultation completed</span>
-                                    <Link
-                                        href={`/patient/appointments/${apt.id}`}
-                                        className="text-primary-600 dark:text-primary-400 font-semibold text-sm hover:underline flex items-center gap-1"
-                                    >
-                                        View Summary <ChevronRight className="w-4 h-4" />
-                                    </Link>
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                                    <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                        Consultation completed
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <Link
+                                            href={`/patient/appointments/${apt.id}`}
+                                            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
+                                        >
+                                            View Prescription
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Link>
+                                    </div>
                                 </div>
                             )}
                         </motion.div>

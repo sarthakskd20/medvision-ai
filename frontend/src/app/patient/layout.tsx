@@ -13,7 +13,8 @@ import {
     LogOut,
     Menu,
     X,
-    ChevronDown
+    ChevronDown,
+    MessageSquare
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -23,6 +24,7 @@ const navItems = [
     { label: 'Dashboard', href: '/patient', icon: LayoutDashboard },
     { label: 'Find Doctors', href: '/patient/doctors', icon: Search },
     { label: 'Appointments', href: '/patient/appointments', icon: Calendar },
+    { label: 'Messages', href: '/patient/messages', icon: MessageSquare },
     { label: 'Records', href: '/patient/records', icon: FileText },
     { label: 'Profile', href: '/patient/profile', icon: User },
 ]

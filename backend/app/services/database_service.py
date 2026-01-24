@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, init_db
 from app.sql_models import (
     Doctor, Patient, DemoPatient, DoctorProfile, Follow,
-    Appointment, PatientProfileRecord, DoctorSettings, PatientReputation
+    Appointment, PatientProfileRecord, DoctorSettings, PatientReputation,
+    Consultation, Message, DoctorNote, Prescription,
+    AIAnalysisResult, AIChatSession, AIChatMessage
 )
 
 
@@ -636,6 +638,79 @@ class DatabaseService:
         finally:
             session.close()
     
+    def get_patient_profile_by_appointment(self, appointment_id: str) -> Optional[dict]:
+        """Get patient profile by appointment ID for consultation view."""
+        session = self._get_session()
+        try:
+            # First try to get the profile from patient_profiles table
+            profile_record = session.query(PatientProfileRecord).filter(
+                PatientProfileRecord.appointment_id == appointment_id
+            ).first()
+            
+            if profile_record:
+                # Return full profile data from the saved record
+                return {
+                    "id": profile_record.id,
+                    "patient_id": profile_record.patient_id,
+                    "appointment_id": profile_record.appointment_id,
+                    "basic_info": profile_record.basic_info or {},
+                    "chief_complaint": profile_record.chief_complaint or {},
+                    "medical_history": profile_record.medical_history or [],
+                    "family_history": profile_record.family_history,
+                    "lifestyle": profile_record.lifestyle or {},
+                    "uploaded_documents": profile_record.uploaded_documents or [],
+                    "questionnaire_responses": profile_record.questionnaire_responses or {},
+                    "ai_summary": profile_record.ai_summary,
+                    "token_count": profile_record.token_count,
+                    "complexity_tier": profile_record.complexity_tier
+                }
+            
+            # Fallback: Build profile from appointment data if no profile record exists
+            appointment = session.query(Appointment).filter(
+                Appointment.id == appointment_id
+            ).first()
+            
+            if appointment:
+                # Get patient base info
+                patient = session.query(Patient).filter(
+                    Patient.id == appointment.patient_id
+                ).first()
+                
+                patient_info = {}
+                if patient:
+                    patient_info = {
+                        "full_name": patient.name,
+                        "age": None,  # Would need calculation from DOB
+                        "gender": patient.gender,
+                        "blood_group": None,
+                        "allergies": [],
+                        "current_medications": []
+                    }
+                else:
+                    patient_info = {
+                        "full_name": appointment.patient_name or "Unknown",
+                        "age": appointment.patient_age,
+                        "gender": appointment.patient_gender,
+                        "blood_group": None,
+                        "allergies": [],
+                        "current_medications": []
+                    }
+                
+                return {
+                    "basic_info": patient_info,
+                    "chief_complaint": {
+                        "description": appointment.chief_complaint or "Not specified",
+                        "duration": "Unknown",
+                        "severity": 7
+                    },
+                    "medical_history": [],
+                    "uploaded_documents": []
+                }
+            
+            return None
+        finally:
+            session.close()
+    
     def get_doctor_settings(self, doctor_id: str) -> Optional[dict]:
         """Get doctor's appointment settings."""
         session = self._get_session()
@@ -783,10 +858,466 @@ class DatabaseService:
             "custom_meet_link": settings.custom_meet_link
         }
     
+    
+    # ===========================================
+    # CONSULTATION OPERATIONS
+    # ===========================================
+    
+    def create_consultation(self, consultation_data: dict) -> dict:
+        """Create a new consultation session."""
+        session = self._get_session()
+        try:
+            data = {**consultation_data}
+            # Convert datetime fields
+            for key in ["created_at", "updated_at", "started_at", "ended_at"]:
+                if key in data and data[key] is not None and hasattr(data[key], 'isoformat'):
+                    data[key] = data[key]
+            
+            consultation = Consultation(
+                id=data.get("id"),
+                appointment_id=data.get("appointment_id"),
+                doctor_id=data.get("doctor_id"),
+                patient_id=data.get("patient_id"),
+                status=data.get("status", "waiting"),
+                is_online=data.get("is_online", False),
+                meet_link=data.get("meet_link"),
+                current_token=data.get("current_token"),
+                created_at=data.get("created_at")
+            )
+            session.add(consultation)
+            session.commit()
+            return consultation_data
+        finally:
+            session.close()
+    
+    def get_consultation_by_id(self, consultation_id: str) -> Optional[dict]:
+        """Get consultation by ID."""
+        session = self._get_session()
+        try:
+            consultation = session.query(Consultation).filter(Consultation.id == consultation_id).first()
+            if consultation:
+                return self._consultation_to_dict(consultation)
+            return None
+        finally:
+            session.close()
+    
+    def get_consultation_by_appointment(self, appointment_id: str) -> Optional[dict]:
+        """Get consultation by appointment ID."""
+        session = self._get_session()
+        try:
+            consultation = session.query(Consultation).filter(Consultation.appointment_id == appointment_id).first()
+            if consultation:
+                return self._consultation_to_dict(consultation)
+            return None
+        finally:
+            session.close()
+    
+    def update_consultation(self, consultation_id: str, updates: dict) -> Optional[dict]:
+        """Update consultation data."""
+        session = self._get_session()
+        try:
+            consultation = session.query(Consultation).filter(Consultation.id == consultation_id).first()
+            if not consultation:
+                return None
+            
+            for key, value in updates.items():
+                if hasattr(consultation, key):
+                    setattr(consultation, key, value)
+            
+            consultation.updated_at = datetime.utcnow()
+            session.commit()
+            return self._consultation_to_dict(consultation)
+        finally:
+            session.close()
+            
+    def _consultation_to_dict(self, consultation: Consultation) -> dict:
+        """Convert Consultation model to dictionary."""
+        return {
+            "id": consultation.id,
+            "appointment_id": consultation.appointment_id,
+            "doctor_id": consultation.doctor_id,
+            "patient_id": consultation.patient_id,
+            "status": consultation.status,
+            "is_online": consultation.is_online,
+            "meet_link": consultation.meet_link,
+            "current_token": consultation.current_token,
+            "consultation_started_at": consultation.consultation_started_at.isoformat() if consultation.consultation_started_at else None,
+            "ended_at": consultation.ended_at.isoformat() if consultation.ended_at else None,
+            "created_at": consultation.created_at.isoformat() if consultation.created_at else None,
+            "updated_at": consultation.updated_at.isoformat() if consultation.updated_at else None
+        }
+
+    
+    # ===========================================
+    # MESSAGING OPERATIONS
+    # ===========================================
+    
+    def create_message(self, message_data: dict) -> dict:
+        """Create a new chat message."""
+        session = self._get_session()
+        try:
+            data = {**message_data}
+            for key in ["timestamp", "read_at"]:
+                if key in data and data[key] is not None and hasattr(data[key], 'isoformat'):
+                    data[key] = data[key]
+            
+            message = Message(
+                id=data.get("id"),
+                consultation_id=data.get("consultation_id"),
+                sender_id=data.get("sender_id"),
+                sender_role=data.get("sender_role"),
+                content=data.get("content"),
+                type=data.get("type", "text"),
+                timestamp=data.get("timestamp")
+            )
+            session.add(message)
+            session.commit()
+            return message_data
+        finally:
+            session.close()
+    
+    def get_messages_by_consultation(self, consultation_id: str) -> List[dict]:
+        """Get all messages for a consultation."""
+        session = self._get_session()
+        try:
+            messages = session.query(Message).filter(
+                Message.consultation_id == consultation_id
+            ).order_by(Message.timestamp).all()
+            return [self._message_to_dict(m) for m in messages]
+        finally:
+            session.close()
+            
+    def _message_to_dict(self, message: Message) -> dict:
+        """Convert Message model to dictionary."""
+        return {
+            "id": message.id,
+            "consultation_id": message.consultation_id,
+            "sender_id": message.sender_id,
+            "sender_role": message.sender_role,
+            "content": message.content,
+            "type": message.type,
+            "timestamp": message.timestamp.isoformat() if message.timestamp else None,
+            "read_at": message.read_at.isoformat() if message.read_at else None
+        }
+
+    # ===========================================
+    # DOCTOR NOTES OPERATIONS
+    # ===========================================
+    
+    def create_doctor_notes(self, notes_data: dict) -> dict:
+        """Create new doctor notes."""
+        session = self._get_session()
+        try:
+            data = {**notes_data}
+            notes = DoctorNote(
+                id=data.get("id"),
+                consultation_id=data.get("consultation_id"),
+                doctor_id=data.get("doctor_id"),
+                patient_id=data.get("patient_id"),
+                subjective=data.get("subjective"),
+                objective=data.get("objective"),
+                assessment=data.get("assessment"),
+                plan=data.get("plan"),
+                provisional_diagnosis=data.get("provisional_diagnosis"),
+                final_diagnosis=data.get("final_diagnosis")
+            )
+            session.add(notes)
+            session.commit()
+            return notes_data
+        finally:
+            session.close()
+    
+    def get_doctor_notes_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        """Get doctor notes for a consultation."""
+        session = self._get_session()
+        try:
+            notes = session.query(DoctorNote).filter(DoctorNote.consultation_id == consultation_id).first()
+            if notes:
+                return self._note_to_dict(notes)
+            return None
+        finally:
+            session.close()
+    
+    def update_doctor_notes(self, notes_id: str, updates: dict) -> Optional[dict]:
+        """Update doctor notes."""
+        session = self._get_session()
+        try:
+            notes = session.query(DoctorNote).filter(DoctorNote.id == notes_id).first()
+            if not notes:
+                return None
+            
+            for key, value in updates.items():
+                if hasattr(notes, key):
+                    setattr(notes, key, value)
+            
+            notes.updated_at = datetime.utcnow()
+            session.commit()
+            return self._note_to_dict(notes)
+        finally:
+            session.close()
+            
+    def _note_to_dict(self, note: DoctorNote) -> dict:
+        """Convert DoctorNote model to dictionary."""
+        return {
+            "id": note.id,
+            "consultation_id": note.consultation_id,
+            "doctor_id": note.doctor_id,
+            "patient_id": note.patient_id,
+            "subjective": note.subjective,
+            "objective": note.objective,
+            "assessment": note.assessment,
+            "plan": note.plan,
+            "provisional_diagnosis": note.provisional_diagnosis,
+            "final_diagnosis": note.final_diagnosis,
+            "created_at": note.created_at.isoformat() if note.created_at else None,
+            "updated_at": note.updated_at.isoformat() if note.updated_at else None
+        }
+
+    # ===========================================
+    # PRESCRIPTION OPERATIONS
+    # ===========================================
+    
+    def create_prescription(self, prescription_data: dict) -> dict:
+        """Create a new prescription."""
+        session = self._get_session()
+        try:
+            data = {**prescription_data}
+            prescription = Prescription(
+                id=data.get("id"),
+                consultation_id=data.get("consultation_id"),
+                doctor_id=data.get("doctor_id"),
+                patient_id=data.get("patient_id"),
+                medications=data.get("medications", []),
+                instructions=data.get("instructions")
+            )
+            session.add(prescription)
+            session.commit()
+            return prescription_data
+        finally:
+            session.close()
+            
+    def get_prescription_by_id(self, prescription_id: str) -> Optional[dict]:
+        """Get prescription by ID."""
+        session = self._get_session()
+        try:
+            prescription = session.query(Prescription).filter(Prescription.id == prescription_id).first()
+            if prescription:
+                return self._prescription_to_dict(prescription)
+            return None
+        finally:
+            session.close()
+            
+    def _prescription_to_dict(self, prescription: Prescription) -> dict:
+        """Convert Prescription model to dictionary."""
+        return {
+            "id": prescription.id,
+            "consultation_id": prescription.consultation_id,
+            "doctor_id": prescription.doctor_id,
+            "patient_id": prescription.patient_id,
+            "medications": prescription.medications or [],
+            "instructions": prescription.instructions,
+            "created_at": prescription.created_at.isoformat() if prescription.created_at else None
+        }
+
+    # ===========================================
+    # AI ANALYSIS OPERATIONS
+    # ===========================================
+    
+    def create_ai_analysis(self, analysis_data: dict) -> dict:
+        """Create/update an AI analysis result."""
+        session = self._get_session()
+        try:
+            # Check if analysis already exists for this consultation
+            existing = session.query(AIAnalysisResult).filter(
+                AIAnalysisResult.consultation_id == analysis_data.get("consultation_id")
+            ).first()
+            
+            if existing:
+                # Update existing
+                for key, value in analysis_data.items():
+                    if hasattr(existing, key) and key != 'id':
+                        setattr(existing, key, value)
+                existing.updated_at = datetime.utcnow()
+                session.commit()
+                return self._analysis_to_dict(existing)
+            
+            # Create new
+            analysis = AIAnalysisResult(
+                id=analysis_data.get("id"),
+                consultation_id=analysis_data.get("consultation_id"),
+                doctor_id=analysis_data.get("doctor_id"),
+                patient_id=analysis_data.get("patient_id"),
+                analysis_markdown=analysis_data.get("analysis_markdown"),
+                executive_summary=analysis_data.get("executive_summary"),
+                key_findings=analysis_data.get("key_findings", []),
+                extracted_documents=analysis_data.get("extracted_documents", []),
+                medication_suggestions=analysis_data.get("medication_suggestions", []),
+                test_suggestions=analysis_data.get("test_suggestions", []),
+                confidence_score=analysis_data.get("confidence_score", 0.0),
+                uncertainties=analysis_data.get("uncertainties", []),
+                tokens_used=analysis_data.get("tokens_used", 0),
+                context_size=analysis_data.get("context_size", 0)
+            )
+            session.add(analysis)
+            session.commit()
+            return self._analysis_to_dict(analysis)
+        finally:
+            session.close()
+    
+    def get_ai_analysis_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        """Get AI analysis for a consultation."""
+        session = self._get_session()
+        try:
+            analysis = session.query(AIAnalysisResult).filter(
+                AIAnalysisResult.consultation_id == consultation_id
+            ).first()
+            return self._analysis_to_dict(analysis) if analysis else None
+        finally:
+            session.close()
+    
+    def _analysis_to_dict(self, analysis: AIAnalysisResult) -> dict:
+        """Convert AIAnalysisResult to dictionary."""
+        return {
+            "id": analysis.id,
+            "consultation_id": analysis.consultation_id,
+            "doctor_id": analysis.doctor_id,
+            "patient_id": analysis.patient_id,
+            "analysis_markdown": analysis.analysis_markdown,
+            "executive_summary": analysis.executive_summary,
+            "key_findings": analysis.key_findings or [],
+            "extracted_documents": analysis.extracted_documents or [],
+            "medication_suggestions": analysis.medication_suggestions or [],
+            "test_suggestions": analysis.test_suggestions or [],
+            "confidence_score": analysis.confidence_score,
+            "uncertainties": analysis.uncertainties or [],
+            "tokens_used": analysis.tokens_used,
+            "context_size": analysis.context_size,
+            "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
+            "updated_at": analysis.updated_at.isoformat() if analysis.updated_at else None
+        }
+    
+    # ===========================================
+    # AI CHAT OPERATIONS
+    # ===========================================
+    
+    def create_ai_chat_session(self, session_data: dict) -> dict:
+        """Create a new AI chat session."""
+        session = self._get_session()
+        try:
+            chat_session = AIChatSession(
+                id=session_data.get("id"),
+                consultation_id=session_data.get("consultation_id"),
+                doctor_id=session_data.get("doctor_id"),
+                context_summary=session_data.get("context_summary"),
+                analysis_reference_id=session_data.get("analysis_reference_id"),
+                is_active=session_data.get("is_active", True),
+                message_count=session_data.get("message_count", 0)
+            )
+            session.add(chat_session)
+            session.commit()
+            return self._chat_session_to_dict(chat_session)
+        finally:
+            session.close()
+    
+    def get_ai_chat_session_by_consultation(self, consultation_id: str) -> Optional[dict]:
+        """Get active AI chat session for a consultation."""
+        session = self._get_session()
+        try:
+            chat_session = session.query(AIChatSession).filter(
+                AIChatSession.consultation_id == consultation_id,
+                AIChatSession.is_active == True
+            ).first()
+            return self._chat_session_to_dict(chat_session) if chat_session else None
+        finally:
+            session.close()
+    
+    def update_ai_chat_session(self, session_id: str, updates: dict) -> Optional[dict]:
+        """Update AI chat session."""
+        session = self._get_session()
+        try:
+            chat_session = session.query(AIChatSession).filter(
+                AIChatSession.id == session_id
+            ).first()
+            if not chat_session:
+                return None
+            for key, value in updates.items():
+                if hasattr(chat_session, key):
+                    setattr(chat_session, key, value)
+            chat_session.updated_at = datetime.utcnow()
+            session.commit()
+            return self._chat_session_to_dict(chat_session)
+        finally:
+            session.close()
+    
+    def _chat_session_to_dict(self, chat_session: AIChatSession) -> dict:
+        """Convert AIChatSession to dictionary."""
+        return {
+            "id": chat_session.id,
+            "consultation_id": chat_session.consultation_id,
+            "doctor_id": chat_session.doctor_id,
+            "context_summary": chat_session.context_summary,
+            "analysis_reference_id": chat_session.analysis_reference_id,
+            "is_active": chat_session.is_active,
+            "message_count": chat_session.message_count,
+            "created_at": chat_session.created_at.isoformat() if chat_session.created_at else None,
+            "updated_at": chat_session.updated_at.isoformat() if chat_session.updated_at else None
+        }
+    
+    def add_ai_chat_message(self, message_data: dict) -> dict:
+        """Add a message to AI chat session."""
+        session = self._get_session()
+        try:
+            message = AIChatMessage(
+                id=message_data.get("id"),
+                session_id=message_data.get("session_id"),
+                role=message_data.get("role"),
+                content=message_data.get("content"),
+                tokens_used=message_data.get("tokens_used", 0),
+                sources_cited=message_data.get("sources_cited", [])
+            )
+            session.add(message)
+            
+            # Update message count in session
+            chat_session = session.query(AIChatSession).filter(
+                AIChatSession.id == message_data.get("session_id")
+            ).first()
+            if chat_session:
+                chat_session.message_count = (chat_session.message_count or 0) + 1
+                chat_session.updated_at = datetime.utcnow()
+            
+            session.commit()
+            return self._chat_message_to_dict(message)
+        finally:
+            session.close()
+    
+    def get_ai_chat_messages(self, session_id: str) -> List[dict]:
+        """Get all messages for an AI chat session."""
+        session = self._get_session()
+        try:
+            messages = session.query(AIChatMessage).filter(
+                AIChatMessage.session_id == session_id
+            ).order_by(AIChatMessage.created_at.asc()).all()
+            return [self._chat_message_to_dict(m) for m in messages]
+        finally:
+            session.close()
+    
+    def _chat_message_to_dict(self, message: AIChatMessage) -> dict:
+        """Convert AIChatMessage to dictionary."""
+        return {
+            "id": message.id,
+            "session_id": message.session_id,
+            "role": message.role,
+            "content": message.content,
+            "tokens_used": message.tokens_used,
+            "sources_cited": message.sources_cited or [],
+            "created_at": message.created_at.isoformat() if message.created_at else None
+        }
+
     # ===========================================
     # ADDITIONAL PATIENT DATA OPERATIONS
     # (Used by patients.py, chat.py, analysis.py)
     # ===========================================
+
     
     async def get_patients(self, limit: int = 20, offset: int = 0) -> List[dict]:
         """Get list of patients with pagination."""
