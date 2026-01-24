@@ -12,8 +12,10 @@ import json
 try:
     import google.generativeai as genai
     GEMINI_AVAILABLE = True
+    print("[AI Service] Google GenAI library imported successfully")
 except ImportError:
     GEMINI_AVAILABLE = False
+    print("[AI Service] WARNING: google.generativeai not installed!")
 
 from app.services.database_service import get_database_service
 from app.services.pdf_service import get_pdf_service
@@ -22,8 +24,22 @@ from app.config import settings
 
 # Configure Gemini using settings from app.config (which loads .env)
 GEMINI_API_KEY = settings.gemini_api_key
+
+# Debug: Print API key status (not the actual key)
+if GEMINI_API_KEY:
+    print(f"[AI Service] Gemini API key loaded: {GEMINI_API_KEY[:10]}...{GEMINI_API_KEY[-4:]} (length: {len(GEMINI_API_KEY)})")
+else:
+    print("[AI Service] WARNING: No Gemini API key found in settings!")
+
 if GEMINI_AVAILABLE and GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        print("[AI Service] Gemini API configured successfully")
+    except Exception as e:
+        print(f"[AI Service] ERROR configuring Gemini: {e}")
+        GEMINI_AVAILABLE = False
+else:
+    print(f"[AI Service] Gemini not configured: AVAILABLE={GEMINI_AVAILABLE}, HAS_KEY={bool(GEMINI_API_KEY)}")
 
 
 class AIChatService:
@@ -253,11 +269,16 @@ def generate_comprehensive_analysis(
     
     # Check if analysis already exists
     existing = db.get_ai_analysis_by_consultation(consultation_id)
+    if existing:
+        print(f"[AI Analysis] Found existing analysis for consultation {consultation_id}")
+        # Return existing - but allow regeneration by removing this if user wants fresh analysis
     
     # Extract document content
     extracted_docs = []
+    print(f"[AI Analysis] Processing {len(document_ids) if document_ids else 0} document(s)")
     if document_ids:
         for doc_id in document_ids:
+            print(f"[AI Analysis] Extracting document: {doc_id}")
             extraction = pdf_service.extract_from_document_id(doc_id)
             if extraction.get("success"):
                 extracted_docs.append({
@@ -265,18 +286,28 @@ def generate_comprehensive_analysis(
                     "text": extraction.get("text", "")[:5000],  # Limit text
                     "attributes": extraction.get("attributes", {})
                 })
+                print(f"[AI Analysis] Successfully extracted {len(extraction.get('text', ''))} chars from {doc_id}")
+            else:
+                print(f"[AI Analysis] Failed to extract {doc_id}: {extraction.get('error', 'Unknown error')}")
+    
+    print(f"[AI Analysis] Gemini status: AVAILABLE={GEMINI_AVAILABLE}, HAS_KEY={bool(GEMINI_API_KEY)}")
     
     if not GEMINI_AVAILABLE or not GEMINI_API_KEY:
+        print("[AI Analysis] Falling back - Gemini not available or no API key")
         return _generate_fallback_analysis(consultation_id, patient_profile, extracted_docs)
     
     try:
+        print("[AI Analysis] Creating Gemini model...")
         model = genai.GenerativeModel("gemini-2.5-flash")
         
         # Build comprehensive prompt
         prompt = _build_analysis_prompt(patient_profile, extracted_docs)
+        print(f"[AI Analysis] Built prompt with {len(prompt)} characters")
         
+        print("[AI Analysis] Sending request to Gemini API...")
         response = model.generate_content(prompt)
         analysis_text = response.text
+        print(f"[AI Analysis] Received response: {len(analysis_text)} characters")
         
         # Parse response into structured format
         analysis_data = _parse_analysis_response(
@@ -294,6 +325,7 @@ def generate_comprehensive_analysis(
         
         # Save to database
         saved = db.create_ai_analysis(analysis_data)
+        print(f"[AI Analysis] SUCCESS - Analysis saved with ID: {saved.get('id')}")
         
         return {
             "success": True,
@@ -301,7 +333,9 @@ def generate_comprehensive_analysis(
         }
         
     except Exception as e:
-        print(f"Analysis generation error: {e}")
+        import traceback
+        print(f"[AI Analysis] ERROR: {e}")
+        print(f"[AI Analysis] Traceback: {traceback.format_exc()}")
         return _generate_fallback_analysis(consultation_id, patient_profile, extracted_docs)
 
 

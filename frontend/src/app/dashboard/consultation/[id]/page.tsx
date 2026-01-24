@@ -261,26 +261,22 @@ export default function ConsultationPage() {
             setRunningAnalysis(true)
             const token = localStorage.getItem('token')
 
-            // First try to get existing analysis
-            let response = await fetch(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            // Always generate fresh analysis when user clicks Run Analysis
+            console.log('[AI Analysis] Generating fresh analysis...')
+            const response = await fetch(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             })
-            let data = await response.json()
-
-            if (!data.success || !data.analysis) {
-                // Generate new analysis
-                response = await fetch(`${API_BASE}/api/consultation/ai/analysis/${consultation.id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-                data = await response.json()
-            }
+            const data = await response.json()
+            console.log('[AI Analysis] Response:', data)
 
             if (data.success && data.analysis) {
                 setAiAnalysisResult(data.analysis)
+            } else {
+                console.error('[AI Analysis] Failed:', data.message || 'Unknown error')
             }
 
             // Also fetch chat history
