@@ -3,7 +3,6 @@ AI Chat Service - Handles AI chat with memory for doctor consultations.
 Uses Gemini API for generating responses with full patient context.
 """
 
-import os
 import uuid
 from typing import Optional, Dict, List, Any
 from datetime import datetime
@@ -18,10 +17,11 @@ except ImportError:
 
 from app.services.database_service import get_database_service
 from app.services.pdf_service import get_pdf_service
+from app.config import settings
 
 
-# Configure Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Configure Gemini using settings from app.config (which loads .env)
+GEMINI_API_KEY = settings.gemini_api_key
 if GEMINI_AVAILABLE and GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
@@ -32,8 +32,9 @@ class AIChatService:
     def __init__(self):
         self.db = get_database_service()
         self.pdf_service = get_pdf_service()
-        self.model_name = "gemini-1.5-flash"  # Fast model for chat
-        self.analysis_model = "gemini-1.5-pro"  # Better model for analysis
+        # Use gemini-2.5-flash for better quota limits (same as gemini_service.py)
+        self.model_name = "gemini-2.5-flash"
+        self.analysis_model = "gemini-2.5-flash"
     
     def get_or_create_session(
         self, 
@@ -269,7 +270,7 @@ def generate_comprehensive_analysis(
         return _generate_fallback_analysis(consultation_id, patient_profile, extracted_docs)
     
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        model = genai.GenerativeModel("gemini-2.5-flash")
         
         # Build comprehensive prompt
         prompt = _build_analysis_prompt(patient_profile, extracted_docs)
