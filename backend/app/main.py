@@ -9,6 +9,7 @@ import logging
 
 from app.config import settings
 from app.routers import patients, analysis, reports, chat, auth, social, appointments, consultation
+from app.routers import settings as settings_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +54,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(social.router, prefix="/api/social", tags=["Social Network"])
 app.include_router(appointments.router, tags=["Appointments"])
 app.include_router(consultation.router, tags=["Consultation"])
+app.include_router(settings_router.router, tags=["Doctor Settings"])
 
 
 @app.get("/", tags=["Health"])

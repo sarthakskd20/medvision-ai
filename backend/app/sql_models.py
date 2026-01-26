@@ -283,6 +283,8 @@ class Message(Base):
     sender_id = Column(String(50))
     sender_role = Column(String(20))
     content = Column(Text)
+    encrypted_content = Column(Text) # Explicit column for encrypted content
+    iv = Column(String(50)) # Initialization Vector for encryption
     type = Column(String(20), default="text")
     
     timestamp = Column(DateTime, default=datetime.utcnow)

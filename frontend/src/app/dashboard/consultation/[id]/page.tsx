@@ -128,6 +128,9 @@ export default function ConsultationPage() {
     // UI State
     const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'notes' | 'ai' | 'prescription'>('profile')
     const [showFinishModal, setShowFinishModal] = useState(false)
+    const [showLinkModal, setShowLinkModal] = useState(false)
+    const [meetLinkInput, setMeetLinkInput] = useState('')
+    const [savingLink, setSavingLink] = useState(false)
 
     useEffect(() => {
         fetchConsultationData()
@@ -140,7 +143,7 @@ export default function ConsultationPage() {
     const fetchConsultationData = async () => {
         try {
             setLoading(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             // Start or get consultation
             const startRes = await fetch(`${API_BASE}/api/consultation/start/${appointmentId}`, {
@@ -176,6 +179,14 @@ export default function ConsultationPage() {
                     const msgData = await msgRes.json()
                     setMessages(msgData.messages || [])
                 }
+            } else {
+                // Handle errors (e.g. missing meet link)
+                const errorData = await startRes.json().catch(() => ({}))
+                if (startRes.status === 400 && errorData.detail === 'MEET_LINK_MISSING') {
+                    setShowLinkModal(true)
+                } else {
+                    console.error('Failed to start consultation:', errorData)
+                }
             }
         } catch (error) {
             console.error('Error fetching consultation:', error)
@@ -186,7 +197,7 @@ export default function ConsultationPage() {
 
     const updateStatus = async (newStatus: ConsultationStatus) => {
         try {
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
             await fetch(`${API_BASE}/api/consultation/${consultation?.id}/status?status=${newStatus}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -202,7 +213,7 @@ export default function ConsultationPage() {
 
         try {
             setSendingMessage(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             const res = await fetch(`${API_BASE}/api/consultation/${consultation.id}/messages?sender_type=doctor`, {
                 method: 'POST',
@@ -230,7 +241,7 @@ export default function ConsultationPage() {
 
     const saveNotes = async () => {
         try {
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
             await fetch(`${API_BASE}/api/consultation/${consultation?.id}/notes`, {
                 method: 'PUT',
                 headers: {
@@ -259,7 +270,7 @@ export default function ConsultationPage() {
         if (!consultation?.id) return
         try {
             setRunningAnalysis(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             // Always generate fresh analysis when user clicks Run Analysis
             console.log('[AI Analysis] Generating fresh analysis...')
@@ -298,7 +309,7 @@ export default function ConsultationPage() {
         if (!aiChatInput.trim() || !consultation?.id || sendingAiChat) return
         try {
             setSendingAiChat(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             const response = await fetch(`${API_BASE}/api/consultation/ai/chat/${consultation.id}`, {
                 method: 'POST',
@@ -356,7 +367,7 @@ export default function ConsultationPage() {
 
     const finishConsultation = async () => {
         try {
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             if (!consultation?.id) {
                 console.error('No consultation ID found')
@@ -414,6 +425,41 @@ export default function ConsultationPage() {
         }
     }
 
+    const saveMeetLink = async () => {
+        if (!meetLinkInput.trim()) return
+
+        try {
+            setSavingLink(true)
+            const token = localStorage.getItem('auth_token')
+
+            // Should really use the API client, but keeping fetch consistency here for now
+            // Update doctor settings with the new link
+            const res = await fetch(`${API_BASE}/api/settings/`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    custom_meet_link: meetLinkInput
+                })
+            })
+
+            if (res.ok) {
+                setShowLinkModal(false)
+                // Retry fetching data (which will retry starting consultation)
+                fetchConsultationData()
+            } else {
+                alert('Failed to save link. Please check the format (must be a valid Google Meet link).')
+            }
+        } catch (error) {
+            console.error('Error saving link:', error)
+            alert('Error saving link')
+        } finally {
+            setSavingLink(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -427,6 +473,58 @@ export default function ConsultationPage() {
 
     return (
         <div className="space-y-6">
+            {/* Google Meet Link Modal */}
+            {showLinkModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="text-center mb-6">
+                            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Video className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Setup Google Meet</h2>
+                            <p className="text-slate-500 dark:text-slate-400 mt-2">
+                                Please enter your Google Meet link to start the consultation. The patient will attend here.
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Google Meet Link
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="https://meet.google.com/abc-defg-hij"
+                                    value={meetLinkInput}
+                                    onChange={(e) => setMeetLinkInput(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Format: https://meet.google.com/abc-defg-hij
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => router.back()}
+                                    className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveMeetLink}
+                                    disabled={!meetLinkInput || savingLink}
+                                    className="flex-1 px-4 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    {savingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                    Save & Start
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6">
                 <div className="flex items-center justify-between">

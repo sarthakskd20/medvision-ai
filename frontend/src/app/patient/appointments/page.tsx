@@ -149,6 +149,21 @@ export default function PatientAppointmentsPage() {
     const upcomingCount = appointments.filter(apt => ['pending', 'confirmed', 'in_progress'].includes(apt.status)).length
     const completedCount = appointments.filter(apt => apt.status === 'completed').length
 
+    const handleCancel = async (appointmentId: string) => {
+        if (!confirm('Are you sure you want to cancel this appointment? This action cannot be undone.')) return
+
+        try {
+            await api.cancelAppointment(appointmentId, "Patient requested cancellation")
+            // Update local state to reflect change immediately
+            setAppointments(prev => prev.map(a =>
+                a.id === appointmentId ? { ...a, status: 'cancelled' } : a
+            ))
+        } catch (err) {
+            console.error('Failed to cancel appointment:', err)
+            alert('Failed to cancel appointment. Please try again.')
+        }
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -165,7 +180,7 @@ export default function PatientAppointmentsPage() {
             variants={container}
             className="space-y-6"
         >
-            {/* Header */}
+            {/* ... (keep existing header code) ... */}
             <motion.div variants={item} className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">My Appointments</h1>
@@ -294,7 +309,10 @@ export default function PatientAppointmentsPage() {
                                             <Clock className="w-4 h-4" />
                                             Track Queue
                                         </Link>
-                                        <button className="px-4 py-2 text-red-600 dark:text-red-400 font-semibold rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-sm">
+                                        <button
+                                            onClick={() => handleCancel(apt.id)}
+                                            className="px-4 py-2 text-red-600 dark:text-red-400 font-semibold rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors text-sm"
+                                        >
                                             Cancel
                                         </button>
                                     </div>

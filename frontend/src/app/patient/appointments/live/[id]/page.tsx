@@ -21,6 +21,9 @@ interface QueuePosition {
     doctor_status: string
     doctor_unavailable_until?: string
     unavailability_reason?: string
+    // Added fields
+    consultation_status?: string
+    meet_link?: string
 }
 
 interface Message {
@@ -56,6 +59,8 @@ export default function LiveQueuePage() {
     const [sendingMessage, setSendingMessage] = useState(false)
     const [isYourTurn, setIsYourTurn] = useState(false)
     const [showNotification, setShowNotification] = useState(false)
+    const [showWaitingRoom, setShowWaitingRoom] = useState(false)
+    const [consultationStarted, setConsultationStarted] = useState(false)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -81,15 +86,34 @@ export default function LiveQueuePage() {
 
     useEffect(() => {
         // Check if it's your turn
-        if (queuePosition && queuePosition.queue_number <= queuePosition.current_serving) {
-            if (!isYourTurn) {
-                setIsYourTurn(true)
-                setShowNotification(true)
-                // Play notification sound (if available)
-                try {
-                    const audio = new Audio('/sounds/notification.mp3')
-                    audio.play().catch(() => { })
-                } catch (e) { }
+        if (queuePosition) {
+            // Check if consultation started
+            if (queuePosition.consultation_status === 'in_progress') {
+                if (!consultationStarted) { // Only trigger once on state change
+                    setConsultationStarted(true)
+                    // Auto-open if configured link exists (might be blocked by popup blocker, but we try)
+                    // User requested auto-direct.
+                    if (queuePosition.meet_link) {
+                        try {
+                            // We can't always auto-open, but we can set state to show big button
+                            console.log("Consultation started, ready to join")
+                        } catch (e) { }
+                    }
+                }
+                if (!showWaitingRoom) setShowWaitingRoom(true) // Auto-open waiting room overlay as fallback
+            }
+
+            // Check if it's your turn
+            if (queuePosition.queue_number <= queuePosition.current_serving) {
+                if (!isYourTurn) {
+                    setIsYourTurn(true)
+                    setShowNotification(true)
+                    // Play notification sound
+                    try {
+                        const audio = new Audio('/sounds/notification.mp3')
+                        audio.play().catch(() => { })
+                    } catch (e) { }
+                }
             }
         }
     }, [queuePosition])
@@ -165,7 +189,22 @@ export default function LiveQueuePage() {
 
     const getPositionAhead = () => {
         if (!queuePosition) return 0
-        return Math.max(0, queuePosition.queue_number - queuePosition.current_serving)
+        // Correct calculation: if I'm #1 and current is #0, ahead is 0.
+        // If I'm #2 and current is #0, ahead is 1 (#1 is waiting).
+        // If I'm #2 and current is #1, ahead is 1 (#1 is being served).
+        // Basically: (my_token - 1) - (people_served).
+        // People served = current_serving (if someone finished #1, current becomes #2? No, current is #1).
+        // Actually, if #0 is serving (nobody), served count is 0.
+        // If #1 is serving, served count is 0 (he is in progress).
+        // Let's use simpler logic: 
+        // If current_serving == 0: ahead = queue_number - 1
+        // If current_serving > 0: ahead = queue_number - current_serving
+        // Wait, if #1 serving, and I am #2. 2-1 = 1 ahead. Correct.
+        // If #0 serving, and I am #1. 1-0 = 1 ahead? Incorrect. Should be 0.
+
+        const current = queuePosition.current_serving || 0
+        if (current === 0) return Math.max(0, queuePosition.queue_number - 1)
+        return Math.max(0, queuePosition.queue_number - current)
     }
 
     const formatWaitTime = (minutes: number) => {
@@ -234,21 +273,121 @@ export default function LiveQueuePage() {
                         </div>
                     </div>
 
-                    {/* Join Meeting Button (for online appointments) */}
-                    {appointment?.mode === 'online' && appointment?.meet_link && isYourTurn && (
-                        <a
-                            href={appointment.meet_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-colors animate-pulse"
-                        >
-                            <Video className="w-5 h-5" />
-                            Join Google Meet
-                            <ExternalLink className="w-4 h-4" />
-                        </a>
-                    )}
+                    {/* Join/Waiting Room Button */}
+                    <div className="flex flex-col items-end gap-2">
+                        {appointment?.mode === 'online' && (
+                            <>
+                                {queuePosition?.consultation_status === 'in_progress' ? (
+                                    <button
+                                        onClick={() => {
+                                            if (queuePosition.meet_link) window.open(queuePosition.meet_link, '_blank')
+                                            else alert('Meeting link not found. Please contact doctor.')
+                                        }}
+                                        className="px-6 py-3 font-bold rounded-xl transition-all bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl animate-pulse"
+                                    >
+                                        Join Appointment Now
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowWaitingRoom(true)}
+                                        disabled={getPositionAhead() > 10}
+                                        className={`px-6 py-3 font-bold rounded-xl transition-all ${getPositionAhead() <= 10
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        {getPositionAhead() <= 10 ? 'Enter Waiting Room' : `Wait for your turn (${getPositionAhead()} ahead)`}
+                                    </button>
+                                )}
+                            </>
+                        )}
+                        {getPositionAhead() <= 10 && queuePosition?.consultation_status !== 'in_progress' && (
+                            <p className="text-xs text-slate-500">
+                                You can enter the waiting room now.
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {/* Waiting Room Overlay */}
+            <AnimatePresence>
+                {showWaitingRoom && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <div className="bg-white dark:bg-[#1a2230] rounded-2xl max-w-lg w-full p-8 text-center shadow-2xl border border-slate-700">
+                            {consultationStarted ? (
+                                <>
+                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                                        <Video className="w-10 h-10 text-green-600" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                                        Consultation Started!
+                                    </h2>
+                                    <p className="text-slate-600 dark:text-slate-400 mb-8 text-lg">
+                                        The doctor has started the session. Please join immediately.
+                                    </p>
+
+                                    {queuePosition?.meet_link ? (
+                                        <a
+                                            href={queuePosition.meet_link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full py-4 bg-green-600 text-white font-bold text-xl rounded-xl hover:bg-green-700 transition-all shadow-lg hover:shadow-green-500/30"
+                                        >
+                                            Join Video Call Now
+                                        </a>
+                                    ) : (
+                                        <div className="p-4 bg-red-50 text-red-600 rounded-xl">
+                                            Error: Meeting link missing. Please contact clinic.
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Clock className="w-10 h-10 text-blue-600 animate-spin-slow" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                                        Waiting Room
+                                    </h2>
+                                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                                        Please wait here. Do not close this window.
+                                    </p>
+
+                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 mb-8">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-wider text-slate-500 mb-1">Your Token</p>
+                                                <p className="text-3xl font-black text-slate-900 dark:text-white">
+                                                    #{queuePosition?.queue_number}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs uppercase tracking-wider text-slate-500 mb-1">Status</p>
+                                                <p className="text-lg font-bold text-blue-600">
+                                                    {getPositionAhead() === 0 ? 'You are next!' : `${getPositionAhead()} patients ahead`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => setShowWaitingRoom(false)}
+                                        className="text-slate-400 hover:text-slate-600 text-sm"
+                                    >
+                                        Minimize Waiting Room
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Queue Status Card */}
             <div className="bg-gradient-to-br from-teal-600 to-emerald-600 rounded-xl p-6 text-white">

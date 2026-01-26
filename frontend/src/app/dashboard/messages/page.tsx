@@ -81,17 +81,56 @@ export default function DoctorMessagesPage() {
                 const data = await res.json()
                 const apps = data.appointments || []
 
-                // Create conversations from appointments
-                const convos: Conversation[] = apps.map((apt: any) => ({
-                    id: apt.id,
-                    patientId: apt.patient_id,
-                    patientName: apt.patient_name || `Patient ${apt.patient_id?.substring(0, 6)}`,
-                    lastMessage: apt.chief_complaint || 'Start a conversation',
-                    lastMessageTime: apt.scheduled_time,
-                    unreadCount: 0,
-                    appointmentId: apt.id,
-                    status: apt.status === 'completed' ? 'completed' : 'active'
-                }))
+                // Group by Patient ID to unify conversations
+                const patientMap = new Map<string, any>()
+
+                apps.forEach((apt: any) => {
+                    const patId = apt.patient_id
+                    if (!patId) return
+
+                    // Logic to pick the "best" appointment context (same as patient side)
+                    // 1. Prefer 'in_progress' or 'pending' over 'completed'
+                    // 2. Prefer newer scheduled_time
+                    if (!patientMap.has(patId)) {
+                        patientMap.set(patId, apt)
+                    } else {
+                        const current = patientMap.get(patId)
+                        const isCurrentActive = ['in_progress', 'pending', 'confirmed'].includes(current.status)
+                        const isNewActive = ['in_progress', 'pending', 'confirmed'].includes(apt.status)
+
+                        if (isNewActive && !isCurrentActive) {
+                            patientMap.set(patId, apt) // Switch to active
+                        } else if (isNewActive === isCurrentActive) {
+                            // Both active or both inactive, pick newer
+                            if (new Date(apt.scheduled_time) > new Date(current.scheduled_time)) {
+                                patientMap.set(patId, apt)
+                            }
+                        }
+                    }
+                })
+
+                // Create conversations from grouped appointments
+                const convos: Conversation[] = Array.from(patientMap.values()).map((apt: any) => {
+                    // Prioritize Account Name (Test Patient) over Appointment Name (Kartik Phadale)
+                    // If they differ, show Account Name (Appointment Name)
+                    let disName = apt.patient_name || `Patient ${apt.id?.substring(0, 6)}`
+                    if (apt.patient_account_name && apt.patient_account_name !== apt.patient_name) {
+                        disName = `${apt.patient_account_name} (${apt.patient_name})`
+                    } else if (apt.patient_account_name) {
+                        disName = apt.patient_account_name
+                    }
+
+                    return {
+                        id: apt.patient_id, // Use Patient ID as unique conversation ID
+                        patientId: apt.patient_id,
+                        patientName: disName,
+                        lastMessage: apt.chief_complaint || 'Start a conversation',
+                        lastMessageTime: apt.scheduled_time,
+                        unreadCount: 0,
+                        appointmentId: apt.id, // Context for the chat
+                        status: apt.status === 'completed' ? 'completed' : 'active'
+                    }
+                })
 
                 setConversations(convos)
             }
@@ -101,6 +140,25 @@ export default function DoctorMessagesPage() {
             setLoading(false)
         }
     }
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout
+
+        if (selectedConversation?.appointmentId) {
+            const currentApptId = selectedConversation.appointmentId // strong capture
+            // Initial fetch
+            fetchMessages(currentApptId)
+
+            // Poll every 3 seconds for new messages
+            interval = setInterval(() => {
+                fetchMessages(currentApptId)
+            }, 3000)
+        }
+
+        return () => {
+            if (interval) clearInterval(interval)
+        }
+    }, [selectedConversation])
 
     const fetchMessages = async (appointmentId: string) => {
         try {
@@ -127,7 +185,7 @@ export default function DoctorMessagesPage() {
                 {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -288,10 +346,10 @@ export default function DoctorMessagesPage() {
                                     className={`flex ${msg.sender_type === 'doctor' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div className={`max-w-[70%] p-3 rounded-2xl ${msg.sender_type === 'doctor'
-                                            ? 'bg-primary-600 text-white rounded-br-sm'
-                                            : msg.sender_type === 'system'
-                                                ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 italic'
-                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-bl-sm'
+                                        ? 'bg-primary-600 text-white rounded-br-sm'
+                                        : msg.sender_type === 'system'
+                                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 italic'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-bl-sm'
                                         }`}>
                                         <p>{msg.content}</p>
                                         <div className={`flex items-center gap-1 mt-1 text-xs ${msg.sender_type === 'doctor' ? 'text-primary-200' : 'text-slate-400'

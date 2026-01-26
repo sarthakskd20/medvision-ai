@@ -546,6 +546,7 @@ class FirebaseService:
             print(f"Error fetching patient appointments: {e}")
             return []
     
+    
     def get_appointments_by_doctor_date(self, doctor_id: str, date: str) -> List[dict]:
         """Get all appointments for a doctor on a specific date."""
         if not self.is_connected:
@@ -560,6 +561,22 @@ class FirebaseService:
             return [doc.to_dict() for doc in docs]
         except Exception as e:
             print(f"Error fetching doctor appointments: {e}")
+            return []
+
+    def get_appointments_by_doctor_status(self, doctor_id: str, status: str) -> List[dict]:
+        """Get all appointments for a doctor with a specific status."""
+        if not self.is_connected:
+            return []
+        
+        try:
+            docs = self._db.collection("appointments")\
+                .where("doctor_id", "==", doctor_id)\
+                .where("status", "==", status)\
+                .stream()
+            
+            return [doc.to_dict() for doc in docs]
+        except Exception as e:
+            print(f"Error fetching doctor appointments by status: {e}")
             return []
     
     def has_active_appointment_with_doctor(self, patient_id: str, doctor_id: str) -> bool:

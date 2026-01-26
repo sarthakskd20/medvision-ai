@@ -107,6 +107,17 @@ async def create_appointment(request: CreateAppointmentRequest):
         ) or []  # Handle None case
         queue_number = len(existing_appointments) + 1
         
+        # Helper to get doctor settings for meet link
+        meet_link = None
+        if request.mode == AppointmentMode.ONLINE:
+            # We need to fetch doctor settings to get the configured meet link
+            doctor_settings = firebase.get_doctor_settings(request.doctor_id)
+            if doctor_settings and doctor_settings.get("custom_meet_link"):
+                meet_link = doctor_settings["custom_meet_link"]
+            elif doctor:
+                # Fallback to legacy check if doctor model has it (unlikely with new schema but good for safety)
+                meet_link = doctor.get("meet_link")
+        
         # Create appointment object
         appointment = Appointment(
             id=appointment_id,
@@ -119,6 +130,7 @@ async def create_appointment(request: CreateAppointmentRequest):
             doctor_timezone=doctor.get("timezone", "Asia/Kolkata") if doctor else "Asia/Kolkata",
             queue_number=queue_number,
             queue_date=queue_date,
+            meet_link=meet_link,
             hospital_address=(doctor.get("hospital_address") if doctor else None) if request.mode == AppointmentMode.OFFLINE else None,
             # Patient display info for doctor dashboard
             patient_name=request.patient_name,
@@ -209,9 +221,13 @@ async def get_patient_appointments(
                     apt['doctor_name'] = doctor.get('name') or doctor.get('full_name') or f"Dr. {doctor_id[:8]}"
                     apt['doctor_specialization'] = doctor.get('specialization') or 'General Physician'
                     apt['doctor_profile_image'] = doctor.get('profile_image')
-                else:
-                    apt['doctor_name'] = f"Dr. {doctor_id[:8]}"
-                    apt['doctor_specialization'] = 'Specialist'
+            
+            # Get consultation ID for completed appointments (for reports)
+            if apt.get('status') == 'completed':
+                consultation = firebase.get_consultation_by_appointment(apt.get('id'))
+                if consultation:
+                    apt['consultation_id'] = consultation.get('id')
+                    
             enriched.append(apt)
         
         return enriched
@@ -339,15 +355,80 @@ def estimate_token_count(profile: PatientProfileCreateRequest) -> int:
 # ============================================================================
 
 @router.get("/doctor/{doctor_id}/today")
-async def get_doctor_appointments_today(doctor_id: str):
-    """Get all appointments for a doctor for today."""
+async def get_doctor_appointments_today(doctor_id: str, date: Optional[str] = None):
+    """Get all appointments for a doctor for today (or specified date)."""
     try:
         firebase = get_firebase_service()
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = date if date else datetime.now().strftime("%Y-%m-%d")
+        print(f"DEBUG: Fetching appointments for doctor {doctor_id} on {today}")
         appointments = firebase.get_appointments_by_doctor_date(doctor_id, today)
+        print(f"DEBUG: Found {len(appointments) if appointments else 0} appointments from firebase")
         
-        # Sort by queue number
-        appointments.sort(key=lambda x: x.get("queue_number", 0))
+        # Also fetch any "stuck" IN_PROGRESS appointments from previous days
+        stuck_appointments = firebase.get_appointments_by_doctor_status(doctor_id, AppointmentStatus.IN_PROGRESS)
+        
+        # Merge stuck appointments if they aren't already in the list
+        existing_ids = {a.get("id") for a in appointments}
+        for apt in stuck_appointments:
+            if apt.get("id") not in existing_ids:
+                # Optionally mark them as "stuck" or "previous" if needed by frontend
+                # For now, just showing them allows the doctor to click "Continue"
+                appointments.append(apt)
+        
+        # Sort by queue number (stuck ones might have odd queue numbers compared to today, but that's fine)
+        # Maybe better to put stuck ones at the top?
+        # Let's sort normally, but if different dates, sorting by queue number is weird. 
+        # But queue_number is per-day. 
+        # Let's make sure 'stuck' ones appear FIRST to urgency.
+        
+        appointments.sort(key=lambda x: (x.get("queue_date") == today, x.get("queue_number", 0)))
+        
+        # Wait, if queue_date==today is True(1), it sorts AFTER False(0).
+        # We want today LAST? No, we probably want today's schedule sequentially.
+        # But the stuck one is urgent.
+        # Let's just append them to the top if we want them first.
+        # Actually, sorting by status IN_PROGRESS first might be good.
+        
+        appointments.sort(key=lambda x: (
+            0 if x.get("status") == AppointmentStatus.IN_PROGRESS else 1,
+            x.get("queue_number", 0)
+        ))
+        
+        # Enrich with Patient Account Details (for messaging identity)
+        # Identify unique patients to avoid redundant fetches
+        patient_ids = {a.get("patient_id") for a in appointments if a.get("patient_id")}
+        patient_map = {}
+        
+        for pid in patient_ids:
+            try:
+                # get_patient_by_id is async
+                p_data = await firebase.get_patient_by_id(pid)
+                if not p_data:
+                    # Fallback: Try fetching by email if PID looks like email
+                    if "@" in pid:
+                        p_data = await firebase.get_patient_by_email(pid)
+                    # Or just try generic get_patient if available in hybrid service
+                    elif hasattr(firebase, 'get_patient'):
+                         p_data = await firebase.get_patient(pid)
+                
+                if p_data:
+                    patient_map[pid] = p_data
+                else:
+                    print(f"DEBUG: Could not resolve patient identity for ID: {pid}")
+            except Exception as e:
+                print(f"Error fetching patient {pid}: {e}")
+                
+        # Apply to appointments
+        for apt in appointments:
+            pid = apt.get("patient_id")
+            if pid and pid in patient_map:
+                p_data = patient_map[pid]
+                # Prioritize 'name' if it's the account name, or 'full_name'
+                account_name = p_data.get("name") or p_data.get("full_name")
+                if account_name:
+                    apt["patient_account_name"] = account_name
+                apt["patient_email"] = p_data.get("email")
+                apt["patient_profile_image"] = p_data.get("profile_image")
         
         # Calculate stats
         total = len(appointments)

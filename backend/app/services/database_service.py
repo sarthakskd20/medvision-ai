@@ -580,6 +580,18 @@ class DatabaseService:
             return [self._appointment_to_dict(a) for a in appointments]
         finally:
             session.close()
+
+    def get_appointments_by_doctor_status(self, doctor_id: str, status: str) -> List[dict]:
+        """Get all appointments for a doctor with a specific status."""
+        session = self._get_session()
+        try:
+            appointments = session.query(Appointment).filter(
+                Appointment.doctor_id == doctor_id,
+                Appointment.status == status
+            ).all()
+            return [self._appointment_to_dict(a) for a in appointments]
+        finally:
+            session.close()
     
     def has_active_appointment_with_doctor(self, patient_id: str, doctor_id: str) -> bool:
         """Check if patient has an active appointment with this doctor."""
@@ -961,12 +973,21 @@ class DatabaseService:
                 if key in data and data[key] is not None and hasattr(data[key], 'isoformat'):
                     data[key] = data[key]
             
+            # Handle sender_role vs sender_type mismatch
+            sender_role = data.get("sender_role") or data.get("sender_type")
+            if hasattr(sender_role, 'value'): # Handle Enum
+                sender_role = sender_role.value
+            elif sender_role:
+                sender_role = str(sender_role)
+
             message = Message(
                 id=data.get("id"),
                 consultation_id=data.get("consultation_id"),
                 sender_id=data.get("sender_id"),
-                sender_role=data.get("sender_role"),
+                sender_role=sender_role,
                 content=data.get("content"),
+                encrypted_content=data.get("encrypted_content"), # Save encrypted content explicitly
+                iv=data.get("iv"), # Save IV
                 type=data.get("type", "text"),
                 timestamp=data.get("timestamp")
             )
@@ -995,8 +1016,12 @@ class DatabaseService:
             "sender_id": message.sender_id,
             "sender_role": message.sender_role,
             "content": message.content,
+            "encrypted_content": message.encrypted_content or message.content, # Fallback
+            "iv": message.iv, # Return IV
             "type": message.type,
+            "sender_type": message.sender_role, # Map for frontend compatibility
             "timestamp": message.timestamp.isoformat() if message.timestamp else None,
+            "created_at": message.timestamp.isoformat() if message.timestamp else None, # Map for frontend
             "read_at": message.read_at.isoformat() if message.read_at else None
         }
 
@@ -1118,6 +1143,15 @@ class DatabaseService:
             "instructions": prescription.instructions,
             "created_at": prescription.created_at.isoformat() if prescription.created_at else None
         }
+
+    def get_prescriptions_by_consultation(self, consultation_id: str) -> List[dict]:
+        """Get prescriptions for a consultation."""
+        session = self._get_session()
+        try:
+            prescriptions = session.query(Prescription).filter(Prescription.consultation_id == consultation_id).all()
+            return [self._prescription_to_dict(p) for p in prescriptions]
+        finally:
+            session.close()
 
     # ===========================================
     # AI ANALYSIS OPERATIONS

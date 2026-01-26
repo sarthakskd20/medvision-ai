@@ -23,6 +23,7 @@ import {
     Eye,
     EyeOff
 } from 'lucide-react'
+import api from '@/lib/api'
 
 interface DoctorProfile {
     id: string
@@ -118,7 +119,7 @@ export default function DoctorProfilePage() {
         return meetPattern.test(link)
     }
 
-    const handleSaveProfile = () => {
+    const handleSaveProfile = async () => {
         setError('')
         setSaved(false)
 
@@ -127,25 +128,44 @@ export default function DoctorProfilePage() {
             return
         }
 
-        // Save hospital address to user profile
-        const userData = localStorage.getItem('user')
-        if (userData) {
-            const user = JSON.parse(userData)
-            user.hospital_address = hospitalAddress
-            localStorage.setItem('user', JSON.stringify(user))
+        try {
+            setLoading(true)
+
+            // Prepare settings object for API
+            const settingsPayload = {
+                hospital_address: hospitalAddress,
+                custom_meet_link: meetLink,
+                working_hours_start: workingHoursStart,
+                working_hours_end: workingHoursEnd,
+                online_consultation_fee: parseFloat(onlineFee),
+                offline_consultation_fee: parseFloat(offlineFee),
+                accepts_online: acceptingOnline,
+                accepts_offline: acceptingOffline
+            }
+
+            // Call API
+            await api.updateDoctorSettings(settingsPayload)
+
+            // Update local storage just for redundancy/cache if needed, but rely on API
+            const userData = localStorage.getItem('user')
+            if (userData) {
+                const user = JSON.parse(userData)
+                user.hospital_address = hospitalAddress
+                localStorage.setItem('user', JSON.stringify(user))
+            }
+
+            // Update local storage for immediate UI persistence if using it elsewhere
+            localStorage.setItem('doctor_meet_link', meetLink)
+
+            setSaved(true)
+            setTimeout(() => setSaved(false), 3000)
+
+        } catch (err: any) {
+            console.error('Failed to save profile:', err)
+            setError(err.message || 'Failed to save settings')
+        } finally {
+            setLoading(false)
         }
-
-        // Save settings
-        localStorage.setItem('doctor_meet_link', meetLink)
-        localStorage.setItem('doctor_working_hours_start', workingHoursStart)
-        localStorage.setItem('doctor_working_hours_end', workingHoursEnd)
-        localStorage.setItem('doctor_online_fee', onlineFee)
-        localStorage.setItem('doctor_offline_fee', offlineFee)
-        localStorage.setItem('doctor_accepting_online', String(acceptingOnline))
-        localStorage.setItem('doctor_accepting_offline', String(acceptingOffline))
-
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
     }
 
     const handleChangePassword = () => {

@@ -12,6 +12,7 @@ import {
     ExternalLink,
     Calendar
 } from 'lucide-react'
+import { api } from '@/lib/api'
 
 export default function DoctorSettingsPage() {
     const [meetLink, setMeetLink] = useState('')
@@ -25,23 +26,25 @@ export default function DoctorSettingsPage() {
     const [error, setError] = useState('')
 
     useEffect(() => {
-        // Load settings from localStorage
-        const savedMeetLink = localStorage.getItem('doctor_meet_link') || ''
-        const savedWorkingStart = localStorage.getItem('doctor_working_hours_start') || '09:00'
-        const savedWorkingEnd = localStorage.getItem('doctor_working_hours_end') || '18:00'
-        const savedOnlineFee = localStorage.getItem('doctor_online_fee') || '500'
-        const savedOfflineFee = localStorage.getItem('doctor_offline_fee') || '700'
-        const savedAcceptingOnline = localStorage.getItem('doctor_accepting_online') !== 'false'
-        const savedAcceptingOffline = localStorage.getItem('doctor_accepting_offline') !== 'false'
-
-        setMeetLink(savedMeetLink)
-        setWorkingHoursStart(savedWorkingStart)
-        setWorkingHoursEnd(savedWorkingEnd)
-        setOnlineFee(savedOnlineFee)
-        setOfflineFee(savedOfflineFee)
-        setAcceptingOnline(savedAcceptingOnline)
-        setAcceptingOffline(savedAcceptingOffline)
+        loadSettings()
     }, [])
+
+    const loadSettings = async () => {
+        try {
+            const settings = await api.getDoctorSettings()
+            if (settings) {
+                setMeetLink(settings.custom_meet_link || '')
+                setWorkingHoursStart(settings.working_hours_start || '09:00')
+                setWorkingHoursEnd(settings.working_hours_end || '18:00')
+                setOnlineFee(settings.online_consultation_fee?.toString() || '500')
+                setOfflineFee(settings.offline_consultation_fee?.toString() || '700')
+                setAcceptingOnline(settings.accepts_online !== false)
+                setAcceptingOffline(settings.accepts_offline !== false)
+            }
+        } catch (err) {
+            console.error('Failed to load settings', err)
+        }
+    }
 
     const validateMeetLink = (link: string) => {
         if (!link) return true // Empty is okay
@@ -50,7 +53,7 @@ export default function DoctorSettingsPage() {
         return meetPattern.test(link)
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setError('')
         setSaved(false)
 
@@ -59,20 +62,26 @@ export default function DoctorSettingsPage() {
             return
         }
 
-        // Save to localStorage
-        localStorage.setItem('doctor_meet_link', meetLink)
-        localStorage.setItem('doctor_working_hours_start', workingHoursStart)
-        localStorage.setItem('doctor_working_hours_end', workingHoursEnd)
-        localStorage.setItem('doctor_online_fee', onlineFee)
-        localStorage.setItem('doctor_offline_fee', offlineFee)
-        localStorage.setItem('doctor_accepting_online', String(acceptingOnline))
-        localStorage.setItem('doctor_accepting_offline', String(acceptingOffline))
+        try {
+            await api.updateDoctorSettings({
+                custom_meet_link: meetLink,
+                working_hours_start: workingHoursStart,
+                working_hours_end: workingHoursEnd,
+                online_consultation_fee: parseFloat(onlineFee),
+                offline_consultation_fee: parseFloat(offlineFee),
+                accepts_online: acceptingOnline,
+                accepts_offline: acceptingOffline
+            })
 
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+            // Also update localStorage as backup/cache if needed, or remove it.
+            localStorage.setItem('doctor_meet_link', meetLink)
 
-        // TODO: Also save to Firebase
-        // api.updateDoctorSettings({...})
+            setSaved(true)
+            setTimeout(() => setSaved(false), 3000)
+        } catch (err) {
+            setError('Failed to save settings. Please try again.')
+            console.error(err)
+        }
     }
 
     return (

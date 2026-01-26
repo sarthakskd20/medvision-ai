@@ -14,11 +14,20 @@ async function fetchAPI<T>(
 ): Promise<T> {
     const url = `${API_URL}${endpoint}`
 
+    // Get token from storage (support both keys for backward compatibility)
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || localStorage.getItem('token')) : null
+
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...options.headers as Record<string, string>,
+    }
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(url, {
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-        },
+        headers,
         ...options,
     })
 
@@ -39,6 +48,14 @@ export const api = {
 
     // Auth - Get current logged-in doctor
     getCurrentDoctor: () => fetchAPI<any>('/api/auth/me'),
+
+    // Settings
+    getDoctorSettings: () => fetchAPI<any>('/api/settings/'),
+    updateDoctorSettings: (settings: any) =>
+        fetchAPI<any>('/api/settings/', {
+            method: 'PUT',
+            body: JSON.stringify(settings)
+        }),
 
     // Patients
     getPatients: () => fetchAPI<any[]>('/api/patients'),
@@ -144,8 +161,8 @@ export const api = {
     getPatientAppointments: (patientId: string) =>
         fetchAPI<any[]>(`/api/appointments/patient/${patientId}`),
 
-    getDoctorAppointmentsToday: (doctorId: string) =>
-        fetchAPI<{ appointments: any[]; stats: any }>(`/api/appointments/doctor/${doctorId}/today`),
+    getDoctorAppointmentsToday: (doctorId: string, date?: string) =>
+        fetchAPI<{ appointments: any[]; stats: any }>(`/api/appointments/doctor/${doctorId}/today${date ? `?date=${date}` : ''}`),
 
     getDoctorAppointmentsUpcoming: (doctorId: string, days: number = 7) =>
         fetchAPI<{ appointments_by_date: Record<string, any[]>; stats: any }>(

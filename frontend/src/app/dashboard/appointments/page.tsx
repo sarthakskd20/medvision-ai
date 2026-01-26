@@ -60,7 +60,14 @@ export default function DoctorAppointmentsPage() {
 
             // Fetch today's appointments
             try {
-                const result = await api.getDoctorAppointmentsToday(id)
+                // Use local date to avoid timezone mismatches with server
+                const now = new Date()
+                const year = now.getFullYear()
+                const month = String(now.getMonth() + 1).padStart(2, '0')
+                const day = String(now.getDate()).padStart(2, '0')
+                const todayStr = `${year}-${month}-${day}`
+
+                const result = await api.getDoctorAppointmentsToday(id, todayStr)
                 if (result.appointments) {
                     setAppointments(result.appointments)
                 }
@@ -314,22 +321,44 @@ export default function DoctorAppointmentsPage() {
                             </div>
                         </div>
 
-                        {/* Queue List */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700">
-                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Today's Queue</h2>
+                        {/* Active Queue List */}
+                        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
+                            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-blue-50 dark:bg-blue-900/10">
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-blue-600" />
+                                    Active Queue
+                                    <span className="text-sm font-normal text-slate-500 ml-2">({waitingPatients.length + (appointments.find(a => a.status === 'in_progress') ? 1 : 0)})</span>
+                                </h2>
                             </div>
 
                             {loading ? (
                                 <div className="p-8 text-center text-slate-500 dark:text-slate-400">Loading appointments...</div>
-                            ) : appointments.length === 0 ? (
-                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">No appointments for today</div>
+                            ) : appointments.filter(a => ['waiting', 'pending', 'confirmed', 'in_progress'].includes(a.status)).length === 0 ? (
+                                <div className="p-8 text-center text-slate-500 dark:text-slate-400">No active appointments</div>
                             ) : (
                                 <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                                    {appointments.map((appointment) => renderAppointmentCard(appointment))}
+                                    {appointments
+                                        .filter(a => ['waiting', 'pending', 'confirmed', 'in_progress'].includes(a.status))
+                                        .map((appointment) => renderAppointmentCard(appointment))}
                                 </div>
                             )}
                         </div>
+
+                        {/* Completed Section */}
+                        {completedPatients.length > 0 && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-green-50 dark:bg-green-900/10">
+                                    <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <CheckCircle className="w-5 h-5 text-green-600" />
+                                        Completed Today
+                                        <span className="text-sm font-normal text-slate-500 ml-2">({completedPatients.length})</span>
+                                    </h2>
+                                </div>
+                                <div className="divide-y divide-slate-100 dark:divide-slate-700 opacity-75">
+                                    {completedPatients.map((appointment) => renderAppointmentCard(appointment))}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
 

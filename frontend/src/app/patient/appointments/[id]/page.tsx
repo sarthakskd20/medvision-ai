@@ -121,7 +121,7 @@ export default function AppointmentDetailPage() {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
 
             // Fetch prescription data by appointment
             const prescRes = await fetch(`${API_BASE}/api/consultation/prescription/appointment/${appointmentId}`, {
@@ -167,7 +167,7 @@ export default function AppointmentDetailPage() {
 
     const fetchDoctorName = async (doctorId: string) => {
         try {
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
             const res = await fetch(`${API_BASE}/api/doctors/${doctorId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
@@ -186,7 +186,7 @@ export default function AppointmentDetailPage() {
 
         try {
             setSendingMessage(true)
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('auth_token')
             const userData = localStorage.getItem('user')
             const user = userData ? JSON.parse(userData) : {}
 

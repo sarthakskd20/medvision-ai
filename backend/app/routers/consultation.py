@@ -66,6 +66,26 @@ async def start_consultation(appointment_id: str):
         # Check if consultation already exists
         existing = db.get_consultation_by_appointment(appointment_id)
         if existing:
+            # Fix: Check if existing consultation has missing meet link for online sessions
+            if existing.get('is_online') and not existing.get('meet_link'):
+                # Try to fetch from settings again (maybe doctor just updated it)
+                try:
+                    doctor_id = existing.get('doctor_id')
+                    settings = db.get_doctor_settings(doctor_id)
+                    if settings and settings.get('custom_meet_link'):
+                        # Found a link! Update the existing consultation
+                        new_link = settings.get('custom_meet_link')
+                        db.update_consultation(existing.get('id'), {'meet_link': new_link})
+                        existing['meet_link'] = new_link
+                except Exception as e:
+                    print(f"Error fetching fallback link for existing consultation: {e}")
+            
+            # Now enforce again
+            if existing.get('is_online') and not existing.get('meet_link'):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="MEET_LINK_MISSING"
+                )
             return existing
         
         # Create consultation session
@@ -76,12 +96,29 @@ async def start_consultation(appointment_id: str):
             appointment_id=appointment_id,
             doctor_id=appointment.get('doctor_id'),
             patient_id=appointment.get('patient_id'),
-            status=ConsultationStatus.WAITING,
+            status=ConsultationStatus.IN_PROGRESS,  # Fix: Start directly in IN_PROGRESS so patient sees Join button
             is_online=appointment.get('mode') == 'online',
             meet_link=appointment.get('meet_link'),
             current_token=appointment.get('queue_number'),
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            started_at=datetime.utcnow() # Set started_at immediately
         )
+        
+        # Fallback: If no meet link in appointment, try fetching from doctor settings
+        if consultation.is_online and not consultation.meet_link:
+            try:
+                settings = db.get_doctor_settings(consultation.doctor_id)
+                if settings and settings.get('custom_meet_link'):
+                    consultation.meet_link = settings.get('custom_meet_link')
+            except Exception as e:
+                print(f"Warning: Could not fetch fallback meet link: {e}")
+        
+        # Enforce Meet Link for Online Consultations
+        if consultation.is_online and not consultation.meet_link:
+            raise HTTPException(
+                status_code=400, 
+                detail="MEET_LINK_MISSING"
+            )
         
         # Save to database
         result = db.create_consultation(consultation.model_dump())
@@ -570,11 +607,22 @@ async def get_prescription_by_appointment(appointment_id: str):
         # Get appointment for additional context
         appointment = db.get_appointment_by_id(appointment_id)
         
+        # Enrich with Doctor Name
+        if appointment and appointment.get('doctor_id'):
+            doctor = db.get_doctor_by_id(appointment.get('doctor_id'))
+            if doctor:
+                appointment['doctor_name'] = doctor.get('name') or doctor.get('full_name') or f"Dr. {appointment.get('doctor_id')[:8]}"
+                appointment['doctor_specialization'] = doctor.get('specialization') or 'General Physician'
+
+        # Get AI Analysis
+        ai_analysis = db.get_ai_analysis_by_consultation(consultation.get('id'))
+        
         return {
             'prescription': prescriptions[0] if prescriptions else None,
             'doctor_notes': notes,
             'appointment': appointment,
             'consultation': consultation,
+            'ai_analysis': ai_analysis,
             'status': 'found'
         }
     except Exception as e:
@@ -739,6 +787,9 @@ async def get_queue_position(appointment_id: str):
         today = datetime.now().strftime('%Y-%m-%d')
         appointments = db.get_appointments_by_doctor_date(doctor_id, today)
         
+        # Check if consultation started
+        consultation = db.get_consultation_by_appointment(appointment_id)
+        
         # Find current serving
         current = next((a for a in appointments if a.get('status') == 'in_progress'), None)
         current_token = current.get('queue_number', 0) if current else 0
@@ -767,7 +818,10 @@ async def get_queue_position(appointment_id: str):
             estimated_wait_minutes=estimated_wait,
             doctor_status=doctor_status,
             doctor_unavailable_until=unavailability.get('end_time') if unavailability else None,
-            unavailability_reason=unavailability.get('reason') if unavailability else None
+            unavailability_reason=unavailability.get('reason') if unavailability else None,
+            # Consultation specific status
+            consultation_status=consultation.get('status') if consultation else None,
+            meet_link=consultation.get('meet_link') if consultation else None
         )
         
     except HTTPException:

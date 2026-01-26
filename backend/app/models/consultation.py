@@ -436,7 +436,12 @@ class QueuePosition(BaseModel):
     estimated_wait_minutes: int
     doctor_status: str  # "available", "busy", "unavailable"
     doctor_unavailable_until: Optional[datetime] = None
+    doctor_unavailable_until: Optional[datetime] = None
     unavailability_reason: Optional[str] = None
+    
+    # Consultation details
+    consultation_status: Optional[str] = None
+    meet_link: Optional[str] = None
 
 
 class QueueUpdate(BaseModel):
