@@ -126,7 +126,9 @@ export default function ConsultationPage() {
     const [specialInstructions, setSpecialInstructions] = useState('')
 
     // UI State
-    const [activeTab, setActiveTab] = useState<'profile' | 'messages' | 'notes' | 'ai' | 'prescription'>('profile')
+    const [activeTab, setActiveTab] = useState<'profile' | 'reports' | 'notes' | 'ai' | 'prescription'>('profile')
+    const [uploadingReport, setUploadingReport] = useState(false)
+    const [uploadedReports, setUploadedReports] = useState<Array<{ id: string, name: string, uploaded_at: string }>>([])
     const [showFinishModal, setShowFinishModal] = useState(false)
     const [showLinkModal, setShowLinkModal] = useState(false)
     const [meetLinkInput, setMeetLinkInput] = useState('')
@@ -595,7 +597,7 @@ export default function ConsultationPage() {
             <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                 {[
                     { id: 'profile', label: 'Patient Profile', icon: User },
-                    { id: 'messages', label: 'Messages', icon: MessageSquare },
+                    { id: 'reports', label: 'Upload Reports', icon: Upload },
                     { id: 'notes', label: 'Notes & Vitals', icon: FileText },
                     { id: 'ai', label: 'AI Analysis', icon: Brain },
                     { id: 'prescription', label: 'Prescription', icon: Pill }
@@ -730,53 +732,92 @@ export default function ConsultationPage() {
                     </div>
                 )}
 
-                {/* Messages Tab */}
-                {activeTab === 'messages' && (
+                {/* Upload Reports Tab */}
+                {activeTab === 'reports' && (
                     <div className="h-[450px] flex flex-col">
-                        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                            {messages.length === 0 ? (
-                                <p className="text-center text-slate-500 dark:text-slate-400 py-8">
-                                    No messages yet. Start the conversation.
-                                </p>
-                            ) : (
-                                messages.map(msg => (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex ${msg.sender_type === 'doctor' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div className={`max-w-[70%] p-3 rounded-lg ${msg.sender_type === 'doctor'
-                                            ? 'bg-teal-600 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
-                                            }`}>
-                                            <p>{msg.content}</p>
-                                            <p className={`text-xs mt-1 ${msg.sender_type === 'doctor' ? 'text-teal-200' : 'text-slate-400'
-                                                }`}>
-                                                {new Date(msg.created_at).toLocaleTimeString()}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                            <div ref={messagesEndRef} />
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Upload Patient Medical Reports</h3>
+                            <p className="text-slate-500 dark:text-slate-400">Upload lab reports, imaging results, or other medical documents for this patient.</p>
                         </div>
 
-                        <div className="flex gap-2">
+                        {/* Upload Area */}
+                        <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center hover:border-teal-500 transition-colors">
                             <input
-                                type="text"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                placeholder="Type a message..."
-                                className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 rounded-lg focus:border-teal-500 outline-none"
+                                type="file"
+                                id="report-upload"
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                className="hidden"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0]
+                                    if (!file) return
+
+                                    setUploadingReport(true)
+                                    try {
+                                        const formData = new FormData()
+                                        formData.append('file', file)
+                                        formData.append('patient_id', consultation?.patient_id || '')
+                                        formData.append('consultation_id', consultation?.id || '')
+
+                                        const token = localStorage.getItem('auth_token')
+                                        const res = await fetch(`${API_BASE}/api/reports/upload`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bearer ${token}`
+                                            },
+                                            body: formData
+                                        })
+
+                                        if (res.ok) {
+                                            const data = await res.json()
+                                            setUploadedReports(prev => [...prev, {
+                                                id: data.id || Date.now().toString(),
+                                                name: file.name,
+                                                uploaded_at: new Date().toISOString()
+                                            }])
+                                            alert('Report uploaded successfully!')
+                                        } else {
+                                            alert('Failed to upload report')
+                                        }
+                                    } catch (error) {
+                                        console.error('Upload error:', error)
+                                        alert('Error uploading report')
+                                    } finally {
+                                        setUploadingReport(false)
+                                    }
+                                }}
                             />
-                            <button
-                                onClick={sendMessage}
-                                disabled={sendingMessage || !newMessage.trim()}
-                                className="px-6 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                            >
-                                <Send className="w-5 h-5" />
-                            </button>
+                            <label htmlFor="report-upload" className="cursor-pointer">
+                                <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                                <p className="text-slate-600 dark:text-slate-300 font-medium">Click to upload or drag and drop</p>
+                                <p className="text-slate-400 text-sm mt-1">PDF, PNG, or JPG (max 10MB)</p>
+                            </label>
+                            {uploadingReport && (
+                                <div className="mt-4 flex items-center justify-center gap-2 text-teal-600">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span>Uploading...</span>
+                                </div>
+                            )}
                         </div>
+
+                        {/* Uploaded Reports List */}
+                        {uploadedReports.length > 0 && (
+                            <div className="mt-6">
+                                <h4 className="font-semibold text-slate-800 dark:text-white mb-3">Uploaded Reports</h4>
+                                <div className="space-y-2">
+                                    {uploadedReports.map(report => (
+                                        <div key={report.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <FileText className="w-5 h-5 text-teal-600" />
+                                                <span className="font-medium text-slate-900 dark:text-white">{report.name}</span>
+                                            </div>
+                                            <span className="text-sm text-slate-500">
+                                                {new Date(report.uploaded_at).toLocaleString()}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

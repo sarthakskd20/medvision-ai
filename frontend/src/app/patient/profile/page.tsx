@@ -39,17 +39,17 @@ export default function PatientProfilePage() {
     const router = useRouter()
     const [isEditing, setIsEditing] = useState(false)
     const [profile, setProfile] = useState({
-        name: 'John Doe',
-        email: 'john.doe@email.com',
-        phone: '+91 98765 43210',
-        dateOfBirth: '1990-05-15',
-        gender: 'Male',
-        bloodGroup: 'O+',
-        address: 'Mumbai, Maharashtra, India',
-        emergencyContact: '+91 98765 43211',
-        allergies: ['Penicillin', 'Dust'],
-        medications: ['Vitamin D'],
-        conditions: ['None']
+        name: '',
+        email: '',
+        phone: '',
+        dateOfBirth: '',
+        gender: '',
+        bloodGroup: '',
+        address: '',
+        emergencyContact: '',
+        allergies: [] as string[],
+        medications: [] as string[],
+        conditions: [] as string[]
     })
 
     const [editedProfile, setEditedProfile] = useState(profile)
@@ -366,31 +366,37 @@ export default function PatientProfilePage() {
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Known Allergies</label>
                         <div className="flex flex-wrap gap-2">
-                            {profile.allergies.map((allergy, i) => (
+                            {profile.allergies.length > 0 ? profile.allergies.map((allergy, i) => (
                                 <span key={i} className="px-3 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
                                     {allergy}
                                 </span>
-                            ))}
+                            )) : (
+                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                            )}
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Current Medications</label>
                         <div className="flex flex-wrap gap-2">
-                            {profile.medications.map((med, i) => (
+                            {profile.medications.length > 0 ? profile.medications.map((med, i) => (
                                 <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
                                     {med}
                                 </span>
-                            ))}
+                            )) : (
+                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                            )}
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Medical Conditions</label>
                         <div className="flex flex-wrap gap-2">
-                            {profile.conditions.map((cond, i) => (
+                            {profile.conditions.length > 0 ? profile.conditions.map((cond, i) => (
                                 <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium">
                                     {cond}
                                 </span>
-                            ))}
+                            )) : (
+                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                            )}
                         </div>
                     </div>
                 </div>

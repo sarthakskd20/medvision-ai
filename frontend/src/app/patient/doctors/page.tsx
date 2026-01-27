@@ -71,6 +71,9 @@ interface Doctor {
     nextAvailable?: string
     image?: string
     verification_status?: string
+    consultation_start_time?: string
+    consultation_end_time?: string
+    average_rating?: number
 }
 
 export default function FindDoctorsPage() {
@@ -285,7 +288,7 @@ export default function FindDoctorsPage() {
                                         className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-xl group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/50 transition-colors"
                                     >
                                         <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 group-hover:animate-spin" style={{ animationDuration: '2s' }} />
-                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.rating || '4.5'}</span>
+                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.average_rating || doctor.rating || 'New'}</span>
                                     </motion.div>
                                 </div>
 
@@ -343,15 +346,19 @@ export default function FindDoctorsPage() {
 
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Next Available</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Available</p>
                                     <p className="font-semibold text-slate-800 dark:text-white flex items-center gap-1">
-                                        <Clock className="w-4 h-4 text-green-500 animate-pulse" />
-                                        {doctor.nextAvailable}
+                                        <Clock className="w-4 h-4 text-green-500" />
+                                        {doctor.consultation_start_time && doctor.consultation_end_time
+                                            ? `${doctor.consultation_start_time} - ${doctor.consultation_end_time}`
+                                            : 'Contact for availability'}
                                     </p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm text-slate-500 dark:text-slate-400">Consultation Fee</p>
-                                    <p className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">₹{doctor.consultationFee || doctor.consultation_fee || doctor.online_fee || 500}</p>
+                                    <p className="font-bold text-xl text-slate-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                        ₹{doctor.online_fee || doctor.offline_fee || doctor.consultation_fee || 'Contact'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
