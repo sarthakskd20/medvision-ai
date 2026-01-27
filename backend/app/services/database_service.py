@@ -782,7 +782,7 @@ class DatabaseService:
             session.close()
     
     def search_doctors(self, filters: dict) -> List[dict]:
-        """Search for doctors with filters."""
+        """Search for doctors with filters, including profile and settings data."""
         session = self._get_session()
         try:
             query = session.query(Doctor)
@@ -800,7 +800,31 @@ class DatabaseService:
                     spec = (d.specialization or "").lower()
                     if search_text not in name and search_text not in spec:
                         continue
-                results.append(self._doctor_to_dict(d))
+                
+                # Convert doctor to dict
+                doctor_dict = self._doctor_to_dict(d)
+                
+                # Fetch profile data
+                profile = session.query(DoctorProfile).filter(DoctorProfile.doctor_id == d.id).first()
+                if profile:
+                    doctor_dict["years_experience"] = profile.experience_years
+                    doctor_dict["experience"] = profile.experience_years
+                    doctor_dict["bio"] = profile.bio
+                    doctor_dict["qualifications"] = profile.qualifications
+                    doctor_dict["profile_photo_url"] = profile.profile_photo_url
+                
+                # Fetch settings data
+                settings = session.query(DoctorSettings).filter(DoctorSettings.doctor_id == d.id).first()
+                if settings:
+                    doctor_dict["online_fee"] = settings.online_consultation_fee
+                    doctor_dict["offline_fee"] = settings.offline_consultation_fee
+                    doctor_dict["consultation_start_time"] = settings.working_hours_start
+                    doctor_dict["consultation_end_time"] = settings.working_hours_end
+                    doctor_dict["accepts_online"] = settings.accepts_online
+                    doctor_dict["accepts_offline"] = settings.accepts_offline
+                    doctor_dict["hospital_address"] = settings.hospital_address or doctor_dict.get("hospital")
+                
+                results.append(doctor_dict)
             
             return results
         finally:
