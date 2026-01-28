@@ -92,7 +92,7 @@ export default function PatientRegisterPage() {
 
     if (success) {
         return (
-            <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 py-10 px-4">
+            <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-primary-50 to-teal-50 py-10 px-4">
                 <div className="absolute inset-0 z-0">
                     <Image
                         src="/images/auth-bg.png"
@@ -111,14 +111,14 @@ export default function PatientRegisterPage() {
                     <p className="text-slate-600 mb-6 text-lg">
                         Redirecting to login...
                     </p>
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary-500 mx-auto" />
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 py-10 px-4 theme-patient">
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-primary-50 to-teal-50 py-10 px-4 theme-patient">
             {/* Parallax Background */}
             <div
                 className="absolute inset-0 z-0 auth-parallax-bg"
@@ -136,11 +136,11 @@ export default function PatientRegisterPage() {
 
             {/* Decorative Elements */}
             <div
-                className="absolute top-20 right-10 w-40 h-40 rounded-full bg-blue-400/20 blur-3xl"
+                className="absolute top-20 right-10 w-40 h-40 rounded-full bg-primary-400/20 blur-3xl"
                 style={{ transform: `translateY(${-parallaxOffset * 0.2}px)` }}
             />
             <div
-                className="absolute bottom-20 left-10 w-32 h-32 rounded-full bg-blue-500/20 blur-3xl"
+                className="absolute bottom-20 left-10 w-32 h-32 rounded-full bg-teal-500/20 blur-3xl"
                 style={{ transform: `translateY(${parallaxOffset * 0.3}px)` }}
             />
 
@@ -149,7 +149,7 @@ export default function PatientRegisterPage() {
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-blue-500/30">
+                            <div className="w-12 h-12 flex items-center justify-center overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110">
                                 <Image
                                     src="/images/medvision-logo.png"
                                     alt="MedVision"
@@ -186,7 +186,7 @@ export default function PatientRegisterPage() {
                                     value={formData.name}
                                     onChange={handleInputChange}
                                     placeholder="John Doe"
-                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors bg-transparent"
+                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                     required
                                 />
                             </div>
@@ -201,7 +201,7 @@ export default function PatientRegisterPage() {
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     placeholder="patient@example.com"
-                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors bg-transparent"
+                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                     required
                                 />
                             </div>
@@ -216,7 +216,7 @@ export default function PatientRegisterPage() {
                                     value={formData.phone}
                                     onChange={handleInputChange}
                                     placeholder="+1 234 567 8900"
-                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors bg-transparent"
+                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                 />
                             </div>
 
@@ -230,7 +230,7 @@ export default function PatientRegisterPage() {
                                     value={formData.password}
                                     onChange={handleInputChange}
                                     placeholder="Create a strong password"
-                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors bg-transparent"
+                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                     required
                                 />
                             </div>
@@ -245,7 +245,7 @@ export default function PatientRegisterPage() {
                                     value={formData.confirmPassword}
                                     onChange={handleInputChange}
                                     placeholder="Confirm your password"
-                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-blue-600 transition-colors bg-transparent"
+                                    className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                     required
                                 />
                             </div>
@@ -261,7 +261,7 @@ export default function PatientRegisterPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="flex-1 px-8 py-2.5 bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 px-8 py-2.5 bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
                                         <Loader2 className="h-5 w-5 animate-spin" />
@@ -278,11 +278,11 @@ export default function PatientRegisterPage() {
                         <div className="mt-8 pt-6 border-t border-slate-200">
                             <p className="text-center text-sm text-slate-500 mb-2">
                                 Are you a medical professional?{' '}
-                                <Link href="/auth/register/doctor" className="font-semibold text-blue-600 hover:underline">Register as a Doctor</Link>
+                                <Link href="/auth/register/doctor" className="font-semibold text-primary-600 hover:underline">Register as a Doctor</Link>
                             </p>
                             <p className="text-center text-sm text-slate-500">
                                 Already have an account?{' '}
-                                <Link href="/auth/login" className="font-semibold text-blue-600 hover:underline">Sign In</Link>
+                                <Link href="/auth/login" className="font-semibold text-primary-600 hover:underline">Sign In</Link>
                             </p>
                         </div>
                     </div>

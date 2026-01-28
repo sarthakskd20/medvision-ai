@@ -532,7 +532,7 @@ export default function DoctorRegisterPage() {
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-teal-500/30">
+                            <div className="w-12 h-12 flex items-center justify-center overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-110">
                                 <Image
                                     src="/images/medvision-logo.png"
                                     alt="MedVision"
