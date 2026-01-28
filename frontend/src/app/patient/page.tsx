@@ -158,11 +158,11 @@ export default function PatientDashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
-                    <div className="w-12 h-0.5 bg-teal-600 dark:bg-[#16c401] mb-4" />
+                    <div className="w-12 h-0.5 bg-teal-600 dark:bg-teal-400 mb-4" />
                     <h1 className="text-2xl md:text-3xl font-semibold text-slate-700 dark:text-slate-200">
                         {getGreeting()},
                     </h1>
-                    <h2 className="text-3xl md:text-4xl font-bold text-teal-600 dark:text-[#16c401] mt-1">
+                    <h2 className="text-3xl md:text-4xl font-bold text-teal-600 dark:text-teal-400 mt-1">
                         {patientName}
                     </h2>
                 </motion.div>
@@ -184,7 +184,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-8 hover:border-teal-500 dark:hover:border-[#16c401] transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-calendar.png" alt="Appointments" fill className="object-contain" />
@@ -198,7 +198,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.1, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-8 hover:border-teal-500 dark:hover:border-[#16c401] transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-checkmark.png" alt="Completed" fill className="object-contain" />
@@ -212,7 +212,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.2, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-8 hover:border-teal-500 dark:hover:border-[#16c401] transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-records.png" alt="Records" fill className="object-contain" />
@@ -226,7 +226,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.3, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-8 hover:border-teal-500 dark:hover:border-[#16c401] transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-health.png" alt="Health" fill className="object-contain" />
@@ -249,8 +249,8 @@ export default function PatientDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Book Appointment Card */}
                     <Link href="/patient/doctors" className="group">
-                        <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6 hover:border-teal-500 dark:hover:border-[#16c401] transition-all">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-800">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-book-appointment.png"
                                     alt="Book Appointment"
@@ -265,8 +265,8 @@ export default function PatientDashboard() {
 
                     {/* Upload Records Card */}
                     <Link href="/patient/records/upload" className="group">
-                        <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6 hover:border-teal-500 dark:hover:border-[#16c401] transition-all">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-800">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-upload-records.png"
                                     alt="Upload Records"
@@ -281,8 +281,8 @@ export default function PatientDashboard() {
 
                     {/* Find Doctor Card */}
                     <Link href="/patient/doctors" className="group">
-                        <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6 hover:border-teal-500 dark:hover:border-[#16c401] transition-all">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-800">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-find-doctor.png"
                                     alt="Find Doctor"
@@ -306,7 +306,7 @@ export default function PatientDashboard() {
                     </div>
                     <Link
                         href="/patient/appointments"
-                        className="px-6 py-3 bg-[#0d9488] text-white font-bold hover:bg-teal-700 dark:hover:bg-[#12a801] transition-colors"
+                        className="px-6 py-3 bg-[#0d9488] text-white font-bold hover:bg-teal-700 dark:hover:bg-teal-600 transition-colors"
                     >
                         View All
                     </Link>
@@ -320,7 +320,7 @@ export default function PatientDashboard() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={appointmentsVisible ? { opacity: 1 } : {}}
-                        className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-16 text-center"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-16 text-center"
                     >
                         <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 border-2 border-slate-200 dark:border-slate-600">
                             <Calendar className="w-10 h-10 text-slate-400" />
@@ -345,11 +345,11 @@ export default function PatientDashboard() {
                             >
                                 <Link
                                     href="/patient/appointments"
-                                    className="block bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6 hover:border-[#0d9488] transition-colors group"
+                                    className="block bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-[#0d9488] transition-colors group"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-6">
-                                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[#0d9488] font-black text-xl">
+                                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-600 flex items-center justify-center text-[#0d9488] font-black text-xl">
                                                 <Stethoscope className="w-8 h-8" />
                                             </div>
                                             <div>
