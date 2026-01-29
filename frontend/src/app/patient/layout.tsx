@@ -85,7 +85,7 @@ export default function PatientDashboardLayout({ children }: { children: React.R
     }
 
     return (
-        <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#121820] relative overflow-hidden">
+        <div className="min-h-screen bg-[#FAF8F5] dark:bg-[#0A1628] relative overflow-hidden">
             {/* Animated Background */}
             <AnimatedBackground />
 
@@ -93,7 +93,7 @@ export default function PatientDashboardLayout({ children }: { children: React.R
             <div
                 className="fixed -top-20 -right-20 w-[500px] h-[500px] pointer-events-none z-0"
                 style={{
-                    background: 'radial-gradient(circle, rgba(13, 148, 136, 0.25) 0%, rgba(13, 148, 136, 0.12) 50%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(0, 180, 216, 0.15) 0%, rgba(0, 150, 199, 0.08) 50%, transparent 70%)',
                 }}
             />
 
@@ -101,32 +101,10 @@ export default function PatientDashboardLayout({ children }: { children: React.R
             <div
                 className="fixed -bottom-32 -left-32 w-[600px] h-[600px] pointer-events-none z-0"
                 style={{
-                    background: 'radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, rgba(13, 148, 136, 0.1) 50%, transparent 70%)',
+                    background: 'radial-gradient(circle, rgba(72, 202, 228, 0.12) 0%, rgba(0, 180, 216, 0.06) 50%, transparent 70%)',
                 }}
             />
 
-            {/* Visible Circle Decorations - Top Right */}
-            <div className="fixed top-20 right-20 pointer-events-none z-0">
-                <svg width="300" height="300" viewBox="0 0 300 300" className="opacity-[0.15] dark:opacity-[0.12]">
-                    <circle cx="150" cy="150" r="120" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
-                    <circle cx="150" cy="150" r="80" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
-                    <circle cx="150" cy="150" r="40" stroke="#0d9488" strokeWidth="1" fill="none" className="dark:stroke-[#16c401]" />
-                </svg>
-            </div>
-
-            {/* Visible Heartbeat Line - Bottom */}
-            <div className="fixed bottom-20 left-20 pointer-events-none z-0">
-                <svg width="400" height="100" viewBox="0 0 400 100" className="opacity-[0.15] dark:opacity-[0.12]">
-                    <path d="M0 50 L80 50 L100 20 L120 80 L140 35 L160 50 L400 50" stroke="#0d9488" strokeWidth="2" fill="none" className="dark:stroke-[#16c401]" />
-                </svg>
-            </div>
-
-            {/* Medical Plus Symbol - Center Left */}
-            <div className="fixed top-1/2 left-10 -translate-y-1/2 pointer-events-none z-0">
-                <svg width="60" height="60" viewBox="0 0 60 60" className="opacity-[0.12] dark:opacity-[0.08]">
-                    <path d="M30 10 L30 50 M10 30 L50 30" stroke="#0d9488" strokeWidth="3" className="dark:stroke-[#16c401]" />
-                </svg>
-            </div>
 
             {/* Fixed Top Header Navigation - Fades on scroll */}
             <header
@@ -135,7 +113,7 @@ export default function PatientDashboardLayout({ children }: { children: React.R
             >
                 {/* Logo */}
                 <Link href="/patient" className="flex items-center gap-3 mr-12 group">
-                    <div className="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center shadow-sm overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-teal-500/30">
+                    <div className="w-10 h-10 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:scale-110">
                         <Image
                             src="/images/medvision-logo.png"
                             alt="MedVision"
@@ -160,8 +138,8 @@ export default function PatientDashboardLayout({ children }: { children: React.R
                                 key={item.label}
                                 href={item.href}
                                 className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors ${isActive
-                                    ? 'text-teal-600 dark:text-[#16c401] border-b-2 border-teal-600 dark:border-[#16c401]'
-                                    : 'text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-[#16c401]'
+                                    ? 'text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 dark:border-teal-400'
+                                    : 'text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400'
                                     }`}
                             >
                                 {item.label}
