@@ -254,3 +254,233 @@ Provide:
             "changes": [],
             "urgency": 5
         }
+
+    # ============================================================
+    # VISION ANALYSIS METHODS (Gemini Multimodal)
+    # ============================================================
+    
+    async def extract_text_from_image(self, image_bytes: bytes) -> str:
+        """
+        Extract text content from a medical document image.
+        Uses Gemini's native vision capabilities - more accurate than traditional OCR
+        for handwritten text, blurry images, and complex medical documents.
+        """
+        if not self.model:
+            return "Error: Gemini API key not configured"
+        
+        import base64
+        from PIL import Image
+        import io
+        
+        try:
+            # Convert bytes to PIL Image for Gemini
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            prompt = """Extract ALL text visible in this medical document image.
+            
+Instructions:
+- Include ALL text exactly as written, preserving formatting where possible
+- For tables, format as structured text
+- For handwritten text, transcribe as accurately as possible
+- Note any unclear or illegible sections with [unclear]
+- If there are numbers or measurements, be precise
+
+Return only the extracted text, no commentary."""
+
+            # Use generate_content with image
+            response = self.model.generate_content([prompt, image])
+            return response.text.strip()
+            
+        except Exception as e:
+            print(f"[Gemini Vision] Error extracting text: {e}")
+            return f"Error extracting text: {str(e)}"
+    
+    async def analyze_medical_image(
+        self, 
+        image_bytes: bytes, 
+        document_type: str = "Unknown",
+        report_date: str = None
+    ) -> dict:
+        """
+        Comprehensive medical image analysis using Gemini Vision.
+        Analyzes medical reports, prescriptions, lab results, scans, etc.
+        
+        Returns structured analysis with:
+        - Detected document type
+        - Key findings/values
+        - Detected date (if visible)
+        - Clinical summary
+        - Confidence level
+        """
+        if not self.model:
+            return {"error": "Gemini API key not configured", "success": False}
+        
+        import base64
+        from PIL import Image
+        import io
+        
+        try:
+            image = Image.open(io.BytesIO(image_bytes))
+            
+            date_instruction = ""
+            if not report_date:
+                date_instruction = """
+- DETECTED DATE: Look for any date on the document (test date, report date, collection date)
+  Format as YYYY-MM-DD if found, otherwise "Not visible"
+"""
+            
+            prompt = f"""Analyze this medical document image comprehensively.
+
+Document Type Hint: {document_type}
+{f"Provided Report Date: {report_date}" if report_date else ""}
+
+Provide analysis in this exact JSON format:
+{{
+    "document_type": "Detected type (e.g., Blood Test Report, X-Ray, Prescription, ECG, etc.)",
+    "detected_date": "YYYY-MM-DD or null if not visible",
+    "patient_name": "Name if visible, otherwise null",
+    "key_findings": [
+        {{
+            "parameter": "Test/Finding name",
+            "value": "Value with units",
+            "normal_range": "Normal range if shown",
+            "status": "normal/high/low/abnormal"
+        }}
+    ],
+    "clinical_summary": "Brief clinical interpretation in 2-3 sentences",
+    "doctor_notes": "Any doctor comments/recommendations visible",
+    "confidence": "high/medium/low",
+    "quality_issues": ["Any issues like blur, missing sections, etc."]
+}}
+
+Important:
+- Be precise with numbers and units
+- Flag any abnormal values
+- Note if any part is illegible
+- For prescriptions, list medications with dosages"""
+
+            response = self.model.generate_content([prompt, image])
+            response_text = response.text.strip()
+            
+            # Parse JSON response
+            # Clean up markdown code blocks if present
+            if response_text.startswith("```"):
+                response_text = response_text.split("```")[1]
+                if response_text.startswith("json"):
+                    response_text = response_text[4:]
+            
+            analysis = json.loads(response_text)
+            analysis["success"] = True
+            analysis["raw_response"] = response.text
+            
+            return analysis
+            
+        except json.JSONDecodeError as e:
+            print(f"[Gemini Vision] JSON parse error: {e}")
+            return {
+                "success": True,
+                "document_type": document_type,
+                "clinical_summary": response.text if 'response' in dir() else "Analysis generated but could not parse structured data",
+                "key_findings": [],
+                "confidence": "low",
+                "parse_error": str(e)
+            }
+        except Exception as e:
+            print(f"[Gemini Vision] Error analyzing image: {e}")
+            return {"error": str(e), "success": False}
+    
+    async def analyze_medical_document(
+        self,
+        file_bytes: bytes,
+        file_type: str,
+        document_type: str = "Unknown",
+        report_date: str = None,
+        report_date_mode: str = "unknown"
+    ) -> dict:
+        """
+        Unified medical document analysis for both PDFs and images.
+        
+        Args:
+            file_bytes: Raw file content
+            file_type: MIME type (application/pdf, image/jpeg, image/png, etc.)
+            document_type: User-specified document type hint
+            report_date: User-specified date (for exact mode)
+            report_date_mode: 'exact', 'approximate', or 'unknown'
+        
+        Returns:
+            Comprehensive analysis dict with extracted data
+        """
+        from app.services.pdf_service import extract_text_from_pdf
+        
+        result = {
+            "success": False,
+            "source_type": "pdf" if "pdf" in file_type else "image",
+            "document_type": document_type,
+            "report_date": report_date,
+            "report_date_mode": report_date_mode
+        }
+        
+        try:
+            if "pdf" in file_type.lower():
+                # For PDFs, extract text first then analyze
+                extracted_text = extract_text_from_pdf(file_bytes)
+                
+                if extracted_text and len(extracted_text) > 50:
+                    # Analyze extracted text with Gemini
+                    prompt = f"""Analyze this medical document text:
+
+Document Type: {document_type}
+{f"Report Date: {report_date}" if report_date else ""}
+
+TEXT CONTENT:
+{extracted_text[:15000]}  # Limit for safety
+
+Provide analysis as JSON:
+{{
+    "document_type": "Detected/confirmed type",
+    "detected_date": "YYYY-MM-DD or null",
+    "key_findings": [
+        {{"parameter": "...", "value": "...", "normal_range": "...", "status": "..."}}
+    ],
+    "clinical_summary": "Brief interpretation",
+    "confidence": "high/medium/low"
+}}"""
+                    
+                    response = await self._call_gemini(prompt, temperature=0.2)
+                    
+                    # Clean and parse
+                    if response.startswith("```"):
+                        response = response.split("```")[1]
+                        if response.startswith("json"):
+                            response = response[4:]
+                    
+                    try:
+                        analysis = json.loads(response)
+                        result.update(analysis)
+                        result["success"] = True
+                        result["extracted_text_preview"] = extracted_text[:500]
+                    except:
+                        result["clinical_summary"] = response
+                        result["success"] = True
+                else:
+                    result["error"] = "Could not extract text from PDF"
+                    
+            else:
+                # For images, use vision analysis directly
+                analysis = await self.analyze_medical_image(
+                    file_bytes, 
+                    document_type, 
+                    report_date
+                )
+                result.update(analysis)
+                
+            # Use detected date if user didn't provide one
+            if result.get("detected_date") and not report_date:
+                result["report_date"] = result["detected_date"]
+                
+            return result
+            
+        except Exception as e:
+            result["error"] = str(e)
+            return result
+

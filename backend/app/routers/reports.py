@@ -123,3 +123,140 @@ async def interpret_report_text(text: str):
         "results": interpretation.get("results", []),
         "overall_summary": interpretation.get("summary", "")
     }
+
+
+@router.post("/analyze-document")
+async def analyze_medical_document(
+    file: UploadFile = File(...),
+    document_type: Optional[str] = Form("Unknown"),
+    report_date: Optional[str] = Form(None),
+    report_date_mode: Optional[str] = Form("unknown"),
+    report_month: Optional[str] = Form(None),
+    report_year: Optional[str] = Form(None)
+):
+    """
+    Comprehensive medical document analysis using Gemini Vision.
+    
+    This endpoint powers the Smart Document Upload feature.
+    - Accepts PDFs and images (JPG, PNG, HEIC)
+    - Handles flexible report dates (exact, approximate, unknown)
+    - Returns structured analysis with key findings
+    
+    For images: Uses Gemini Vision for direct analysis (no OCR)
+    For PDFs: Extracts text then analyzes with Gemini
+    """
+    # Validate file type
+    allowed_types = [".pdf", ".png", ".jpg", ".jpeg", ".heic"]
+    file_ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    
+    if file_ext not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type not supported. Allowed: {', '.join(allowed_types)}"
+        )
+    
+    # Read file content
+    content = await file.read()
+    
+    # Determine MIME type
+    mime_type_map = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".heic": "image/heic"
+    }
+    file_type = mime_type_map.get(file_ext, "application/octet-stream")
+    
+    # Handle approximate dates (convert month/year to approximate date)
+    final_report_date = report_date
+    if report_date_mode == "approximate" and report_month and report_year:
+        # Create approximate date as first of month
+        final_report_date = f"{report_year}-{report_month.zfill(2)}-01"
+    
+    # Analyze document using Gemini
+    analysis = await gemini.analyze_medical_document(
+        file_bytes=content,
+        file_type=file_type,
+        document_type=document_type or "Unknown",
+        report_date=final_report_date,
+        report_date_mode=report_date_mode or "unknown"
+    )
+    
+    # Add metadata
+    analysis["filename"] = file.filename
+    analysis["file_size_kb"] = round(len(content) / 1024, 2)
+    analysis["file_type"] = file_type
+    
+    return analysis
+
+
+@router.post("/batch-analyze")
+async def batch_analyze_documents(
+    files: List[UploadFile] = File(...),
+    document_types: Optional[str] = Form(None),  # JSON array as string
+    report_dates: Optional[str] = Form(None),    # JSON array as string
+    report_date_modes: Optional[str] = Form(None) # JSON array as string
+):
+    """
+    Analyze multiple medical documents in batch.
+    Used when patient uploads multiple documents during appointment booking.
+    
+    Returns array of analysis results.
+    """
+    import json as json_lib
+    
+    # Parse JSON arrays
+    types_list = json_lib.loads(document_types) if document_types else []
+    dates_list = json_lib.loads(report_dates) if report_dates else []
+    modes_list = json_lib.loads(report_date_modes) if report_date_modes else []
+    
+    results = []
+    
+    for i, file in enumerate(files):
+        # Get corresponding metadata or use defaults
+        doc_type = types_list[i] if i < len(types_list) else "Unknown"
+        doc_date = dates_list[i] if i < len(dates_list) else None
+        date_mode = modes_list[i] if i < len(modes_list) else "unknown"
+        
+        # Validate file type
+        allowed_types = [".pdf", ".png", ".jpg", ".jpeg", ".heic"]
+        file_ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
+        
+        if file_ext not in allowed_types:
+            results.append({
+                "filename": file.filename,
+                "success": False,
+                "error": f"File type not supported"
+            })
+            continue
+        
+        content = await file.read()
+        
+        mime_type_map = {
+            ".pdf": "application/pdf",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".heic": "image/heic"
+        }
+        file_type = mime_type_map.get(file_ext, "application/octet-stream")
+        
+        analysis = await gemini.analyze_medical_document(
+            file_bytes=content,
+            file_type=file_type,
+            document_type=doc_type,
+            report_date=doc_date,
+            report_date_mode=date_mode
+        )
+        
+        analysis["filename"] = file.filename
+        analysis["file_size_kb"] = round(len(content) / 1024, 2)
+        results.append(analysis)
+    
+    return {
+        "total": len(files),
+        "successful": sum(1 for r in results if r.get("success", False)),
+        "results": results
+    }
+
