@@ -20,7 +20,10 @@ import {
     X,
     Plus,
     Trash2,
-    Loader2
+    Loader2,
+    Image as ImageIcon,
+    Sparkles,
+    HelpCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import api from '@/lib/api'
@@ -57,8 +60,14 @@ interface UploadedDocument {
     file: File
     name: string
     type: string
-    uploadDate: string  // Auto-set to current date, backend will extract from PDF if available
     description: string
+    isImage: boolean
+    previewUrl?: string
+    // Flexible report date
+    reportDateMode: 'exact' | 'approximate' | 'unknown'
+    reportDate?: string      // For exact: YYYY-MM-DD
+    reportMonth?: string     // For approximate: 1-12
+    reportYear?: string      // For approximate: YYYY
 }
 
 // Slot interface for type safety
@@ -371,16 +380,23 @@ export default function BookAppointmentPage() {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
         if (files) {
-            const today = new Date().toISOString().split('T')[0]  // Current date as default
             Array.from(files).forEach(file => {
-                if (file.type === 'application/pdf') {
+                const isImage = file.type.startsWith('image/')
+                const isPdf = file.type === 'application/pdf'
+
+                if (isPdf || isImage) {
+                    // Create preview URL for images
+                    const previewUrl = isImage ? URL.createObjectURL(file) : undefined
+
                     setDocuments(prev => [...prev, {
                         id: Math.random().toString(36).substr(2, 9),
                         file,
                         name: file.name,
                         type: '',
-                        uploadDate: today,  // Backend will extract actual date from PDF if available
-                        description: ''
+                        description: '',
+                        isImage,
+                        previewUrl,
+                        reportDateMode: 'unknown'  // Default to unknown - patient can specify if they remember
                     }])
                 }
             })
@@ -818,20 +834,24 @@ export default function BookAppointmentPage() {
                                     className="p-6"
                                 >
                                     <h2 className="text-xl font-bold text-slate-900 mb-2">Upload Medical Documents</h2>
-                                    <p className="text-slate-500 mb-6">Upload any relevant reports, scans, or prescriptions (PDF only, max 50MB total)</p>
+                                    <p className="text-slate-500 mb-6">Upload any relevant reports, scans, or prescriptions (PDF or images, max 50MB total)</p>
 
                                     {/* Upload Area */}
                                     <label className="block border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50/50 transition-all">
                                         <input
                                             type="file"
-                                            accept=".pdf"
+                                            accept=".pdf,.jpg,.jpeg,.png,.heic"
                                             multiple
                                             onChange={handleFileUpload}
                                             className="hidden"
                                         />
                                         <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                                         <p className="font-semibold text-slate-700">Click to upload or drag and drop</p>
-                                        <p className="text-sm text-slate-500 mt-1">PDF files only, up to 10 files</p>
+                                        <p className="text-sm text-slate-500 mt-1">PDF, JPG, PNG files (up to 10 files)</p>
+                                        <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-100 to-blue-100 rounded-full">
+                                            <Sparkles className="w-4 h-4 text-purple-600" />
+                                            <span className="text-xs font-medium text-purple-700">AI Vision Analysis for images</span>
+                                        </div>
                                     </label>
 
                                     {/* Uploaded Documents */}
@@ -840,12 +860,28 @@ export default function BookAppointmentPage() {
                                             <h3 className="font-semibold text-slate-800">Uploaded Documents ({documents.length})</h3>
                                             {documents.map((doc) => (
                                                 <div key={doc.id} className="bg-slate-50 rounded-xl p-4">
-                                                    <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex items-start justify-between mb-4">
                                                         <div className="flex items-center gap-3">
-                                                            <FileText className="w-8 h-8 text-red-500" />
+                                                            {doc.isImage && doc.previewUrl ? (
+                                                                <div className="relative">
+                                                                    <img
+                                                                        src={doc.previewUrl}
+                                                                        alt={doc.name}
+                                                                        className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                                                                    />
+                                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
+                                                                        <Sparkles className="w-3 h-3 text-white" />
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <FileText className="w-12 h-12 text-red-500" />
+                                                            )}
                                                             <div>
                                                                 <p className="font-medium text-slate-800">{doc.name}</p>
-                                                                <p className="text-xs text-slate-500">{(doc.file.size / 1024).toFixed(1)} KB</p>
+                                                                <p className="text-xs text-slate-500">
+                                                                    {(doc.file.size / 1024).toFixed(1)} KB
+                                                                    {doc.isImage && <span className="ml-2 text-purple-600 font-medium">AI Vision</span>}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                         <button onClick={() => removeDocument(doc.id)} className="p-2 text-slate-400 hover:text-red-500">
@@ -853,26 +889,90 @@ export default function BookAppointmentPage() {
                                                         </button>
                                                     </div>
 
+                                                    {/* Document Type */}
+                                                    <div className="mb-4">
+                                                        <label className="block text-xs font-medium text-slate-600 mb-1">Document Type</label>
+                                                        <select
+                                                            value={doc.type}
+                                                            onChange={(e) => updateDocument(doc.id, { type: e.target.value })}
+                                                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                                                        >
+                                                            <option value="">Select type</option>
+                                                            {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                                                        </select>
+                                                    </div>
 
-                                                    <div className="grid md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-600 mb-1">Document Type</label>
-                                                            <select
-                                                                value={doc.type}
-                                                                onChange={(e) => updateDocument(doc.id, { type: e.target.value })}
-                                                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
-                                                            >
-                                                                <option value="">Select type</option>
-                                                                {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                                                            </select>
-                                                        </div>
-
-                                                        <div>
-                                                            <label className="block text-xs font-medium text-slate-600 mb-1">Upload Date</label>
-                                                            <div className="px-3 py-2 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
-                                                                {doc.uploadDate} <span className="text-xs">(auto-detected from PDF)</span>
+                                                    {/* Flexible Report Date Picker */}
+                                                    <div className="bg-white rounded-lg border border-slate-200 p-3">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <Calendar className="w-4 h-4 text-slate-500" />
+                                                            <label className="text-xs font-medium text-slate-600">When was this report/scan taken?</label>
+                                                            <div className="group relative cursor-help">
+                                                                <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                                    Knowing when the test was done helps the doctor understand your health timeline
+                                                                </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Date Mode Toggle */}
+                                                        <div className="flex gap-2 mb-3">
+                                                            {(['exact', 'approximate', 'unknown'] as const).map(mode => (
+                                                                <button
+                                                                    key={mode}
+                                                                    onClick={() => updateDocument(doc.id, { reportDateMode: mode })}
+                                                                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${doc.reportDateMode === mode
+                                                                            ? 'bg-primary-600 text-white'
+                                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                                        }`}
+                                                                >
+                                                                    {mode === 'exact' ? 'Exact Date' : mode === 'approximate' ? 'Approx.' : "Don't Remember"}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Conditional Date Inputs */}
+                                                        {doc.reportDateMode === 'exact' && (
+                                                            <input
+                                                                type="date"
+                                                                value={doc.reportDate || ''}
+                                                                onChange={(e) => updateDocument(doc.id, { reportDate: e.target.value })}
+                                                                max={new Date().toISOString().split('T')[0]}
+                                                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg"
+                                                            />
+                                                        )}
+
+                                                        {doc.reportDateMode === 'approximate' && (
+                                                            <div className="flex gap-2">
+                                                                <select
+                                                                    value={doc.reportMonth || ''}
+                                                                    onChange={(e) => updateDocument(doc.id, { reportMonth: e.target.value })}
+                                                                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                                                                >
+                                                                    <option value="">Month</option>
+                                                                    {['January', 'February', 'March', 'April', 'May', 'June',
+                                                                        'July', 'August', 'September', 'October', 'November', 'December'].map((m, i) => (
+                                                                            <option key={m} value={String(i + 1)}>{m}</option>
+                                                                        ))}
+                                                                </select>
+                                                                <select
+                                                                    value={doc.reportYear || ''}
+                                                                    onChange={(e) => updateDocument(doc.id, { reportYear: e.target.value })}
+                                                                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white"
+                                                                >
+                                                                    <option value="">Year</option>
+                                                                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                                                                        <option key={y} value={String(y)}>{y}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        )}
+
+                                                        {doc.reportDateMode === 'unknown' && (
+                                                            <p className="text-xs text-slate-500 italic">
+                                                                No worries! Our AI will try to detect the date from the document.
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
