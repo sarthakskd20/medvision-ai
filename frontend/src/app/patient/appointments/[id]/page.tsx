@@ -223,7 +223,11 @@ export default function AppointmentDetailPage() {
     }
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-US', {
+        // Parse date portion directly to avoid timezone conversion
+        const dateOnly = dateStr.split('T')[0]
+        const [year, month, day] = dateOnly.split('-').map(Number)
+        const date = new Date(year, month - 1, day)
+        return date.toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',

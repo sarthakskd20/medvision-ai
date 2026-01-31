@@ -906,20 +906,61 @@ export default function BookAppointmentPage() {
 
                                                         <div>
                                                             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Report Date</label>
-                                                            <div className="flex gap-1">
+                                                            <div className="flex gap-1 mb-2">
                                                                 {(['exact', 'approximate', 'unknown'] as const).map(mode => (
                                                                     <button
                                                                         key={mode}
                                                                         onClick={() => updateDocument(doc.id, { reportDateMode: mode })}
                                                                         className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-all ${doc.reportDateMode === mode
-                                                                                ? 'bg-primary-600 text-white'
-                                                                                : 'bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'
+                                                                            ? 'bg-primary-600 text-white'
+                                                                            : 'bg-slate-100 dark:bg-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-500'
                                                                             }`}
                                                                     >
                                                                         {mode === 'exact' ? 'Exact' : mode === 'approximate' ? 'Approx' : 'Unknown'}
                                                                     </button>
                                                                 ))}
                                                             </div>
+
+                                                            {/* Exact Date Picker */}
+                                                            {doc.reportDateMode === 'exact' && (
+                                                                <input
+                                                                    type="date"
+                                                                    value={doc.reportDate || ''}
+                                                                    onChange={(e) => updateDocument(doc.id, { reportDate: e.target.value })}
+                                                                    className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-900 dark:text-white"
+                                                                />
+                                                            )}
+
+                                                            {/* Approximate: Month + Year */}
+                                                            {doc.reportDateMode === 'approximate' && (
+                                                                <div className="flex gap-2">
+                                                                    <select
+                                                                        value={doc.reportMonth || ''}
+                                                                        onChange={(e) => updateDocument(doc.id, { reportMonth: e.target.value })}
+                                                                        className="flex-1 px-2 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-900 dark:text-white"
+                                                                    >
+                                                                        <option value="">Month</option>
+                                                                        {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => (
+                                                                            <option key={m} value={String(i + 1)}>{m}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <select
+                                                                        value={doc.reportYear || ''}
+                                                                        onChange={(e) => updateDocument(doc.id, { reportYear: e.target.value })}
+                                                                        className="flex-1 px-2 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-600 text-slate-900 dark:text-white"
+                                                                    >
+                                                                        <option value="">Year</option>
+                                                                        {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                                                                            <option key={y} value={String(y)}>{y}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Unknown mode hint */}
+                                                            {doc.reportDateMode === 'unknown' && (
+                                                                <p className="text-xs text-slate-400 dark:text-slate-500 italic">AI will try to detect from document</p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>

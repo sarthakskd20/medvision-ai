@@ -106,7 +106,17 @@ export default function PatientAppointmentsPage() {
     }
 
     const formatDate = (dateStr: string | Date) => {
-        const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
+        // Parse date string to extract just the date portion to avoid timezone issues
+        let date: Date
+        if (typeof dateStr === 'string') {
+            // Extract YYYY-MM-DD and create local date to avoid UTC conversion
+            const dateOnly = dateStr.split('T')[0]
+            const [year, month, day] = dateOnly.split('-').map(Number)
+            date = new Date(year, month - 1, day)
+        } else {
+            date = dateStr
+        }
+
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         const tomorrow = new Date(today)
