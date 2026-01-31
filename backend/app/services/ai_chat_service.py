@@ -424,28 +424,65 @@ def _build_analysis_prompt(
     else:
         prompt += "\n## Medical History\nNo significant medical history reported.\n"
     
-    # Extracted documents
+    # Extracted documents - Enhanced to show vision analysis results
     if extracted_docs:
-        prompt += f"\n## Uploaded Medical Documents\n"
+        prompt += f"\n## Uploaded Medical Documents ({len(extracted_docs)} total)\n"
+        prompt += "**IMPORTANT**: Carefully analyze ALL uploaded documents below. Each document contains critical patient information.\n\n"
+        
         for i, doc in enumerate(extracted_docs, 1):
             attrs = doc.get('attributes', {})
-            prompt += f"\n### Document {i}\n"
-            prompt += f"- **Type**: {attrs.get('report_type', 'Unknown')}\n"
-            if attrs.get('detected_date'):
-                prompt += f"- **Date**: {attrs['detected_date']}\n"
+            file_type = doc.get('file_type', 'unknown')
             
+            prompt += f"\n### Document {i}"
+            # Show source type for transparency
+            if file_type == 'image':
+                prompt += " (Image - analyzed via AI Vision)\n"
+            elif file_type == 'scanned_pdf':
+                prompt += " (Scanned PDF - analyzed via AI Vision)\n"
+            elif file_type == 'pdf':
+                prompt += " (PDF - text extracted)\n"
+            else:
+                prompt += "\n"
+            
+            # Document metadata
+            doc_type = attrs.get('document_type') or attrs.get('report_type', 'Unknown')
+            prompt += f"- **Document Type**: {doc_type}\n"
+            
+            if attrs.get('detected_date'):
+                prompt += f"- **Document Date**: {attrs['detected_date']}\n"
+            
+            # Key findings from vision analysis
+            key_findings = attrs.get('key_findings', [])
+            if key_findings:
+                prompt += f"- **Key Findings**: "
+                if isinstance(key_findings, list):
+                    prompt += ', '.join(str(f) for f in key_findings[:10])  # Limit to 10
+                else:
+                    prompt += str(key_findings)
+                prompt += "\n"
+            
+            if attrs.get('confidence'):
+                prompt += f"- **Analysis Confidence**: {attrs['confidence']}\n"
+            
+            # Lab values if present
             if attrs.get('lab_values'):
                 prompt += f"- **Lab Values**:\n"
-                for val in attrs['lab_values']:
+                for val in attrs['lab_values'][:15]:  # Limit
                     prompt += f"  - {val['test']}: {val['value']} {val.get('unit', '')}\n"
             
             if attrs.get('diagnoses'):
                 prompt += f"- **Mentioned Conditions**: {', '.join(attrs['diagnoses'])}\n"
             
-            # Include limited text
+            # Include document text content - more generous limit for comprehensive analysis
             text = doc.get('text', '')
-            if text and len(text) > 100:
-                prompt += f"\n**Document Content Preview**:\n```\n{text[:2000]}\n```\n"
+            if text and len(text.strip()) > 50:
+                # Increased limit to 4000 chars per document for thorough analysis
+                content_preview = text[:4000] if len(text) > 4000 else text
+                prompt += f"\n**Full Document Content**:\n```\n{content_preview}\n```\n"
+            elif text:
+                prompt += f"\n**Document Content**: {text}\n"
+    else:
+        prompt += "\n## Uploaded Medical Documents\nNo documents uploaded by patient.\n"
     
     # Instructions
     prompt += """

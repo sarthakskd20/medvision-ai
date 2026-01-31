@@ -217,7 +217,12 @@ class PDFService:
         return None
     
     def extract_from_document_id(self, file_id: str) -> Dict[str, Any]:
-        """Extract all information from a document by its ID."""
+        """Extract all information from a document by its ID.
+        
+        Supports both PDFs and images:
+        - For PDFs: extracts text, falls back to vision if minimal text (scanned PDF)
+        - For images: uses Gemini Vision for OCR and analysis
+        """
         file_path = self.get_document_by_id(file_id)
         if not file_path:
             return {
@@ -227,16 +232,184 @@ class PDFService:
                 "attributes": {}
             }
         
+        # Detect file type by extension
+        suffix = file_path.suffix.lower()
+        image_extensions = {'.jpg', '.jpeg', '.png', '.heic', '.webp', '.gif', '.bmp'}
+        
+        print(f"[DocExtract] Processing file: {file_id}, type: {suffix}")
+        
+        if suffix in image_extensions:
+            # Use Gemini Vision for images
+            return self._extract_from_image(file_path, file_id)
+        elif suffix == '.pdf':
+            # Extract text from PDF, fall back to vision if minimal
+            return self._extract_from_pdf_with_vision_fallback(file_path, file_id)
+        else:
+            # Unknown type - try as PDF
+            print(f"[DocExtract] Unknown suffix {suffix}, trying as PDF")
+            text = self.extract_text_from_pdf(str(file_path))
+            attributes = self.extract_key_attributes(text)
+            return {
+                "success": True,
+                "file_id": file_id,
+                "file_path": str(file_path),
+                "file_type": "unknown",
+                "text": text,
+                "attributes": attributes
+            }
+    
+    def _extract_from_image(self, file_path: Path, file_id: str) -> Dict[str, Any]:
+        """Extract text and analyze medical images using Gemini Vision."""
+        try:
+            import asyncio
+            from app.services.gemini_service import GeminiService
+            
+            print(f"[DocExtract] Using Gemini Vision for image: {file_id}")
+            
+            with open(file_path, 'rb') as f:
+                image_bytes = f.read()
+            
+            gemini = GeminiService()
+            
+            # Run async vision analysis
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            result = loop.run_until_complete(
+                gemini.analyze_medical_image(image_bytes)
+            )
+            
+            # Extract text from vision result
+            extracted_text = result.get("extracted_text", "")
+            clinical_summary = result.get("clinical_summary", "")
+            key_findings = result.get("key_findings", [])
+            
+            # Combine into comprehensive text for analysis
+            combined_text = f"{extracted_text}\n\nClinical Summary: {clinical_summary}"
+            if key_findings:
+                combined_text += f"\n\nKey Findings: {', '.join(str(f) for f in key_findings)}"
+            
+            print(f"[DocExtract] Vision extracted {len(extracted_text)} chars, {len(key_findings)} findings")
+            
+            return {
+                "success": True,
+                "file_id": file_id,
+                "file_path": str(file_path),
+                "file_type": "image",
+                "text": combined_text,
+                "vision_analysis": result,
+                "attributes": {
+                    "document_type": result.get("document_type", "Medical Document"),
+                    "detected_date": result.get("detected_date"),
+                    "key_findings": key_findings,
+                    "confidence": result.get("confidence", "medium")
+                }
+            }
+        except Exception as e:
+            import traceback
+            print(f"[DocExtract] Vision extraction failed: {e}")
+            print(traceback.format_exc())
+            return {
+                "success": False,
+                "error": f"Vision extraction failed: {str(e)}",
+                "file_id": file_id,
+                "text": "",
+                "attributes": {}
+            }
+    
+    def _extract_from_pdf_with_vision_fallback(self, file_path: Path, file_id: str) -> Dict[str, Any]:
+        """Extract text from PDF, use vision if minimal text (scanned document)."""
+        # First try regular text extraction
         text = self.extract_text_from_pdf(str(file_path))
         attributes = self.extract_key_attributes(text)
         
+        # Check if text is minimal (likely scanned/image-based PDF)
+        text_length = len(text.strip())
+        print(f"[DocExtract] PDF text extraction: {text_length} chars")
+        
+        if text_length < 100:
+            print(f"[DocExtract] Minimal text ({text_length} chars) - using vision for scanned PDF")
+            # Convert first page to image and use vision
+            try:
+                if PYMUPDF_AVAILABLE:
+                    import fitz
+                    doc = fitz.open(str(file_path))
+                    if doc.page_count > 0:
+                        # Render first page as high-res image
+                        page = doc.load_page(0)
+                        mat = fitz.Matrix(2, 2)  # 2x zoom for better quality
+                        pix = page.get_pixmap(matrix=mat)
+                        image_bytes = pix.tobytes("png")
+                        doc.close()
+                        
+                        # Process with vision
+                        vision_result = self._extract_from_image_bytes(image_bytes, file_id)
+                        if vision_result.get("success"):
+                            vision_result["file_type"] = "scanned_pdf"
+                            vision_result["original_text"] = text
+                            return vision_result
+                    doc.close()
+            except Exception as e:
+                print(f"[DocExtract] Vision fallback failed: {e}")
+        
+        # Return regular extraction result
         return {
             "success": True,
             "file_id": file_id,
             "file_path": str(file_path),
+            "file_type": "pdf",
             "text": text,
             "attributes": attributes
         }
+    
+    def _extract_from_image_bytes(self, image_bytes: bytes, file_id: str) -> Dict[str, Any]:
+        """Extract from raw image bytes using Gemini Vision."""
+        try:
+            import asyncio
+            from app.services.gemini_service import GeminiService
+            
+            gemini = GeminiService()
+            
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            result = loop.run_until_complete(
+                gemini.analyze_medical_image(image_bytes)
+            )
+            
+            extracted_text = result.get("extracted_text", "")
+            clinical_summary = result.get("clinical_summary", "")
+            key_findings = result.get("key_findings", [])
+            
+            combined_text = f"{extracted_text}\n\nClinical Summary: {clinical_summary}"
+            if key_findings:
+                combined_text += f"\n\nKey Findings: {', '.join(str(f) for f in key_findings)}"
+            
+            return {
+                "success": True,
+                "file_id": file_id,
+                "file_type": "image",
+                "text": combined_text,
+                "vision_analysis": result,
+                "attributes": {
+                    "document_type": result.get("document_type", "Medical Document"),
+                    "detected_date": result.get("detected_date"),
+                    "key_findings": key_findings
+                }
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "text": "",
+                "attributes": {}
+            }
 
 
 # Singleton instance
