@@ -142,8 +142,8 @@ async def create_appointment(request: CreateAppointmentRequest):
         # Save appointment to database
         firebase.create_appointment(appointment.dict())
         
-        # Create Patient Profile if details are provided
-        if any([request.patient_blood_group, request.patient_allergies, request.patient_medications, request.patient_medical_history]):
+        # Create Patient Profile if ANY patient details or documents are provided
+        if any([request.patient_blood_group, request.patient_allergies, request.patient_medications, request.patient_medical_history, request.document_ids]):
             profile_id = str(uuid.uuid4())
             profile_data = {
                 "id": profile_id,

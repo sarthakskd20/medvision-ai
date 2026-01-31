@@ -896,6 +896,10 @@ async def generate_ai_analysis(consultation_id: str):
             appointment.get("id")
         ) or {}
         
+        print(f"[AI Analysis] Appointment ID: {appointment.get('id')}")
+        print(f"[AI Analysis] Patient profile keys: {list(patient_profile.keys())}")
+        print(f"[AI Analysis] Raw uploaded_documents: {patient_profile.get('uploaded_documents', 'NOT FOUND')}")
+        
         # Extract nested basic_info
         basic_info = patient_profile.get("basic_info", {})
         chief_complaint = patient_profile.get("chief_complaint", {})
