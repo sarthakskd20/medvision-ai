@@ -262,6 +262,7 @@ class PDFService:
         """Extract text and analyze medical images using Gemini Vision."""
         try:
             import asyncio
+            from concurrent.futures import ThreadPoolExecutor
             from app.services.gemini_service import GeminiService
             
             print(f"[DocExtract] Using Gemini Vision for image: {file_id}")
@@ -271,16 +272,21 @@ class PDFService:
             
             gemini = GeminiService()
             
-            # Run async vision analysis
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
+            # Helper function to run async in a new event loop (in a thread)
+            def run_async_in_thread():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(
+                        gemini.analyze_medical_image(image_bytes)
+                    )
+                finally:
+                    loop.close()
             
-            result = loop.run_until_complete(
-                gemini.analyze_medical_image(image_bytes)
-            )
+            # Run in a separate thread to avoid event loop conflicts
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(run_async_in_thread)
+                result = future.result(timeout=60)  # 60 second timeout
             
             # Extract text from vision result
             extracted_text = result.get("extracted_text", "")
@@ -369,19 +375,26 @@ class PDFService:
         """Extract from raw image bytes using Gemini Vision."""
         try:
             import asyncio
+            from concurrent.futures import ThreadPoolExecutor
             from app.services.gemini_service import GeminiService
             
             gemini = GeminiService()
             
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
+            # Helper function to run async in a new event loop (in a thread)
+            def run_async_in_thread():
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(
+                        gemini.analyze_medical_image(image_bytes)
+                    )
+                finally:
+                    loop.close()
             
-            result = loop.run_until_complete(
-                gemini.analyze_medical_image(image_bytes)
-            )
+            # Run in a separate thread to avoid event loop conflicts
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(run_async_in_thread)
+                result = future.result(timeout=60)
             
             extracted_text = result.get("extracted_text", "")
             clinical_summary = result.get("clinical_summary", "")
