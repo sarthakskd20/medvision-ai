@@ -184,7 +184,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors shadow-sm"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-calendar.png" alt="Appointments" fill className="object-contain" />
@@ -198,7 +198,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.1, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors shadow-sm"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-checkmark.png" alt="Completed" fill className="object-contain" />
@@ -212,7 +212,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.2, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors shadow-sm"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-records.png" alt="Records" fill className="object-contain" />
@@ -226,7 +226,7 @@ export default function PatientDashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.3, duration: 0.6 }}
-                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-8 hover:border-teal-500 dark:hover:border-teal-400 transition-colors shadow-sm"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-patient-health.png" alt="Health" fill className="object-contain" />
@@ -249,7 +249,7 @@ export default function PatientDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Book Appointment Card */}
                     <Link href="/patient/doctors" className="group">
-                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all shadow-sm">
                             <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-book-appointment.png"
@@ -265,7 +265,7 @@ export default function PatientDashboard() {
 
                     {/* Upload Records Card */}
                     <Link href="/patient/records/upload" className="group">
-                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all shadow-sm">
                             <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-upload-records.png"
@@ -281,7 +281,7 @@ export default function PatientDashboard() {
 
                     {/* Find Doctor Card */}
                     <Link href="/patient/doctors" className="group">
-                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all">
+                        <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all shadow-sm">
                             <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
                                     src="/images/patient-find-doctor.png"
@@ -320,7 +320,7 @@ export default function PatientDashboard() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={appointmentsVisible ? { opacity: 1 } : {}}
-                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-16 text-center"
+                        className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-16 text-center shadow-sm"
                     >
                         <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 border-2 border-slate-200 dark:border-slate-600">
                             <Calendar className="w-10 h-10 text-slate-400" />
@@ -345,7 +345,7 @@ export default function PatientDashboard() {
                             >
                                 <Link
                                     href="/patient/appointments"
-                                    className="block bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 p-6 hover:border-[#0d9488] transition-colors group"
+                                    className="block bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 hover:border-[#0d9488] transition-colors group shadow-sm"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-6">

@@ -156,30 +156,6 @@ export default function DoctorAppointmentsPage() {
                 )}
             </div>
 
-            {/* Mode Badge */}
-            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${appointment.mode === 'online'
-                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
-                : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'
-                }`}>
-                {appointment.mode === 'online' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                {appointment.mode === 'online' ? 'Online' : 'In-Person'}
-            </div>
-
-            {/* Status Badge */}
-            <div className={`px-3 py-1 rounded-full text-xs font-medium ${appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed'
-                ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
-                : appointment.status === 'in_progress'
-                    ? 'bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300'
-                    : appointment.status === 'completed'
-                        ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
-                        : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                }`}>
-                {(appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed') && 'Scheduled'}
-                {appointment.status === 'in_progress' && 'In Progress'}
-                {appointment.status === 'completed' && 'Completed'}
-                {appointment.status === 'no_show' && 'No Show'}
-            </div>
-
             {/* Actions - Only for today's appointments */}
             {activeTab === 'today' && (appointment.status === 'waiting' || appointment.status === 'pending' || appointment.status === 'confirmed') && (
                 <Link
@@ -206,10 +182,10 @@ export default function DoctorAppointmentsPage() {
             {appointment.status === 'in_progress' && (
                 <Link
                     href={`/dashboard/consultation/${appointment.id}`}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors group"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors group"
                 >
-                    <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" />
-                    Continue Consultation
+                    <Play className="w-4 h-4" />
+                    Resume
                     <ArrowRight className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
                 </Link>
             )}
@@ -237,7 +213,7 @@ export default function DoctorAppointmentsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1  w-fit">
+            <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
                 <button
                     onClick={() => setActiveTab('today')}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'today'
@@ -281,7 +257,7 @@ export default function DoctorAppointmentsPage() {
                     >
                         {/* Stats Row */}
                         <div className="grid grid-cols-4 gap-4">
-                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                                         <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -292,7 +268,7 @@ export default function DoctorAppointmentsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800  p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                                         <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -378,7 +354,7 @@ export default function DoctorAppointmentsPage() {
                     >
                         {/* Upcoming Stats */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
                                         <CalendarDays className="w-5 h-5 text-teal-600 dark:text-teal-400" />
@@ -389,7 +365,7 @@ export default function DoctorAppointmentsPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700">
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                                         <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />

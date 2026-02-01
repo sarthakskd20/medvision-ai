@@ -465,11 +465,7 @@ function HealthSymbolLogo({ className = "w-10 h-10" }: { className?: string }) {
 }
 
 // ===================== NAVIGATION ITEMS =====================
-const navItems = [
-    { label: 'For Doctors', href: '#doctors', id: 'doctors' },
-    { label: 'For Patients', href: '#patients', id: 'patients' },
-    { label: 'AI Features', href: '#features', id: 'features' }
-]
+const navItems: { label: string; href: string; id: string }[] = []
 
 // ===================== STATISTICS DATA =====================
 const statistics = [
@@ -485,6 +481,12 @@ const medicalImages = [
     { src: '/images/medical_facility_2.png', alt: 'AI Laboratory' },
     { src: '/images/medical_facility_3.png', alt: 'Doctor Consultation' }
 ]
+
+// Doctor section image - AI-powered dashboard
+const doctorSectionImage = '/images/doctor_dashboard.png'
+
+// Patient section image - Health app experience
+const patientSectionImage = '/images/patient_health_app.png'
 
 // ===================== FEATURES DATA =====================
 const aiFeatures = [
@@ -662,8 +664,8 @@ export default function HomePage() {
                     {/* Background Image Carousel */}
                     <div className="absolute inset-0 z-0">
                         <ImageCarousel images={medicalImages} />
-                        {/* Very strong dark overlay for maximum text readability */}
-                        <div className="absolute inset-0 bg-slate-900/95" />
+                        {/* Lighter overlay for better background image visibility */}
+                        <div className="absolute inset-0 bg-slate-900/60" />
                     </div>
 
                     <FloatingBlobs theme="teal" />
@@ -671,13 +673,6 @@ export default function HomePage() {
                     <div className="max-w-7xl mx-auto relative z-10 w-full">
                         <div className="max-w-2xl">
                             <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-                                <motion.div
-                                    variants={fadeInUp}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500/20 backdrop-blur-sm rounded-full text-teal-300 text-sm font-semibold mb-6"
-                                >
-                                    <Sparkles className="w-4 h-4" />
-                                    AI-Powered Healthcare Platform
-                                </motion.div>
 
                                 <motion.h1
                                     variants={fadeInUp}
@@ -751,13 +746,6 @@ export default function HomePage() {
                     <div className="max-w-7xl mx-auto px-6 relative z-10">
                         <div className="grid lg:grid-cols-2 gap-16 items-center">
                             <motion.div variants={staggerContainer}>
-                                <motion.div
-                                    variants={fadeInUp}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 rounded-full text-blue-300 text-sm font-semibold mb-6"
-                                >
-                                    <Users className="w-4 h-4" />
-                                    For Healthcare Professionals
-                                </motion.div>
 
                                 <motion.h2
                                     variants={fadeInUp}
@@ -805,8 +793,13 @@ export default function HomePage() {
                                 <div
                                     className="relative w-full h-[400px] overflow-hidden rounded-[3rem] shadow-2xl"
                                 >
-                                    <ImageCarousel images={medicalImages} />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
+                                    <Image
+                                        src={doctorSectionImage}
+                                        alt="Doctor using AI-powered medical dashboard"
+                                        fill
+                                        className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/30 to-transparent" />
                                 </div>
 
                                 {/* Floating badge */}
@@ -854,8 +847,13 @@ export default function HomePage() {
                                     className="relative w-full h-[400px] overflow-hidden shadow-2xl"
                                     style={{ borderRadius: '200px / 150px' }}
                                 >
-                                    <ImageCarousel images={medicalImages} />
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-teal-900/20" />
+                                    <Image
+                                        src={patientSectionImage}
+                                        alt="Patient using health tracking app"
+                                        fill
+                                        className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-teal-900/10" />
                                 </div>
 
                                 {/* Floating elements */}
@@ -880,13 +878,6 @@ export default function HomePage() {
                                 variants={staggerContainer}
                                 className="order-1 lg:order-2"
                             >
-                                <motion.div
-                                    variants={fadeInUp}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-100 rounded-full text-teal-700 text-sm font-semibold mb-6"
-                                >
-                                    <HeartPulse className="w-4 h-4" />
-                                    For Patients
-                                </motion.div>
 
                                 <motion.h2
                                     variants={fadeInUp}
@@ -933,82 +924,6 @@ export default function HomePage() {
                     </div>
                 </motion.section >
 
-                {/* ==================== AI FEATURES SECTION ==================== */}
-                < motion.section
-                    ref={featuresRef}
-                    id="features"
-                    className="py-24 bg-gradient-to-br from-violet-900 via-purple-900 to-indigo-900 relative overflow-hidden"
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, margin: "-100px" }}
-                    variants={pageTransition}
-                >
-                    <FloatingBlobs theme="purple" />
-
-                    <div className="max-w-7xl mx-auto px-6 relative z-10">
-                        <motion.div variants={staggerContainer} className="text-center mb-16">
-                            <motion.div
-                                variants={fadeInUp}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 rounded-full text-purple-300 text-sm font-semibold mb-6"
-                            >
-                                <Brain className="w-4 h-4" />
-                                Powered by Advanced AI
-                            </motion.div>
-
-                            <motion.h2
-                                variants={fadeInUp}
-                                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6"
-                            >
-                                Experience the Future of <span className="text-purple-400">Healthcare AI</span>
-                            </motion.h2>
-
-                            <motion.p
-                                variants={fadeInUp}
-                                className="text-lg text-purple-200 leading-relaxed max-w-2xl mx-auto"
-                            >
-                                Our AI analyzes millions of medical data points to provide
-                                accurate insights and predictions for better healthcare outcomes.
-                            </motion.p>
-                        </motion.div>
-
-                        <motion.div
-                            variants={staggerContainer}
-                            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-                        >
-                            {aiFeatures.map((feature, index) => (
-                                <motion.div
-                                    key={index}
-                                    variants={fadeInUp}
-                                    className="group p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-purple-400/20 hover:border-purple-400/40 transition-all duration-300"
-                                    whileHover={{ y: -5, scale: 1.02 }}
-                                >
-                                    <motion.div
-                                        className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-colors"
-                                        whileHover={{ rotate: [0, -10, 10, 0] }}
-                                        transition={{ duration: 0.5 }}
-                                    >
-                                        <feature.icon className="w-6 h-6 text-purple-300" />
-                                    </motion.div>
-                                    <h3 className="text-xl font-bold text-white mb-2">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-purple-200 text-sm leading-relaxed">
-                                        {feature.description}
-                                    </p>
-                                </motion.div>
-                            ))}
-                        </motion.div>
-
-                        <motion.div
-                            variants={fadeInUp}
-                            className="text-center mt-12"
-                        >
-                            <MicroButton href="/auth/register/patient" variant="primary" icon={Sparkles}>
-                                Try AI Features
-                            </MicroButton>
-                        </motion.div>
-                    </div>
-                </motion.section >
 
                 {/* ==================== FOOTER ==================== */}
                 < footer className="py-12 bg-slate-900" >

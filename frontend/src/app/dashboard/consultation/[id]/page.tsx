@@ -528,7 +528,7 @@ export default function ConsultationPage() {
             )}
 
             {/* Header */}
-            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6">
+            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-6">
                         {/* Patient Avatar */}
@@ -617,7 +617,7 @@ export default function ConsultationPage() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 p-6 min-h-[500px]">
+            <div className="bg-white dark:bg-[#1a2230] border-2 border-slate-200 dark:border-slate-700 rounded-2xl p-6 min-h-[500px] shadow-sm">
                 {/* Patient Profile Tab */}
                 {activeTab === 'profile' && (
                     <div className="grid md:grid-cols-2 gap-6">

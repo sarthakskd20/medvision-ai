@@ -161,7 +161,7 @@ export default function DashboardOverview() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0, duration: 0.6 }}
-                        className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-8 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
+                        className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-queue.png" alt="Queue" fill className="object-contain" />
@@ -175,7 +175,7 @@ export default function DashboardOverview() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.1, duration: 0.6 }}
-                        className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-8 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
+                        className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-waiting.png" alt="Waiting" fill className="object-contain" />
@@ -189,7 +189,7 @@ export default function DashboardOverview() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.2, duration: 0.6 }}
-                        className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-8 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
+                        className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-completed.png" alt="Completed" fill className="object-contain" />
@@ -203,7 +203,7 @@ export default function DashboardOverview() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={statsVisible ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.3, duration: 0.6 }}
-                        className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-8 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1 hover:shadow-glow-sm"
+                        className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-8 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1"
                     >
                         <div className="w-14 h-14 mb-6 relative overflow-hidden">
                             <Image src="/images/icon-status.png" alt="Status" fill className="object-contain" />
@@ -227,8 +227,8 @@ export default function DashboardOverview() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Start Consultation Card */}
                     <Link href="/dashboard/appointments" className="group">
-                        <div className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-6 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated">
+                        <div className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated rounded-xl">
                                 <Image
                                     src="/images/doctor-consultation.png"
                                     alt="Start Consultation"
@@ -243,8 +243,8 @@ export default function DashboardOverview() {
 
                     {/* Patient Records Card */}
                     <Link href="/dashboard/patients" className="group">
-                        <div className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-6 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated">
+                        <div className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated rounded-xl">
                                 <Image
                                     src="/images/medical-clipboard.png"
                                     alt="Patient Records"
@@ -259,8 +259,8 @@ export default function DashboardOverview() {
 
                     {/* Clinical Tools Card */}
                     <Link href="/dashboard/analytics" className="group">
-                        <div className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-6 hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
-                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated">
+                        <div className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary-400 dark:hover:border-primary-400 transition-all duration-300 hover:-translate-y-1">
+                            <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-dark-elevated rounded-xl">
                                 <Image
                                     src="/images/doctor-stethoscope.png"
                                     alt="Clinical Tools"
@@ -298,9 +298,9 @@ export default function DashboardOverview() {
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={appointmentsVisible ? { opacity: 1 } : {}}
-                        className="bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-16 text-center"
+                        className="bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-16 text-center shadow-sm"
                     >
-                        <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 border-2 border-slate-200 dark:border-dark-border">
+                        <div className="w-20 h-20 flex items-center justify-center mx-auto mb-6 border border-slate-200 dark:border-dark-border rounded-2xl">
                             <span className="text-4xl">📅</span>
                         </div>
                         <h4 className="text-2xl font-black text-slate-700 dark:text-slate-300 mb-3">No Appointments Today</h4>
@@ -317,11 +317,11 @@ export default function DashboardOverview() {
                             >
                                 <Link
                                     href="/dashboard/appointments"
-                                    className="block bg-white dark:bg-dark-surface border-2 border-slate-200 dark:border-dark-border p-6 hover:border-primary-400 transition-colors group"
+                                    className="block bg-white dark:bg-dark-surface border border-slate-200 dark:border-dark-border rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-primary-400 transition-all duration-300 group"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-6">
-                                            <div className="w-16 h-16 bg-slate-100 dark:bg-dark-elevated flex items-center justify-center text-primary-400 font-black text-xl">
+                                            <div className="w-16 h-16 bg-slate-100 dark:bg-dark-elevated rounded-xl flex items-center justify-center text-primary-400 font-black text-xl">
                                                 {appointment.patient_name?.charAt(0) || 'P'}
                                             </div>
                                             <div>

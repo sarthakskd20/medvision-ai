@@ -21,6 +21,7 @@ import {
     Upload
 } from 'lucide-react'
 import Image from 'next/image'
+import api from '@/lib/api'
 
 const container = {
     hidden: { opacity: 0 },
@@ -56,27 +57,71 @@ export default function PatientProfilePage() {
     const [profileImage, setProfileImage] = useState<string | null>(null)
     const [imageLoading, setImageLoading] = useState(false)
 
+    const calculateAge = (dob: string) => {
+        if (!dob) return null
+        const birthDate = new Date(dob)
+        if (isNaN(birthDate.getTime())) return null
+
+        const today = new Date()
+        let age = today.getFullYear() - birthDate.getFullYear()
+        const m = today.getMonth() - birthDate.getMonth()
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--
+        }
+        return age
+    }
+
     useEffect(() => {
-        const userData = localStorage.getItem('user')
-        const savedImage = localStorage.getItem('profileImage')
-        if (savedImage) {
-            setProfileImage(savedImage)
+        const fetchProfile = async () => {
+            const userData = localStorage.getItem('user')
+            const savedImage = localStorage.getItem('profileImage')
+
+            if (savedImage) {
+                setProfileImage(savedImage)
+            }
+
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData)
+                    // Initial load from localStorage
+                    const initialProfile = {
+                        ...profile,
+                        name: user.name || user.fullName || profile.name,
+                        email: user.email || profile.email
+                    }
+                    setProfile(initialProfile)
+                    setEditedProfile(initialProfile)
+
+                    // Fetch full details from API
+                    const patientId = user.email || user.id
+                    if (patientId) {
+                        try {
+                            const data = await api.getPatient(patientId)
+                            if (data) {
+                                const apiProfile = {
+                                    name: data.name || data.full_name || initialProfile.name,
+                                    email: data.email || initialProfile.email,
+                                    phone: data.phone || data.phone_number || initialProfile.phone,
+                                    dateOfBirth: data.date_of_birth || data.dob || initialProfile.dateOfBirth,
+                                    gender: data.gender || initialProfile.gender,
+                                    bloodGroup: data.blood_group || initialProfile.bloodGroup,
+                                    address: data.address || initialProfile.address,
+                                    emergencyContact: data.emergency_contact || initialProfile.emergencyContact,
+                                    allergies: data.allergies || initialProfile.allergies,
+                                    medications: data.medications || initialProfile.medications,
+                                    conditions: data.conditions || initialProfile.conditions
+                                }
+                                setProfile(apiProfile)
+                                setEditedProfile(apiProfile)
+                            }
+                        } catch (err) {
+                            console.log('Error fetching patient profile:', err)
+                        }
+                    }
+                } catch (e) { }
+            }
         }
-        if (userData) {
-            try {
-                const user = JSON.parse(userData)
-                setProfile(prev => ({
-                    ...prev,
-                    name: user.name || prev.name,
-                    email: user.email || prev.email
-                }))
-                setEditedProfile(prev => ({
-                    ...prev,
-                    name: user.name || prev.name,
-                    email: user.email || prev.email
-                }))
-            } catch (e) { }
-        }
+        fetchProfile()
     }, [])
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,16 +195,7 @@ export default function PatientProfilePage() {
         setIsEditing(false)
     }
 
-    const calculateAge = (dob: string) => {
-        const today = new Date()
-        const birthDate = new Date(dob)
-        let age = today.getFullYear() - birthDate.getFullYear()
-        const m = today.getMonth() - birthDate.getMonth()
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--
-        }
-        return age
-    }
+    // calculateAge moved up
 
     return (
         <motion.div
@@ -203,7 +239,7 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Profile Card */}
-            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
                 {/* Cover & Avatar */}
                 <div className="h-32 bg-gradient-to-r from-primary-500 to-teal-500 relative">
                     <div className="absolute -bottom-12 left-6">
@@ -251,20 +287,27 @@ export default function PatientProfilePage() {
                             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold">
                                 {profile.bloodGroup}
                             </span>
-                            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
-                                {calculateAge(profile.dateOfBirth)} years
-                            </span>
+                            {profile.dateOfBirth && calculateAge(profile.dateOfBirth) !== null && (
+                                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold">
+                                    {calculateAge(profile.dateOfBirth)} years
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
             </motion.div>
 
             {/* Personal Information */}
-            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                    Personal Information
-                </h3>
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Personal Information</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Your personal details</p>
+                    </div>
+                </div>
                 <div className="grid md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Full Name</label>
@@ -357,11 +400,16 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Medical Information */}
-            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-red-500" />
-                    Medical Information
-                </h3>
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                        <Heart className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Medical Information</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Allergies and conditions</p>
+                    </div>
+                </div>
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Known Allergies</label>
@@ -403,11 +451,16 @@ export default function PatientProfilePage() {
             </motion.div>
 
             {/* Emergency Contact */}
-            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-orange-500" />
-                    Emergency Contact
-                </h3>
+            <motion.div variants={item} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                        <Shield className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Emergency Contact</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">For emergency situations</p>
+                    </div>
+                </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Emergency Phone</label>
                     {isEditing ? (

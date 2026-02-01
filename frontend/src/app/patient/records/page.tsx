@@ -184,7 +184,7 @@ export default function MedicalRecordsPage() {
                     { label: 'Imaging', value: records.filter(r => r.type === 'Imaging').length, icon: Image, color: 'text-teal-600 dark:text-teal-400', bg: 'bg-teal-50 dark:bg-teal-900/30' },
                     { label: 'This Month', value: thisMonthCount, icon: Calendar, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' }
                 ].map((stat) => (
-                    <div key={stat.label} className={`${stat.bg} p-4 rounded-xl border border-slate-200 dark:border-slate-700`}>
+                    <div key={stat.label} className={`${stat.bg} p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm`}>
                         <div className="flex items-center gap-3">
                             <stat.icon className={`w-5 h-5 ${stat.color}`} />
                             <div>

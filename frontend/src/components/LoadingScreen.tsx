@@ -133,8 +133,21 @@ function FloatingMedicalElement({ children, delay = 0, x, y }: {
 // ===================== MAIN LOADING SCREEN =====================
 export default function LoadingScreen({ minimumDuration = 3500, onLoadingComplete }: LoadingScreenProps) {
     const [isExiting, setIsExiting] = useState(false)
+    const [isMounted, setIsMounted] = useState(false)
+
+    // Wait for client-side hydration to complete before showing animations
+    useEffect(() => {
+        // Small delay to ensure React hydration is complete
+        const mountTimer = setTimeout(() => {
+            setIsMounted(true)
+        }, 50)
+        return () => clearTimeout(mountTimer)
+    }, [])
 
     useEffect(() => {
+        // Only start the loading timer after component is mounted
+        if (!isMounted) return
+
         // Complete loading after minimum duration
         const completeTimer = setTimeout(() => {
             setIsExiting(true)
@@ -146,11 +159,11 @@ export default function LoadingScreen({ minimumDuration = 3500, onLoadingComplet
         return () => {
             clearTimeout(completeTimer)
         }
-    }, [minimumDuration, onLoadingComplete])
+    }, [isMounted, minimumDuration, onLoadingComplete])
 
     return (
         <AnimatePresence>
-            {!isExiting && (
+            {isMounted && !isExiting && (
                 <motion.div
                     className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden"
                     exit={{ opacity: 0 }}

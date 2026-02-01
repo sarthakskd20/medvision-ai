@@ -283,13 +283,16 @@ export default function FindDoctorsPage() {
                                         <p className="text-primary-600 dark:text-primary-400 font-bold text-lg group-hover:tracking-wide transition-all duration-300">{doctor.specialization}</p>
                                     </div>
                                     {/* Rating badge with bounce on hover */}
-                                    <motion.div
-                                        whileHover={{ scale: 1.1 }}
-                                        className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-xl group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/50 transition-colors"
-                                    >
-                                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 group-hover:animate-spin" style={{ animationDuration: '2s' }} />
-                                        <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.average_rating || doctor.rating || 'New'}</span>
-                                    </motion.div>
+                                    {/* Rating badge - only show if exists */}
+                                    {(doctor.average_rating || doctor.rating) && (
+                                        <motion.div
+                                            whileHover={{ scale: 1.1 }}
+                                            className="flex items-center gap-1 bg-yellow-50 dark:bg-yellow-900/30 px-3 py-1.5 rounded-xl group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/50 transition-colors"
+                                        >
+                                            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 group-hover:animate-spin" style={{ animationDuration: '2s' }} />
+                                            <span className="font-extrabold text-slate-800 dark:text-yellow-300">{doctor.average_rating || doctor.rating}</span>
+                                        </motion.div>
+                                    )}
                                 </div>
 
                                 <p className="text-base text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1 font-medium group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
@@ -297,24 +300,13 @@ export default function FindDoctorsPage() {
                                     {doctor.hospital || doctor.hospital_address || 'Location not specified'}
                                 </p>
 
-                                <div className="flex items-center gap-3 mt-4">
-                                    <motion.div
-                                        whileHover={{ scale: 1.05 }}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-50 to-teal-50 dark:from-primary-900/40 dark:to-teal-900/40 border border-primary-100 dark:border-primary-800 rounded-xl group-hover:border-primary-300 dark:group-hover:border-primary-600 transition-colors"
-                                    >
-                                        <Award className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                        <span className="font-extrabold text-primary-700 dark:text-primary-300">{doctor.experience || doctor.years_experience || 3} Years</span>
-                                        <span className="text-slate-500 dark:text-slate-400 font-medium">Experience</span>
-                                    </motion.div>
-                                    {doctor.qualification && (
-                                        <>
-                                            <span className="text-slate-400 dark:text-slate-600">|</span>
-                                            <span className="text-slate-600 dark:text-slate-400 font-semibold">
-                                                {doctor.qualification}
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
+                                {doctor.qualification && (
+                                    <div className="flex items-center gap-3 mt-4">
+                                        <span className="text-slate-600 dark:text-slate-400 font-semibold bg-slate-50 dark:bg-slate-700/50 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-700 text-sm">
+                                            {doctor.qualification}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -336,12 +328,7 @@ export default function FindDoctorsPage() {
                                         <MapPin className="w-3 h-3" /> In-Person
                                     </motion.span>
                                 )}
-                                <motion.span
-                                    whileHover={{ scale: 1.1 }}
-                                    className="flex items-center gap-1 px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors cursor-default"
-                                >
-                                    <CheckCircle className="w-3 h-3" /> Verified
-                                </motion.span>
+                                {/* Verified badge removed as requested */}
                             </div>
 
                             <div className="flex items-center justify-between">

@@ -208,12 +208,12 @@ export default function PatientAppointmentsPage() {
             {/* Stats */}
             <motion.div variants={item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Upcoming', value: upcomingCount, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
-                    { label: 'Completed', value: completedCount, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
-                    { label: 'Cancelled', value: appointments.filter(a => a.status === 'cancelled').length, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
-                    { label: 'Total', value: appointments.length, color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-50 dark:bg-slate-800' }
+                    { label: 'Upcoming', value: upcomingCount, color: 'text-slate-900 dark:text-white', bg: 'bg-white dark:bg-slate-800' },
+                    { label: 'Completed', value: completedCount, color: 'text-slate-900 dark:text-white', bg: 'bg-white dark:bg-slate-800' },
+                    { label: 'Cancelled', value: appointments.filter(a => a.status === 'cancelled').length, color: 'text-slate-900 dark:text-white', bg: 'bg-white dark:bg-slate-800' },
+                    { label: 'Total', value: appointments.length, color: 'text-slate-900 dark:text-white', bg: 'bg-white dark:bg-slate-800' }
                 ].map((stat) => (
-                    <div key={stat.label} className={`${stat.bg} p-4 rounded-xl border border-slate-200 dark:border-slate-700`}>
+                    <div key={stat.label} className={`${stat.bg} p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm`}>
                         <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
                         <p className="text-sm text-slate-600 dark:text-slate-400">{stat.label}</p>
                     </div>

@@ -319,17 +319,7 @@ export default function DoctorMessagesPage() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                                <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                            </button>
-                            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                                <Video className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                            </button>
-                            <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                                <MoreVertical className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                            </button>
-                        </div>
+
                     </div>
 
                     {/* Messages */}

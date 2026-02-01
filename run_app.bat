@@ -383,7 +383,25 @@ start "MedVision-Frontend" cmd /k "cd /d "%ROOT_DIR%frontend" && echo. && echo =
 
 echo   [OK] Frontend starting on http://localhost:3000
 echo.
-timeout /t 15 /nobreak >nul
+
+:: Wait for frontend to be ready (polling with curl/powershell)
+echo   Waiting for frontend server to be ready...
+set "READY=0"
+for /L %%i in (1,1,30) do (
+    if "!READY!"=="0" (
+        timeout /t 2 /nobreak >nul
+        powershell -Command "try { $response = Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }" >nul 2>&1
+        if !errorlevel! equ 0 (
+            set "READY=1"
+            echo   [OK] Frontend server is ready!
+        )
+    )
+)
+
+if "!READY!"=="0" (
+    echo   [WARNING] Frontend may not be fully ready, opening anyway...
+    timeout /t 5 /nobreak >nul
+)
 
 :: ============================================
 :: Open Browser
@@ -398,6 +416,8 @@ echo   Backend:  http://localhost:8001
 echo   API Docs: http://localhost:8001/docs
 echo.
 
+:: Small delay after server is ready to ensure first render is complete
+timeout /t 2 /nobreak >nul
 start "" "http://localhost:3000"
 
 echo.
