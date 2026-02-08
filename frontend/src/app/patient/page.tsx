@@ -13,6 +13,7 @@ import {
     Stethoscope
 } from 'lucide-react'
 import api from '@/lib/api'
+import ProfileCompletionModal, { calculateProfileCompletion } from '@/components/ProfileCompletionModal'
 
 interface DashboardStats {
     upcomingAppointments: number
@@ -45,6 +46,21 @@ export default function PatientDashboard() {
     })
     const [appointments, setAppointments] = useState<Appointment[]>([])
 
+    // Profile completion modal state
+    const [showProfileModal, setShowProfileModal] = useState(false)
+    const [profileData, setProfileData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        dateOfBirth: '',
+        gender: '',
+        bloodGroup: '',
+        address: '',
+        emergencyContact: '',
+        allergies: [] as string[],
+        conditions: [] as string[]
+    })
+
     const statsRef = useRef<HTMLDivElement>(null)
     const appointmentsRef = useRef<HTMLDivElement>(null)
     const [statsVisible, setStatsVisible] = useState(false)
@@ -59,6 +75,21 @@ export default function PatientDashboard() {
                     setPatientName(user.name || user.fullName || 'Patient')
 
                     const patientId = user.email || user.id
+
+                    // Build initial profile data from user object
+                    const initialProfileData = {
+                        name: user.name || user.fullName || '',
+                        email: user.email || '',
+                        phone: user.phone || user.phone_number || '',
+                        dateOfBirth: user.date_of_birth || user.dob || '',
+                        gender: user.gender || '',
+                        bloodGroup: user.blood_group || '',
+                        address: user.address || '',
+                        emergencyContact: user.emergency_contact || '',
+                        allergies: user.allergies || [],
+                        conditions: user.conditions || []
+                    }
+
                     if (patientId) {
                         // Fetch real appointments - API now returns doctor_name
                         const appointmentsData = await api.getPatientAppointments(patientId)
@@ -92,6 +123,49 @@ export default function PatientDashboard() {
                             medicalRecords: recordsCount,
                             healthScore: 'Good'
                         })
+
+                        // Fetch full profile from API
+                        try {
+                            const patientData = await api.getPatient(patientId)
+                            if (patientData) {
+                                initialProfileData.name = patientData.name || patientData.full_name || initialProfileData.name
+                                initialProfileData.email = patientData.email || initialProfileData.email
+                                initialProfileData.phone = patientData.phone || patientData.phone_number || initialProfileData.phone
+                                initialProfileData.dateOfBirth = patientData.date_of_birth || patientData.dob || initialProfileData.dateOfBirth
+                                initialProfileData.gender = patientData.gender || initialProfileData.gender
+                                initialProfileData.bloodGroup = patientData.blood_group || initialProfileData.bloodGroup
+                                initialProfileData.address = patientData.address || initialProfileData.address
+                                initialProfileData.emergencyContact = patientData.emergency_contact || initialProfileData.emergencyContact
+                                initialProfileData.allergies = patientData.allergies || initialProfileData.allergies
+                                initialProfileData.conditions = patientData.conditions || initialProfileData.conditions
+                            }
+                        } catch (e) {
+                            console.log('Profile fetch error:', e)
+                        }
+                    }
+
+                    setProfileData(initialProfileData)
+
+                    // Check if we should show the profile completion modal
+                    const modalShown = sessionStorage.getItem('profileModalShown')
+                    const completion = calculateProfileCompletion(initialProfileData)
+
+                    // Debug logging
+                    console.log('Profile Completion Debug:', {
+                        completion,
+                        modalShown,
+                        profileData: initialProfileData
+                    })
+
+                    // Show modal if profile is incomplete and hasn't been shown this session
+                    if (!modalShown && completion < 100) {
+                        console.log('Showing profile completion modal...')
+                        setTimeout(() => {
+                            setShowProfileModal(true)
+                            sessionStorage.setItem('profileModalShown', 'true')
+                        }, 1000) // Delay to allow page to render first
+                    } else {
+                        console.log('Modal not shown because:', modalShown ? 'already shown this session' : `completion is ${completion}%`)
                     }
                 } catch (e) {
                     console.error('Failed to load data:', e)
@@ -279,19 +353,19 @@ export default function PatientDashboard() {
                         </div>
                     </Link>
 
-                    {/* Find Doctor Card */}
-                    <Link href="/patient/doctors" className="group">
+                    {/* Messages Card */}
+                    <Link href="/patient/messages" className="group">
                         <div className="bg-white dark:bg-[#1e2a3a] border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 hover:border-teal-500 dark:hover:border-teal-400 transition-all shadow-sm">
                             <div className="w-full h-40 relative mb-4 overflow-hidden bg-slate-50 dark:bg-slate-700">
                                 <Image
-                                    src="/images/patient-find-doctor.png"
-                                    alt="Find Doctor"
+                                    src="/images/patient-messages.png"
+                                    alt="Messages"
                                     fill
                                     className="object-contain group-hover:scale-105 transition-transform"
                                 />
                             </div>
-                            <h4 className="text-lg font-bold text-slate-900 dark:text-white">Find a Doctor</h4>
-                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Search by specialty or name</p>
+                            <h4 className="text-lg font-bold text-slate-900 dark:text-white">Messages</h4>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Chat with your doctors</p>
                         </div>
                     </Link>
                 </div>
@@ -392,6 +466,13 @@ export default function PatientDashboard() {
             </section>
 
             <div className="h-16" />
+
+            {/* Profile Completion Modal */}
+            <ProfileCompletionModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
+                profileData={profileData}
+            />
         </div>
     )
 }

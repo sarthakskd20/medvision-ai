@@ -195,7 +195,19 @@ if "!NEED_SETUP!"=="1" (
         echo   -- Backend Firebase Config --
         echo   ^(From Service Account JSON file^)
         set /p "FIREBASE_CLIENT_EMAIL=   Client Email: "
-        echo   NOTE: Private key is complex. You can edit backend\.env later.
+        echo.
+        echo   ---------------------------------------------
+        echo   FIREBASE PRIVATE KEY
+        echo   ---------------------------------------------
+        echo   From your Firebase service account JSON file, copy the
+        echo   private_key value ^(the long string starting with -----BEGIN^)
+        echo.
+        echo   IMPORTANT: Paste the ENTIRE key including:
+        echo   -----BEGIN PRIVATE KEY-----
+        echo   ...your key content...
+        echo   -----END PRIVATE KEY-----
+        echo.
+        set /p "FIREBASE_PRIVATE_KEY_INPUT=   Paste Private Key (single line, or ENTER to skip): "
     )
     echo.
     
@@ -217,8 +229,12 @@ if "!NEED_SETUP!"=="1" (
             echo FIREBASE_CLIENT_EMAIL=
         ) else (
             echo FIREBASE_PROJECT_ID=!FIREBASE_PROJECT_ID!
-            echo FIREBASE_PRIVATE_KEY=
-            echo # ^^ Edit this file and paste your private key from service account JSON
+            if "!FIREBASE_PRIVATE_KEY_INPUT!"=="" (
+                echo FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key_here\n-----END PRIVATE KEY-----\n"
+                echo # ^^ Replace the above with your actual private key from service account JSON
+            ) else (
+                echo FIREBASE_PRIVATE_KEY="!FIREBASE_PRIVATE_KEY_INPUT!"
+            )
             if "!FIREBASE_CLIENT_EMAIL!"=="" (
                 echo FIREBASE_CLIENT_EMAIL=
             ) else (

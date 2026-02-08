@@ -188,6 +188,32 @@ export default function PatientProfilePage() {
     const handleSave = () => {
         setProfile(editedProfile)
         setIsEditing(false)
+
+        // Persist to localStorage so profile completion updates
+        try {
+            const userData = localStorage.getItem('user')
+            if (userData) {
+                const user = JSON.parse(userData)
+                const updatedUser = {
+                    ...user,
+                    name: editedProfile.name,
+                    phone: editedProfile.phone,
+                    date_of_birth: editedProfile.dateOfBirth,
+                    gender: editedProfile.gender,
+                    blood_group: editedProfile.bloodGroup,
+                    address: editedProfile.address,
+                    emergency_contact: editedProfile.emergencyContact,
+                    allergies: editedProfile.allergies,
+                    conditions: editedProfile.conditions
+                }
+                localStorage.setItem('user', JSON.stringify(updatedUser))
+
+                // Clear the modal shown flag so it recalculates on next visit
+                sessionStorage.removeItem('profileModalShown')
+            }
+        } catch (e) {
+            console.error('Failed to save profile to localStorage:', e)
+        }
     }
 
     const handleCancel = () => {
@@ -413,39 +439,87 @@ export default function PatientProfilePage() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Known Allergies</label>
-                        <div className="flex flex-wrap gap-2">
-                            {profile.allergies.length > 0 ? profile.allergies.map((allergy, i) => (
-                                <span key={i} className="px-3 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
-                                    {allergy}
-                                </span>
-                            )) : (
-                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
-                            )}
-                        </div>
+                        {isEditing ? (
+                            <div>
+                                <input
+                                    type="text"
+                                    value={editedProfile.allergies.join(', ')}
+                                    onChange={(e) => setEditedProfile({
+                                        ...editedProfile,
+                                        allergies: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                                    })}
+                                    placeholder="Enter allergies separated by commas (e.g., Peanuts, Penicillin)"
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Separate multiple allergies with commas</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {profile.allergies.length > 0 ? profile.allergies.map((allergy, i) => (
+                                    <span key={i} className="px-3 py-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-sm font-medium">
+                                        {allergy}
+                                    </span>
+                                )) : (
+                                    <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Current Medications</label>
-                        <div className="flex flex-wrap gap-2">
-                            {profile.medications.length > 0 ? profile.medications.map((med, i) => (
-                                <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
-                                    {med}
-                                </span>
-                            )) : (
-                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
-                            )}
-                        </div>
+                        {isEditing ? (
+                            <div>
+                                <input
+                                    type="text"
+                                    value={editedProfile.medications.join(', ')}
+                                    onChange={(e) => setEditedProfile({
+                                        ...editedProfile,
+                                        medications: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                                    })}
+                                    placeholder="Enter medications separated by commas (e.g., Aspirin, Metformin)"
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Separate multiple medications with commas</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {profile.medications.length > 0 ? profile.medications.map((med, i) => (
+                                    <span key={i} className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+                                        {med}
+                                    </span>
+                                )) : (
+                                    <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Medical Conditions</label>
-                        <div className="flex flex-wrap gap-2">
-                            {profile.conditions.length > 0 ? profile.conditions.map((cond, i) => (
-                                <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium">
-                                    {cond}
-                                </span>
-                            )) : (
-                                <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
-                            )}
-                        </div>
+                        {isEditing ? (
+                            <div>
+                                <input
+                                    type="text"
+                                    value={editedProfile.conditions.join(', ')}
+                                    onChange={(e) => setEditedProfile({
+                                        ...editedProfile,
+                                        conditions: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                                    })}
+                                    placeholder="Enter conditions separated by commas (e.g., Diabetes, Hypertension)"
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                                />
+                                <p className="text-xs text-slate-400 mt-1">Separate multiple conditions with commas</p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                {profile.conditions.length > 0 ? profile.conditions.map((cond, i) => (
+                                    <span key={i} className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium">
+                                        {cond}
+                                    </span>
+                                )) : (
+                                    <span className="text-slate-400 dark:text-slate-500 italic">None added</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </motion.div>

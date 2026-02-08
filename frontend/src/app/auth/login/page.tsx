@@ -106,6 +106,23 @@ function LoginContent() {
         setError('')
         try {
             const user = await signInWithGoogle()
+
+            // Store user data to localStorage for profile population
+            const userData = {
+                id: user.uid,
+                email: user.email,
+                name: user.name,
+                fullName: user.name,
+                photoURL: user.photoURL,
+                role: role,
+                loginMethod: 'google'
+            }
+            localStorage.setItem('auth_token', user.idToken || 'google_auth')
+            localStorage.setItem('user', JSON.stringify(userData))
+
+            // Clear any previous session flags to show completion modal
+            sessionStorage.removeItem('profileModalShown')
+
             router.push(role === 'doctor' ? '/dashboard' : '/patient')
         } catch (err: any) {
             setError(err.message)
