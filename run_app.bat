@@ -362,8 +362,8 @@ echo.
 cd /d "%ROOT_DIR%backend"
 call venv\Scripts\activate.bat
 
-:: Start backend with debug logging
-start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo. && echo ============================================ && echo   MedVision AI - Backend Server && echo   Port: 8001 && echo ============================================ && echo. && set DEBUG_GEMINI=true && uvicorn app.main:app --reload --port 8001"
+:: Start backend with debug logging - use python -m uvicorn to ensure venv is used
+start "MedVision-Backend" cmd /k "cd /d "%ROOT_DIR%backend" && call venv\Scripts\activate.bat && echo. && echo ============================================ && echo   MedVision AI - Backend Server && echo   Port: 8001 && echo ============================================ && echo. && set DEBUG_GEMINI=true && python -m uvicorn app.main:app --reload --port 8001"
 
 echo   [OK] Backend starting on http://localhost:8001
 echo.
