@@ -9,9 +9,9 @@ import {
     FileText,
     Image as ImageIcon,
     X,
-    CheckCircle,
     AlertCircle,
-    Loader2
+    Loader2,
+    Sparkles
 } from 'lucide-react'
 import api from '@/lib/api'
 
@@ -22,6 +22,7 @@ interface UploadedFile {
     type: string
     status: 'uploading' | 'success' | 'error'
     progress: number
+    reportId?: string
 }
 
 export default function UploadRecordsPage() {
@@ -93,12 +94,12 @@ export default function UploadRecordsPage() {
 
             // Call API
             console.log('Uploading file:', file.name, 'for patient:', patientId)
-            await api.uploadAndInterpretReport(file, patientId)
+            const response = await api.uploadAndInterpretReport(file, patientId)
 
             clearInterval(progressInterval)
             setFiles((prev) =>
                 prev.map((f) =>
-                    f.id === fileId ? { ...f, progress: 100, status: 'success' } : f
+                    f.id === fileId ? { ...f, progress: 100, status: 'success', reportId: response.report_id } : f
                 )
             )
         } catch (error) {
@@ -224,8 +225,14 @@ export default function UploadRecordsPage() {
                                     {file.status === 'uploading' && (
                                         <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
                                     )}
-                                    {file.status === 'success' && (
-                                        <CheckCircle className="w-6 h-6 text-green-500" />
+                                    {file.status === 'success' && file.reportId && (
+                                        <Link
+                                            href={`/patient/records/${file.reportId}`}
+                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-teal-500 text-white font-semibold rounded-lg text-sm hover:shadow-lg transition-all"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            View AI Analysis
+                                        </Link>
                                     )}
                                     {file.status === 'error' && (
                                         <AlertCircle className="w-6 h-6 text-red-500" />

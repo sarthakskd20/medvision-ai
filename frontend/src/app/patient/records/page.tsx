@@ -10,7 +10,7 @@ import {
     Search,
     Filter,
     Download,
-    Eye,
+    Sparkles,
     Trash2,
     Plus,
     File,
@@ -19,6 +19,8 @@ import {
     Loader2
 } from 'lucide-react'
 import api from '@/lib/api'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
 const container = {
     hidden: { opacity: 0 },
@@ -225,11 +227,22 @@ export default function MedicalRecordsPage() {
                                     <div className="flex items-center gap-2">
                                         <Link
                                             href={`/patient/records/${record.id}`}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                            View Analysis
+                                        </Link>
+                                        <button
+                                            onClick={() => {
+                                                const userData = localStorage.getItem('user')
+                                                const user = userData ? JSON.parse(userData) : {}
+                                                const patientId = user.email || user.id
+                                                if (patientId) {
+                                                    window.open(`${API_URL}/api/reports/${patientId}/reports/${record.id}/download`, '_blank')
+                                                }
+                                            }}
                                             className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
                                         >
-                                            <Eye className="w-4 h-4" />
-                                        </Link>
-                                        <button className="p-2 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors">
                                             <Download className="w-4 h-4" />
                                         </button>
                                     </div>

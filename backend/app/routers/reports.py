@@ -3,7 +3,9 @@ Reports Router
 Handles lab report upload and interpretation for patients.
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from typing import Optional, List
+from pathlib import Path
 from app.services.gemini_service import GeminiService
 from app.services.pdf_service import extract_text_from_pdf
 from app.services.report_storage_service import get_report_storage
@@ -64,7 +66,7 @@ async def upload_and_interpret_report(
     # Save to JSON file if patient_id provided
     if patient_id:
         report_storage = get_report_storage()
-        report_id = report_storage.save_report(patient_id, response_data)
+        report_id = report_storage.save_report(patient_id, response_data, file_content=content)
         response_data["report_id"] = report_id
         response_data["saved"] = True
     else:
@@ -103,6 +105,29 @@ async def delete_patient_report(patient_id: str, report_id: str):
         raise HTTPException(status_code=404, detail="Report not found")
     
     return {"success": True, "message": "Report deleted"}
+
+
+@router.get("/{patient_id}/reports/{report_id}/download")
+async def download_patient_report(patient_id: str, report_id: str):
+    """Download the original uploaded file for a report."""
+    report_storage = get_report_storage()
+    file_path = report_storage.get_file_path(patient_id, report_id)
+    
+    if not file_path or not file_path.exists():
+        raise HTTPException(
+            status_code=404, 
+            detail="Original file not found. This report may have been uploaded before file storage was enabled."
+        )
+    
+    # Get the report to retrieve the original filename
+    report = report_storage.get_report(patient_id, report_id)
+    original_filename = report.get("filename", "report") if report else "report"
+    
+    return FileResponse(
+        path=file_path,
+        filename=original_filename,
+        media_type="application/octet-stream"
+    )
 
 
 @router.post("/interpret-text")

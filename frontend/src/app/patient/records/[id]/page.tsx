@@ -10,6 +10,7 @@ import {
     Calendar,
     Activity,
     AlertCircle,
+    AlertTriangle,
     CheckCircle,
     HelpCircle,
     Download,
@@ -19,6 +20,8 @@ import {
     ChevronUp
 } from 'lucide-react'
 import api from '@/lib/api'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
 
 // Animations
 const container = {
@@ -165,11 +168,35 @@ export default function ReportDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-600 dark:text-slate-300">
+                    <button
+                        onClick={() => {
+                            const userData = localStorage.getItem('user')
+                            const user = userData ? JSON.parse(userData) : {}
+                            const patientId = user.email || user.id
+                            if (patientId && params.id) {
+                                window.open(`${API_URL}/api/reports/${patientId}/reports/${params.id}/download`, '_blank')
+                            }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-600 dark:text-slate-300"
+                    >
                         <Download className="w-4 h-4" />
                         Original
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-600 dark:text-slate-300">
+                    <button
+                        onClick={() => {
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: `Medical Report - ${report.filename}`,
+                                    text: summary,
+                                    url: window.location.href
+                                }).catch(() => { })
+                            } else {
+                                navigator.clipboard.writeText(window.location.href)
+                                alert('Link copied to clipboard!')
+                            }
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition text-slate-600 dark:text-slate-300"
+                    >
                         <Share2 className="w-4 h-4" />
                         Share
                     </button>
@@ -275,6 +302,16 @@ export default function ReportDetailPage() {
                             </motion.div>
                         ))
                     )}
+                </div>
+            </motion.div>
+
+            {/* AI Disclaimer */}
+            <motion.div variants={item} className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-800/50 p-4">
+                <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                        The reports are AI generated and may make mistakes. It is advised to consult a medical professional for confirmation of the provided analysis.
+                    </p>
                 </div>
             </motion.div>
         </motion.div>
