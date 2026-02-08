@@ -18,7 +18,8 @@ import {
     Bell,
     Lock,
     Camera,
-    Upload
+    Upload,
+    Trash2
 } from 'lucide-react'
 import Image from 'next/image'
 import api from '@/lib/api'
@@ -221,6 +222,15 @@ export default function PatientProfilePage() {
         setIsEditing(false)
     }
 
+    const handleRemoveImage = () => {
+        setProfileImage(null)
+        try {
+            localStorage.removeItem('profileImage')
+        } catch (e) {
+            console.warn('Could not remove image from localStorage:', e)
+        }
+    }
+
     // calculateAge moved up
 
     return (
@@ -289,15 +299,26 @@ export default function PatientProfilePage() {
                                 )}
                             </div>
                             {isEditing && (
-                                <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-700 transition-colors">
-                                    <Camera className="w-4 h-4 text-white" />
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="hidden"
-                                    />
-                                </label>
+                                <div className="absolute -bottom-1 -right-1 flex gap-1">
+                                    <label className="w-7 h-7 bg-primary-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-primary-700 transition-colors">
+                                        <Camera className="w-3.5 h-3.5 text-white" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                    {profileImage && (
+                                        <button
+                                            onClick={handleRemoveImage}
+                                            className="w-7 h-7 bg-red-500 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                                            title="Remove photo"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5 text-white" />
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
