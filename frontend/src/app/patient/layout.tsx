@@ -14,7 +14,8 @@ import {
     Menu,
     X,
     ChevronDown,
-    MessageSquare
+    MessageSquare,
+    BookOpen
 } from 'lucide-react'
 import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -26,6 +27,7 @@ const navItems = [
     { label: 'Appointments', href: '/patient/appointments', icon: Calendar },
     { label: 'Messages', href: '/patient/messages', icon: MessageSquare },
     { label: 'Records', href: '/patient/records', icon: FileText },
+    { label: 'Library', href: '/patient/library', icon: BookOpen },
     { label: 'Profile', href: '/patient/profile', icon: User },
 ]
 
