@@ -41,29 +41,45 @@ class HybridDatabaseService:
             HybridDatabaseService._initialized = True
     
     def _initialize(self):
-        """Initialize database connections with SQLite as primary (Firebase disabled for now)."""
+        """Initialize database connections with Firebase as primary."""
         print("\n" + "="*60)
         print("🔧 Initializing Hybrid Database Service")
         print("="*60)
         
-        # TEMPORARILY DISABLED: Firebase has async/sync compatibility issues
-        # Force SQLite as primary database for now
-        print("⚠️ Firebase disabled - using SQLite as primary database")
-        print("   (Firebase can be re-enabled once async issues are resolved)")
-        self._use_firebase = False
+        # Try Firebase first (primary for production)
+        if FIREBASE_AVAILABLE:
+            print("\n☁️ Initializing Firebase Firestore...")
+            try:
+                self._firebase = FirebaseService()
+                if self._firebase.is_connected:
+                    self._use_firebase = True
+                    print("✅ Firebase Firestore connected successfully!")
+                else:
+                    print("⚠️ Firebase available but not connected, falling back to SQLite")
+                    self._use_firebase = False
+            except Exception as e:
+                print(f"⚠️ Firebase initialization failed: {e}")
+                print("   Falling back to SQLite...")
+                self._use_firebase = False
+        else:
+            print("⚠️ Firebase Admin SDK not installed, using SQLite")
+            self._use_firebase = False
         
-        # Initialize SQLite as primary
-        print("\n💾 Initializing SQLite database...")
-        try:
-            self._sqlite = DatabaseService()
-            print("✅ SQLite database ready")
-        except Exception as e:
-            print(f"❌ SQLite initialization failed: {e}")
+        # Initialize SQLite as fallback (only if Firebase not available)
+        if not self._use_firebase:
+            print("\n💾 Initializing SQLite database...")
+            try:
+                self._sqlite = DatabaseService()
+                print("✅ SQLite database ready")
+            except Exception as e:
+                print(f"❌ SQLite initialization failed: {e}")
         
         # Summary
         print("\n" + "-"*60)
-        print("📊 Active Database: SQLite (Primary)")
-        print("📊 Firebase: Disabled (async compatibility)")
+        if self._use_firebase:
+            print("📊 Active Database: Firebase Firestore (Primary)")
+        else:
+            print("📊 Active Database: SQLite (Fallback)")
         print("="*60 + "\n")
     
     @property
