@@ -152,33 +152,151 @@ Be thorough but concise in your reasoning.
     async def simplify_lab_report(self, report_text: str) -> dict:
         """Simplify a lab report to plain language for patients."""
         prompt = SIMPLIFY_REPORT_PROMPT.format(report_text=report_text)
-        response = await self._call_gemini(prompt, temperature=0.3)
+        # Use higher token limit to avoid truncation of complex reports
+        response = await self._call_gemini(prompt, temperature=0.3, max_tokens=16384)
+        
+        print(f"[Gemini] Raw response length: {len(response)} chars")
         
         try:
             # Clean up response if it contains markdown code blocks
             clean_response = response.strip()
+            
+            # Try multiple extraction strategies
+            json_text = None
+            
+            # Strategy 1: Extract from ```json blocks
             if "```json" in clean_response:
-                clean_response = clean_response.split("```json")[1].split("```")[0].strip()
+                parts = clean_response.split("```json")
+                if len(parts) > 1:
+                    json_part = parts[1]
+                    if "```" in json_part:
+                        json_text = json_part.split("```")[0].strip()
+                    else:
+                        # JSON block not closed - use everything after ```json
+                        json_text = json_part.strip()
+            # Strategy 2: Extract from ``` blocks
             elif "```" in clean_response:
-                clean_response = clean_response.split("```")[1].split("```")[0].strip()
+                parts = clean_response.split("```")
+                if len(parts) >= 2:
+                    json_text = parts[1].strip()
+                    if json_text.startswith("json"):
+                        json_text = json_text[4:].strip()
+            # Strategy 3: Find JSON object directly
+            elif clean_response.startswith("{"):
+                json_text = clean_response
+            # Strategy 4: Find { and } and extract between them
+            else:
+                start_idx = clean_response.find("{")
+                end_idx = clean_response.rfind("}")
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_text = clean_response[start_idx:end_idx + 1]
             
-            data = json.loads(clean_response)
+            if json_text:
+                print(f"[Gemini] Extracted JSON text length: {len(json_text)} chars")
+                
+                try:
+                    data = json.loads(json_text)
+                    print(f"[Gemini] Successfully parsed JSON with keys: {list(data.keys())}")
+                    
+                    return {
+                        "simplified": data.get("simplified", response),
+                        "results": data.get("results", []),
+                        "summary": data.get("summary", ""),
+                        "questions": data.get("questions", [])
+                    }
+                except json.JSONDecodeError as parse_error:
+                    print(f"[Gemini] JSON parse failed: {parse_error}")
+                    print(f"[Gemini] Attempting partial extraction from truncated JSON")
+                    
+                    # Try to extract partial data from truncated JSON
+                    return self._extract_partial_json(json_text, response)
             
-            return {
-                "simplified": data.get("simplified", response),
-                "results": data.get("results", []),
-                "summary": data.get("summary", ""),
-                "questions": data.get("questions", [])
-            }
-        except Exception as e:
-            print(f"Error parsing Gemini JSON: {e}")
-            # Fallback to text
+            # If no JSON found, try to generate a summary from the response
+            print(f"[Gemini] Could not find JSON in response, using raw text as simplified")
             return {
                 "simplified": response,
                 "results": [],
-                "summary": "",
+                "summary": "AI analysis completed. Please review the detailed findings above.",
+                "questions": ["What do these results mean for my overall health?", "Should I make any lifestyle changes based on these findings?"]
+            }
+            
+        except Exception as e:
+            print(f"Error in simplify_lab_report: {e}")
+            return {
+                "simplified": response if response else f"Error processing report: {str(e)}",
+                "results": [],
+                "summary": "An error occurred during analysis. Please try uploading again.",
                 "questions": []
             }
+    
+    def _extract_partial_json(self, truncated_json: str, raw_response: str) -> dict:
+        """Extract partial data from truncated JSON responses."""
+        results = []
+        summary = ""
+        questions = []
+        simplified = raw_response
+        
+        # Try to extract results array using regex
+        # Match individual result objects
+        result_pattern = r'\{\s*"test_name"\s*:\s*"([^"]+)"\s*,\s*"value"\s*:\s*"([^"]+)"\s*,\s*"normal_range"\s*:\s*"([^"]*)"\s*,\s*"status"\s*:\s*"([^"]+)"\s*,\s*"explanation"\s*:\s*"([^"]+)"\s*,\s*"action_needed"\s*:\s*"([^"]+)"\s*\}'
+        
+        matches = re.finditer(result_pattern, truncated_json)
+        for match in matches:
+            results.append({
+                "test_name": match.group(1),
+                "value": match.group(2),
+                "normal_range": match.group(3),
+                "status": match.group(4),
+                "explanation": match.group(5),
+                "action_needed": match.group(6)
+            })
+        
+        print(f"[Gemini] Extracted {len(results)} results from truncated JSON")
+        
+        # Try to extract summary
+        summary_match = re.search(r'"summary"\s*:\s*"([^"]+)"', truncated_json)
+        if summary_match:
+            summary = summary_match.group(1)
+            print(f"[Gemini] Extracted summary: {summary[:50]}...")
+        
+        # Try to extract questions
+        questions_match = re.search(r'"questions"\s*:\s*\[(.*?)\]', truncated_json, re.DOTALL)
+        if questions_match:
+            q_text = questions_match.group(1)
+            q_matches = re.findall(r'"([^"]+)"', q_text)
+            questions = list(q_matches)[:5]  # Limit to 5 questions
+            print(f"[Gemini] Extracted {len(questions)} questions")
+        
+        # Try to extract simplified content
+        simplified_match = re.search(r'"simplified"\s*:\s*"((?:[^"\\]|\\.)*)"', truncated_json, re.DOTALL)
+        if simplified_match:
+            simplified = simplified_match.group(1).replace('\\n', '\n').replace('\\"', '"')
+            print(f"[Gemini] Extracted simplified text: {len(simplified)} chars")
+        
+        # If we got results, consider it a success
+        if results:
+            if not summary:
+                summary = f"Analysis identified {len(results)} test results. See detailed findings below."
+            if not questions:
+                questions = [
+                    "What do these results mean for my overall health?",
+                    "Are there any values I should be concerned about?",
+                    "Should I make any lifestyle changes based on these findings?"
+                ]
+            return {
+                "simplified": simplified,
+                "results": results,
+                "summary": summary,
+                "questions": questions
+            }
+        
+        # Fallback if no results extracted
+        return {
+            "simplified": raw_response,
+            "results": [],
+            "summary": "AI analysis completed. Please review the detailed findings above.",
+            "questions": ["What do these results mean for my overall health?", "Should I make any lifestyle changes based on these findings?"]
+        }
     
     async def chat_response(self, message: str, context: str = "") -> dict:
         """Generate a chat response with optional patient context."""

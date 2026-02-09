@@ -24,6 +24,8 @@ async def upload_and_interpret_report(
     This is the PATIENT-FACING feature.
     If patient_id is provided, the report will be saved for future reference.
     """
+    print(f"[Upload] Started processing file: {file.filename} for patient: {patient_id}")
+    
     # Validate file type
     allowed_types = [".pdf", ".png", ".jpg", ".jpeg"]
     file_ext = "." + file.filename.split(".")[-1].lower() if "." in file.filename else ""
@@ -36,22 +38,32 @@ async def upload_and_interpret_report(
     
     # Read file content
     content = await file.read()
+    print(f"[Upload] File size: {len(content)} bytes")
     
     # Extract text based on file type
     if file_ext == ".pdf":
         extracted_text = extract_text_from_pdf(content)
+        print(f"[Upload] PDF text extracted: {len(extracted_text)} chars")
+        print(f"[Upload] Text preview: {extracted_text[:300]}...")
     else:
         # For images, we use Gemini's vision capability
+        print(f"[Upload] Using Gemini vision for image extraction")
         extracted_text = await gemini.extract_text_from_image(content)
+        print(f"[Upload] Vision text extracted: {len(extracted_text) if extracted_text else 0} chars")
     
-    if not extracted_text:
+    if not extracted_text or len(extracted_text) < 20:
+        print(f"[Upload] ERROR: Insufficient text extracted: '{extracted_text}'")
         raise HTTPException(
             status_code=400,
-            detail="Could not extract text from the uploaded file"
+            detail=f"Could not extract text from the uploaded file. Extracted only {len(extracted_text) if extracted_text else 0} characters."
         )
     
-    # Interpret using Gemini 3
+    # Interpret using Gemini
+    print(f"[Upload] Calling Gemini to simplify report...")
     interpretation = await gemini.simplify_lab_report(extracted_text)
+    print(f"[Upload] Gemini returned: {list(interpretation.keys())}")
+    print(f"[Upload] Summary: {interpretation.get('summary', 'NO SUMMARY')[:100]}...")
+    print(f"[Upload] Results count: {len(interpretation.get('results', []))}")
     
     # Build response
     response_data = {
@@ -69,9 +81,11 @@ async def upload_and_interpret_report(
         report_id = report_storage.save_report(patient_id, response_data, file_content=content)
         response_data["report_id"] = report_id
         response_data["saved"] = True
+        print(f"[Upload] Report saved with ID: {report_id}")
     else:
         response_data["saved"] = False
     
+    print(f"[Upload] Completed successfully")
     return response_data
 
 
