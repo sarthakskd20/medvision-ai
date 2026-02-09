@@ -8,9 +8,7 @@ import {
     ArrowRight,
     Loader2,
     CheckCircle,
-    AlertCircle,
-    Check,
-    X
+    AlertCircle
 } from 'lucide-react'
 import { validatePassword, getStrengthColor, getStrengthBgColor, getStrengthWidth } from '@/utils/passwordValidator'
 
@@ -21,7 +19,6 @@ export default function PatientRegisterPage() {
     const [success, setSuccess] = useState(false)
     const [parallaxOffset, setParallaxOffset] = useState(0)
     const [passwordValidation, setPasswordValidation] = useState(validatePassword(''))
-    const [showPasswordRequirements, setShowPasswordRequirements] = useState(false)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -45,7 +42,7 @@ export default function PatientRegisterPage() {
 
         // Validate password in real-time
         if (name === 'password') {
-            const validation = validatePassword(value, formData.email)
+            const validation = validatePassword(value)
             setPasswordValidation(validation)
         }
     }
@@ -55,10 +52,10 @@ export default function PatientRegisterPage() {
         setError('')
         setIsLoading(true)
 
-        // Validate password with strict requirements
-        const validation = validatePassword(formData.password, formData.email)
+        // Validate password
+        const validation = validatePassword(formData.password)
         if (!validation.isValid) {
-            setError(validation.errors[0] || 'Password does not meet security requirements')
+            setError(validation.errors[0] || 'Password does not meet requirements')
             setIsLoading(false)
             return
         }
@@ -243,95 +240,19 @@ export default function PatientRegisterPage() {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
-                                    onFocus={() => setShowPasswordRequirements(true)}
-                                    placeholder="Create a strong password"
+                                    placeholder="Create a password"
                                     className="block w-full py-2.5 border-b border-slate-400 placeholder-slate-500 focus:outline-none focus:border-primary-600 transition-colors bg-transparent"
                                     required
                                 />
 
-                                {/* Password Strength Indicator */}
+                                {/* Password Strength Indicator - Clean bar only */}
                                 {formData.password && (
                                     <div className="mt-2">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs font-medium text-slate-600">Password Strength:</span>
-                                            <span className={`text-xs font-bold uppercase ${getStrengthColor(passwordValidation.strength)}`}>
-                                                {passwordValidation.strength}
-                                            </span>
-                                        </div>
                                         <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full ${getStrengthBgColor(passwordValidation.strength)} transition-all duration-300`}
                                                 style={{ width: getStrengthWidth(passwordValidation.strength) }}
                                             />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Password Requirements Checklist */}
-                                {showPasswordRequirements && (
-                                    <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                                        <p className="text-xs font-semibold text-slate-700 mb-2">Password Requirements:</p>
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.minLength ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.minLength ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    At least 12 characters
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.hasUppercase ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.hasUppercase ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    One uppercase letter (A-Z)
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.hasLowercase ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.hasLowercase ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    One lowercase letter (a-z)
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.hasNumber ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.hasNumber ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    One number (0-9)
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.hasSpecialChar ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.hasSpecialChar ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    One special character (!@#$%...)
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {passwordValidation.requirements.noCommonPatterns ? (
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                ) : (
-                                                    <X className="w-4 h-4 text-red-500" />
-                                                )}
-                                                <span className={`text-xs ${passwordValidation.requirements.noCommonPatterns ? 'text-green-700' : 'text-slate-600'}`}>
-                                                    No common patterns or sequences
-                                                </span>
-                                            </div>
                                         </div>
                                     </div>
                                 )}
