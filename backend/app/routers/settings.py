@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/settings", tags=["Doctor Settings"])
 db = get_database_service()
 
 class DoctorSettingsUpdate(BaseModel):
+    hospital_address: Optional[str] = None
     custom_meet_link: Optional[str] = None
     working_hours_start: Optional[str] = None
     working_hours_end: Optional[str] = None

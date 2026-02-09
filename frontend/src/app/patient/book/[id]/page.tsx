@@ -205,6 +205,30 @@ export default function BookAppointmentPage() {
                     availableSlots: []
                 }
 
+                // Fetch doctor details from API
+                try {
+                    const searchResult = await api.searchDoctors('', '')
+                    const foundDoctor = searchResult.doctors.find((d: any) => d.id === doctorId)
+                    if (foundDoctor) {
+                        doctorData = {
+                            id: foundDoctor.id,
+                            name: foundDoctor.name || foundDoctor.full_name || 'Doctor',
+                            specialization: foundDoctor.specialization || 'Specialist',
+                            hospital: foundDoctor.hospital || foundDoctor.hospital_address,
+                            acceptsOnline: foundDoctor.accepts_online !== false,
+                            acceptsOffline: foundDoctor.accepts_offline !== false,
+                            // Use online_fee by default, will update based on mode selection
+                            consultationFee: foundDoctor.online_fee || foundDoctor.offline_fee || 500,
+                            availableSlots: []
+                        }
+                            // Store both fees for later use when mode changes
+                            ; (doctorData as any).online_fee = foundDoctor.online_fee || 500
+                            ; (doctorData as any).offline_fee = foundDoctor.offline_fee || 500
+                    }
+                } catch (docError) {
+                    console.error('Failed to fetch doctor details:', docError)
+                }
+
                 // Fetch available slots for today and tomorrow
                 try {
                     const [todaySlots, tomorrowSlots] = await Promise.all([
@@ -1034,7 +1058,7 @@ export default function BookAppointmentPage() {
                                         </div>
                                         <div className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
                                             <span className="text-slate-600 dark:text-slate-400">Consultation Fee</span>
-                                            <span className="font-bold text-lg text-primary-600">₹{doctor?.consultationFee || 500}</span>
+                                            <span className="font-bold text-lg text-primary-600">₹{selectedMode === 'online' ? ((doctor as any)?.online_fee || doctor?.consultationFee || 500) : ((doctor as any)?.offline_fee || doctor?.consultationFee || 500)}</span>
                                         </div>
                                     </div>
 

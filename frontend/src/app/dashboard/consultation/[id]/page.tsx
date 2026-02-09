@@ -377,6 +377,9 @@ export default function ConsultationPage() {
                 return
             }
 
+            // Save notes and vitals first to ensure they are persisted
+            await saveNotes()
+
             // Save prescription if any medications
             if (medications.length > 0) {
                 const prescRes = await fetch(`${API_BASE}/api/consultation/${consultation.id}/prescription`, {

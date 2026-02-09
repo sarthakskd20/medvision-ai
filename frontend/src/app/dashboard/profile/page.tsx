@@ -123,6 +123,13 @@ export default function DoctorProfilePage() {
         setError('')
         setSaved(false)
 
+        // Check token exists
+        const token = localStorage.getItem('auth_token')
+        if (!token) {
+            setError('Session expired. Please log in again.')
+            return
+        }
+
         if (meetLink && !validateMeetLink(meetLink)) {
             setError('Please enter a valid Google Meet link (e.g., https://meet.google.com/abc-defg-hij)')
             return
@@ -162,7 +169,15 @@ export default function DoctorProfilePage() {
 
         } catch (err: any) {
             console.error('Failed to save profile:', err)
-            setError(err.message || 'Failed to save settings')
+            // Provide helpful error message for auth-related issues
+            const errorMessage = err.message || 'Failed to save settings'
+            if (errorMessage.includes('Access denied') || errorMessage.includes('Doctor role required')) {
+                setError('Session error: Please log out and log back in as a doctor to fix this issue.')
+            } else if (errorMessage.includes('401') || errorMessage.includes('expired')) {
+                setError('Session expired. Please log in again.')
+            } else {
+                setError(errorMessage)
+            }
         } finally {
             setLoading(false)
         }
