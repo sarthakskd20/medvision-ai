@@ -166,6 +166,21 @@ class HybridDatabaseService:
         result = self._execute_with_fallback("get_all_patients", limit)
         return result if result is not None else []
     
+    # Alias methods for backward compatibility with patients.py router
+    async def get_patient(self, patient_id: str) -> Optional[dict]:
+        """Alias for get_patient_by_email - treats patient_id as email."""
+        # Try by email first (since patient_id in this context is often email)
+        result = self._execute_with_fallback("get_patient_by_email", patient_id)
+        if result:
+            return result
+        # Fallback to by id
+        return self._execute_with_fallback("get_patient_by_id", patient_id)
+    
+    async def get_patients(self, limit: int = 20, offset: int = 0) -> List[dict]:
+        """Alias for get_all_patients with pagination support."""
+        result = self._execute_with_fallback("get_all_patients", limit)
+        return result if result is not None else []
+    
     # ===========================================
     # DEMO PATIENT OPERATIONS
     # ===========================================
