@@ -401,15 +401,15 @@ async def get_doctor_appointments_today(doctor_id: str, date: Optional[str] = No
         
         for pid in patient_ids:
             try:
-                # get_patient_by_id is async
-                p_data = await firebase.get_patient_by_id(pid)
+                # get_patient_by_id is sync in hybrid service
+                p_data = firebase.get_patient_by_id(pid)
                 if not p_data:
                     # Fallback: Try fetching by email if PID looks like email
                     if "@" in pid:
-                        p_data = await firebase.get_patient_by_email(pid)
+                        p_data = firebase.get_patient_by_email(pid)
                     # Or just try generic get_patient if available in hybrid service
                     elif hasattr(firebase, 'get_patient'):
-                         p_data = await firebase.get_patient(pid)
+                         p_data = firebase.get_patient(pid)
                 
                 if p_data:
                     patient_map[pid] = p_data

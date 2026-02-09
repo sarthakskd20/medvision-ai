@@ -539,8 +539,14 @@ class FirebaseService:
             docs = query.stream()
             results = [doc.to_dict() for doc in docs]
             
-            # Sort in Python instead
-            results.sort(key=lambda x: x.get("scheduled_time", ""), reverse=True)
+            # Normalize scheduled_time to string for consistent sorting
+            for result in results:
+                st = result.get("scheduled_time")
+                if st is not None and hasattr(st, 'isoformat'):
+                    result["scheduled_time"] = st.isoformat()
+            
+            # Sort in Python by scheduled_time string
+            results.sort(key=lambda x: str(x.get("scheduled_time", "")), reverse=True)
             return results
         except Exception as e:
             print(f"Error fetching patient appointments: {e}")

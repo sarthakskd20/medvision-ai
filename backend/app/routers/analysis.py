@@ -41,7 +41,7 @@ async def generate_clinical_summary(request: SummaryRequest):
         sys.stdout.flush()
         
         # Load complete patient history
-        history = await firebase.get_patient_history(request.patient_id)
+        history = firebase.get_patient_history(request.patient_id)
         if not history:
             raise HTTPException(status_code=404, detail="Patient not found")
         
@@ -74,7 +74,7 @@ async def predict_trajectory(request: TrajectoryRequest):
     firebase = get_database_service()
     
     # Load complete patient history
-    history = await firebase.get_patient_history(request.patient_id)
+    history = firebase.get_patient_history(request.patient_id)
     if not history:
         raise HTTPException(status_code=404, detail="Patient not found")
     
@@ -105,8 +105,8 @@ async def compare_scans(
     firebase = get_database_service()
     
     # Get both scans
-    scan1 = await firebase.get_scan(scan_id_1)
-    scan2 = await firebase.get_scan(scan_id_2)
+    scan1 = firebase.get_scan(scan_id_1)
+    scan2 = firebase.get_scan(scan_id_2)
     
     if not scan1 or not scan2:
         raise HTTPException(status_code=404, detail="Scan not found")

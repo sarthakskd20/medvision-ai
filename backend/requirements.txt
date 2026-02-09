@@ -26,3 +26,6 @@ pillow>=10.0.0,<12.0.0
 # Environment & AI
 python-dotenv>=1.0.0,<2.0.0
 google-generativeai>=0.3.0,<1.0.0
+
+# Firebase (Firestore Database)
+firebase-admin>=6.0.0,<7.0.0

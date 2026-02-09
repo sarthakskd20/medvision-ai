@@ -15,7 +15,7 @@ firebase = get_database_service()
 async def list_patients(limit: int = 20, offset: int = 0):
     """Get list of all patients."""
     try:
-        patients = await firebase.get_patients(limit=limit, offset=offset)
+        patients = firebase.get_patients(limit=limit, offset=offset)
         return patients
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -24,7 +24,7 @@ async def list_patients(limit: int = 20, offset: int = 0):
 @router.get("/{patient_id}")
 async def get_patient(patient_id: str):
     """Get patient details by ID."""
-    patient = await firebase.get_patient(patient_id)
+    patient = firebase.get_patient(patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
@@ -36,12 +36,12 @@ async def get_patient_timeline(patient_id: str):
     Get complete patient timeline with all events.
     This is the CORE feature - loads full patient history.
     """
-    patient = await firebase.get_patient(patient_id)
+    patient = firebase.get_patient(patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     
     # Get complete history for timeline
-    history = await firebase.get_patient_history(patient_id)
+    history = firebase.get_patient_history(patient_id)
     
     # Build timeline events
     timeline = []
@@ -97,7 +97,7 @@ async def get_patient_full_context(patient_id: str):
     Get complete patient context for Gemini 3's 2M token window.
     This is what enables the Clinical Time Machine.
     """
-    history = await firebase.get_patient_history(patient_id)
+    history = firebase.get_patient_history(patient_id)
     if not history:
         raise HTTPException(status_code=404, detail="Patient not found")
     

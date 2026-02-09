@@ -35,7 +35,7 @@ async def send_chat_message(chat: ChatMessage):
         from app.services.hybrid_service import get_database_service
         firebase = get_database_service()
         
-        history = await firebase.get_patient_history(chat.patient_id)
+        history = firebase.get_patient_history(chat.patient_id)
         if history:
             from app.services.gemini_service import build_patient_context
             context = build_patient_context(history)

@@ -34,15 +34,21 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 # Configure CORS for frontend access
+# Note: Cannot use "*" with allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Local frontend
-        "https://*.vercel.app",   # Vercel deployments
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "https://medvision-ai.vercel.app",
+        "https://medvision-ai-git-main.vercel.app",
+        "https://medvision-frontend.vercel.app",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # This works for Vercel subdomains
 )
 
 # Include routers
